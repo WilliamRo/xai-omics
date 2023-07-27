@@ -65,7 +65,7 @@ def main(_):
   th.optimizer = 'adam'
   th.learning_rate = 0.0003
 
-  th.train = True
+  th.train = False
   th.overwrite = True
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate

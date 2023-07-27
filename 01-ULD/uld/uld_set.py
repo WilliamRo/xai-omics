@@ -1,6 +1,7 @@
 import numpy as np
 
 from tframe import DataSet
+from tframe import Predictor
 
 
 
@@ -44,3 +45,25 @@ class ULDSet(DataSet):
 
     # Clear dynamic_round_len if necessary
     if is_training: self._clear_dynamic_round_len()
+
+
+  def evaluate_model(self, model: Predictor):
+    from xomics.gui.dr_gordon import DrGordon
+    from xomics import MedicalImage
+
+    # pred.shape = [N, s, s, s, 1]
+    pred = model.predict(self)
+
+    # Compare results using DrGordon
+    medical_images = [
+      MedicalImage(f'Sample-{i}', images={
+        'Input': self.features[i],
+        'Targets': self.targets[i],
+        'Model-Output': pred[i]})
+      for i in range(self.size)]
+
+    dg = DrGordon(medical_images)
+    dg.slice_view.set('vmin', auto_refresh=False)
+    dg.slice_view.set('vmax', auto_refresh=False)
+    dg.show()
+
