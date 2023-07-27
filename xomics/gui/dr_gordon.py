@@ -98,6 +98,8 @@ class SliceView(Plotter):
     # Call parent's constructor
     super(SliceView, self).__init__(self.view_slice, pictor)
 
+    self.annotations_to_show = []
+
     # Settable attributes
     self.new_settable_attr('color_bar', False, bool, 'Color bar')
     self.new_settable_attr('ctv_key', None, str, 'Key of CTV to show')
@@ -109,6 +111,8 @@ class SliceView(Plotter):
     self.new_settable_attr('show_prediction', False, bool,
                            'whether to show the prediction')
 
+  # region: Properties
+
   @property
   def selected_medical_image(self) -> MedicalImage:
     return self.pictor.get_element(self.pictor.Keys.PATIENTS)
@@ -118,29 +122,25 @@ class SliceView(Plotter):
     i_layer = self.pictor.get_element(self.pictor.Keys.LAYERS)
     return list(self.selected_medical_image.images.keys())[i_layer]
 
+  # endregion: Properties
+
+  # region: Plot
+
   def view_slice(self, fig: plt.Figure, ax: plt.Axes, x: int):
-    label_key = 'Label-1'
     mi: MedicalImage = self.selected_medical_image
 
     # Show slice
-    im = ax.imshow(mi.images[self.displayed_layer_key][x],
-                   cmap=self.get('cmap'), vmin=self.get('vmin'),
+    image: np.ndarray = mi.images[self.displayed_layer_key][x]
+    im = ax.imshow(image, cmap=self.get('cmap'), vmin=self.get('vmin'),
                    vmax=self.get('vmax'))
 
-    # TODO: to be refactored
-    if self.get('show_ground_truth') and label_key in mi.labels:
-      mask = mi.labels[label_key][x]
-      img = np.zeros((512, 512, 4), dtype=np.float32)
-      img[..., 0] = 1.0
-      img[..., 3] = mask
-      ax.imshow(img, alpha=0.2)
-
-    if self.get('show_prediction') and 'Prediction' in mi.labels:
-      mask = mi.labels['Prediction'][x]
-      img = np.zeros((512, 512, 4), dtype=np.float32)
-      img[..., 2] = 1.0
-      img[..., 3] = mask
-      ax.imshow(img, alpha=0.2)
+    # Show annotations
+    for i, anno_key in enumerate(self.annotations_to_show):
+      mask = mi.labels[anno_key][x]
+      anno = np.zeros((image.shape[0], image.shape[1], 4), dtype=np.float32)
+      anno[..., i % 3] = 1.0
+      anno[..., 3] = mask
+      ax.imshow(anno, alpha=0.2)
 
     # Set style
     ax.set_axis_off()
@@ -151,18 +151,52 @@ class SliceView(Plotter):
       cax = divider.append_axes('right', size='5%', pad=0.05)
       fig.colorbar(im, cax=cax)
 
+  # endregion: Plot
+
+  # region: Overwritting
 
   def register_shortcuts(self):
     self.register_a_shortcut(
       'C', lambda: self.flip('color_bar'), 'Turn on/off color bar')
 
-    self.register_a_shortcut(
-      'Q', lambda: self.flip('show_ground_truth'),
-      'whether to show the ground truth')
+    def flip_anno():
+      key_list = list(self.selected_medical_image.labels.keys())
+      if len(key_list) == 0: return
+      key = key_list[0]
+      if key in self.annotations_to_show: self.annotations_to_show.remove(key)
+      else: self.annotations_to_show.append(key)
+      self.refresh()
 
-    self.register_a_shortcut(
-      'W', lambda: self.flip('show_prediction'),
-      'whether to show the prediction')
+    self.register_a_shortcut('A', flip_anno, 'Toggle first annotation')
+
+  def register_to_master(self, pictor):
+    super().register_to_master(pictor)
+
+    def get_anno_hints():
+      hints = ['Annotations', '-' * 11]
+      hints += [f'[{i + 1}] {k}' for i, k in enumerate(
+        self.selected_medical_image.labels.keys())]
+      return '\n'.join(hints)
+
+    self.pictor.command_hints['ta'] = get_anno_hints
+
+  # endregion: Overwritting
+
+  # region: Commands
+
+  def toggle_annotation(self, indices: str = None, auto_refresh=True):
+    if indices is None:
+      self.annotations_to_show = []
+    else:
+      indices = [int(str_i) - 1 for str_i in indices.split(',')]
+      anno_keys = list(self.selected_medical_image.labels.keys())
+      self.annotations_to_show = [anno_keys[i] for i in indices]
+
+    if auto_refresh: self.refresh()
+
+  ta = toggle_annotation
+
+  # endregion: Commands
 
 
 
