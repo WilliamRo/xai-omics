@@ -13,14 +13,16 @@ class DrGordon(Pictor):
 
   class Keys(Pictor.Keys):
     PATIENTS = 'PaTiEnTs'
+    LAYERS = 'LaYeRs'
 
   def __init__(self, medical_images, title='Dr. Gordon'):
     super(DrGordon, self).__init__(title)
 
-    self.add_plotter(SliceView(self))
+    self.slice_view: SliceView = self.add_plotter(SliceView(self))
 
     # Create dimensions for different patients
     self.create_dimension(self.Keys.PATIENTS)
+    self.create_dimension(self.Keys.LAYERS)
 
     self.set_data(medical_images)
 
@@ -30,6 +32,13 @@ class DrGordon(Pictor):
     self.shortcuts.register_key_event(
       ['K'], lambda: self._set_patient_cursor(-1),
       description='Previous patient', color='yellow')
+
+    self.shortcuts.register_key_event(
+      ['N'], lambda: self.set_cursor(self.Keys.LAYERS, 1, refresh=True),
+      description='Next layer', color='yellow')
+    self.shortcuts.register_key_event(
+      ['P'], lambda: self.set_cursor(self.Keys.LAYERS, -1, refresh=True),
+      description='Previous layer', color='yellow')
 
   # region: Properties
 
@@ -43,20 +52,43 @@ class DrGordon(Pictor):
 
   # endregion: Properties
 
+  # region: Private Methods
+
   def _set_patient_cursor(self, step):
+    prev_mi: MedicalImage = self.get_element(self.Keys.PATIENTS)
     self.set_cursor(self.Keys.PATIENTS, step, refresh=False)
-    self.refresh_objects()
+    curr_mi: MedicalImage = self.get_element(self.Keys.PATIENTS)
+
+    # Refresh cursors if necessary
+    self.refresh_patient(prev_mi.num_slices != curr_mi.num_slices,
+                         prev_mi.num_layers != curr_mi.num_layers)
     self.refresh()
+
+  # endregion: Private Methods
+
+  # region: Public Methods
 
   def set_data(self, medical_images):
     if medical_images is None: return
     self.set_to_axis(self.Keys.PATIENTS, medical_images, overwrite=True)
-    self.refresh_objects()
+    self.refresh_patient()
 
-  def refresh_objects(self):
+  def refresh_patient(self, refresh_slice=True, refresh_layer=True):
     mi: MedicalImage = self.get_element(self.Keys.PATIENTS)
-    self.set_to_axis(
+    if refresh_slice: self.set_to_axis(
       self.Keys.OBJECTS, list(range(mi.num_slices)), overwrite=True)
+    if refresh_layer: self.set_to_axis(
+      self.Keys.LAYERS, list(range(mi.num_layers)), overwrite=True)
+
+  # endregion: Public Methods
+
+  # region: Overwritting
+
+  def refresh(self, wait_for_idle=False):
+    self.title_suffix = f' - {self.slice_view.displayed_layer_key}'
+    super().refresh(wait_for_idle)
+
+  # endregion: Overwritting
 
 
 
@@ -78,18 +110,24 @@ class SliceView(Plotter):
                            'whether to show the prediction')
 
   @property
-  def selected_medical_image(self):
+  def selected_medical_image(self) -> MedicalImage:
     return self.pictor.get_element(self.pictor.Keys.PATIENTS)
 
+  @property
+  def displayed_layer_key(self):
+    i_layer = self.pictor.get_element(self.pictor.Keys.LAYERS)
+    return list(self.selected_medical_image.images.keys())[i_layer]
 
   def view_slice(self, fig: plt.Figure, ax: plt.Axes, x: int):
-    image_key, label_key = 'CT', 'Label-1'
+    label_key = 'Label-1'
     mi: MedicalImage = self.selected_medical_image
 
     # Show slice
-    im = ax.imshow(mi.images[image_key][x], cmap=self.get('cmap'),
-                   vmin=self.get('vmin'), vmax=self.get('vmax'))
+    im = ax.imshow(mi.images[self.displayed_layer_key][x],
+                   cmap=self.get('cmap'), vmin=self.get('vmin'),
+                   vmax=self.get('vmax'))
 
+    # TODO: to be refactored
     if self.get('show_ground_truth') and label_key in mi.labels:
       mask = mi.labels[label_key][x]
       img = np.zeros((512, 512, 4), dtype=np.float32)

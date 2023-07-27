@@ -29,6 +29,9 @@ class MedicalImage(Nomear):
   def num_slices(self):
     return self.representative.shape[0]
 
+  @property
+  def num_layers(self): return len(self.images)
+
   # endregion: Properties
 
   # region: Public Mehtods

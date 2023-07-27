@@ -26,9 +26,12 @@ label = load_npy_file(os.path.join(input_dir, label_file))
 
 # Normalization
 ct = np.squeeze(ct) / np.max(ct)
+ct_dose2 = ct + np.random.random(ct.shape) * 0.1
+
 label = np.squeeze(label) / np.max(label)
 
-mi_1 = MedicalImage('Patient-1', {'CT': ct}, {'Label-1': label})
+mi_1 = MedicalImage('Patient-1', {'CT': ct, 'CT-dose2': ct_dose2},
+                    {'Label-1': label})
 mi_2 = MedicalImage('Patient-2', {'CT': ct[3:]}, {'Label-1': label[3:]})
 
 
