@@ -1,6 +1,6 @@
 import os
 
-from xomics.data_io.mi_reader import rdSubject
+from xomics.data_io.mi_reader import rd_subject
 from xomics.gui.dr_gordon import DrGordon
 from xomics import MedicalImage
 import numpy as np
@@ -14,15 +14,17 @@ for subject in subjects:
           # '1-2 dose',
           '1-4 dose',
           # '1-10 dose',
-          '1-20 dose',
+          # '1-20 dose',
           # '1-50 dose',
-          '1-100 dose']
+          # '1-100 dose',
+          ]
   mis = []
 
   # data.shape = [n_slice, H, w]
   dose = {}
   for dose_tag in keys:
-    dose[dose_tag] = rdSubject(data_dir, subject, dose_tag, patient_num)
+    dose[dose_tag] = rd_subject(data_dir, subject, dose_tag, patient_num)
+    print(dose[dose_tag].shape)
 
   for i in range(patient_num):
     img_dict = {}

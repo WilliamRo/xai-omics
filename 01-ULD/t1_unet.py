@@ -23,14 +23,14 @@ def main(_):
   console.start('{} on Ultra Low Dose task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = False
+  th.rehearse = 0
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.data_config = r'01-ULD\Subject_330-345'
+  th.data_config = r'alpha 01-ULD/'
 
-  th.val_size = 1
-  th.test_size = 2
+  th.val_size = 10
+  th.test_size = 20
 
   th.window_size = 128
   th.eval_window_size = 128
@@ -65,7 +65,7 @@ def main(_):
   th.optimizer = 'adam'
   th.learning_rate = 0.0003
 
-  th.train = False
+  th.train = True
   th.overwrite = True
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate

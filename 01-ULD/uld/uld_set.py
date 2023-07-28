@@ -2,7 +2,7 @@ import numpy as np
 
 from tframe import DataSet
 from tframe import Predictor
-
+from utils.data_processing import get_center
 
 
 class ULDSet(DataSet):
@@ -24,8 +24,10 @@ class ULDSet(DataSet):
 
     # self.features/targets.shape = [N, S, H, W, 1]
     s = th.window_size
-    x = np.zeros(shape=[batch_size, s, s, s, 1])
-    data_batch = DataSet(x, x)
+    features = get_center(self.features, s)
+    targets = get_center(self.targets, s)
+
+    data_batch = DataSet(features, targets)
 
     return data_batch
 
@@ -47,20 +49,23 @@ class ULDSet(DataSet):
     if is_training: self._clear_dynamic_round_len()
 
 
-  def evaluate_model(self, model: Predictor):
+  @staticmethod
+  def evaluate_model(ds: DataSet, model: Predictor, report_metric=True):
     from xomics.gui.dr_gordon import DrGordon
     from xomics import MedicalImage
 
+    if report_metric: model.evaluate_model(ds, batch_size=1)
+
     # pred.shape = [N, s, s, s, 1]
-    pred = model.predict(self)
+    pred = model.predict(ds, batch_size=1)
 
     # Compare results using DrGordon
     medical_images = [
       MedicalImage(f'Sample-{i}', images={
-        'Input': self.features[i],
-        'Targets': self.targets[i],
+        'Input': ds.features[i],
+        'Targets': ds.targets[i],
         'Model-Output': pred[i]})
-      for i in range(self.size)]
+      for i in range(ds.size)]
 
     dg = DrGordon(medical_images)
     dg.slice_view.set('vmin', auto_refresh=False)

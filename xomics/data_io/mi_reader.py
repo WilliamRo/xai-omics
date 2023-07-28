@@ -12,7 +12,7 @@ def normalize(a):
   return a
 
 
-def rdSeries(dirPath, norm = True):
+def rd_series(dirPath, norm = True):
   series_reader = sitk.ImageSeriesReader()
   fileNames = series_reader.GetGDCMSeriesFileNames(dirPath)
   series_reader.SetFileNames(fileNames)
@@ -24,15 +24,16 @@ def rdSeries(dirPath, norm = True):
     return images
 
 
-def rdSubject(dataPath, subject, dose = "Full_dose", patient_num = 6, norm = True):
+def rd_subject(dataPath, subject, dose = "Full_dose", patient_num = 6, norm = True):
   patients = os.listdir(dataPath + subject)[:patient_num]
   images = []
 
   for patient in patients:
-    dirPath = dataPath + subject + f'/{patient}/' + dose
-    images.append(rdSeries(dirPath, norm))
+    dirPath = os.path.join(dataPath, subject, patient, dose)
+    images.append(rd_series(dirPath, norm))
 
   results = np.concatenate([arr[np.newaxis] for arr in images], axis=0)
+  results = results.reshape(results.shape + (1,))
   return results
 
 
@@ -40,7 +41,7 @@ def rdSubject(dataPath, subject, dose = "Full_dose", patient_num = 6, norm = Tru
 if __name__ == '__main__':
   filePath = '../../data/01-ULD/Subject_372-387/20102022_1_20221020_164152/1' \
              '-2 dose/'
-  img = rdSeries(filePath)
+  img = rd_series(filePath)
   print(img.shape)
 
 
