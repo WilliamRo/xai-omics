@@ -29,8 +29,8 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.data_config = r'alpha 01-ULD/'
 
-  th.val_size = 10
-  th.test_size = 20
+  th.val_size = 5
+  th.test_size = 5
 
   th.window_size = 128
   th.eval_window_size = 128
@@ -49,7 +49,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '4-3-3-2-lrelu'
+  th.archi_string = '8-3-4-2-lrelu'
   # th.archi_string = '16-5-2-3-relu-mp'
   # ---------------------------------------------------------------------------
   # 3. trainer setup
@@ -64,6 +64,7 @@ def main(_):
   th.loss_string = 'mse'
   th.optimizer = 'adam'
   th.learning_rate = 0.0003
+  th.val_decimals = 7
 
   th.train = True
   th.overwrite = True
