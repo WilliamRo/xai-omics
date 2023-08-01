@@ -1,3 +1,4 @@
+from tframe.core.quantity import Quantity
 from tframe import console
 from tframe import mu
 
@@ -20,7 +21,8 @@ def finalize(model):
   model.add(mu.HyperConv3D(filters=1, kernel_size=1, activation='sigmoid'))
 
   # Build model
-  model.build(loss=th.loss_string, metric='loss')
+  model.build(loss=th.loss_string, metric=['loss'])
+  # model.build(loss=th.loss_string, metric=['loss', get_ssim_3D()])
   return model
 
 
@@ -30,3 +32,16 @@ def get_unet(arc_string='8-3-4-2-relu-mp', **kwargs):
   mu.UNet(3, arc_string=arc_string, **kwargs).add_to(model)
 
   return finalize(model)
+
+
+def get_ssim_3D():
+  from tframe import tf
+
+  def ssim(truth, output):
+    shape = tf.shape(truth)
+    shape = [shape[0] * shape[1]] + list(shape)[2:]
+    truth, output = [tf.reshape(x, shape) for x in (truth, output)]
+
+    return tf.image.ssim(truth, output, max_val=1.0)
+
+  return Quantity(ssim, tf.reduce_mean, name='SSIM', lower_is_better=False)

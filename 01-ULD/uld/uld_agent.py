@@ -26,21 +26,21 @@ class ULDAgent(DataAgent):
     # features/targets.shape = [N, S, H, W, 1]
     features, targets = cls.load_as_numpy_arrays(data_dir)
     if not th.train:
-      return DataSet(features[:, 2:-2, 12:-12, 12:-12], targets[:, 2:-2, 12:-12, 12:-12])
+      return DataSet(features[:, :, 12:-12, 12:-12], targets[:, :, 12:-12, 12:-12])
     if th.data_arg.func_name == 'alpha':
       s = th.window_size
       # Each x in xs has a shape of [s, s, s, 1]
       xs = []
       ys = []
-
       h = 150 + 150
       w = 100 + 250
 
-      # TODO: fill in xs and ys
+      # fill in xs and ys
       for i in range(150, h - s + 1, 30):
         for j in range(100, w - s + 1, 30):
-          xs.append(features[:, 4:, i:i + s, j:j + s, :])
-          ys.append(targets[:, 4:, i:i + s, j:j + s, :])
+          xs.append(features[:, :, i:i + s, j:j + s, :])
+          ys.append(targets[:, :, i:i + s, j:j + s, :])
+
       xs = np.concatenate(xs, axis=0)
       ys = np.concatenate(ys, axis=0)
       print(xs.shape)
@@ -50,15 +50,15 @@ class ULDAgent(DataAgent):
       ys = []
 
       for i in range(features.shape[1] - 7):
-        xs.append(features[:, i:i + 8, 12:-12, 12:-12])
-        ys.append(targets[:, i:i + 8, 12:-12, 12:-12])
-      print(xs[0].shape)
+        xs.append(features[:, :, i:i + 8, 12:-12, 12:-12])
+        ys.append(targets[:, :, i:i + 8, 12:-12, 12:-12])
+      # print(xs[0].shape)
       xs = np.concatenate(xs, axis=0)
       ys = np.concatenate(ys, axis=0)
-      print(xs.shape)
+      # print(xs.shape)
       return DataSet(xs, ys)
     if th.data_arg.func_name == 'beta':
-      return ULDSet(features[:, 4:], targets[:, 4:])
+      return ULDSet(features, targets)
 
     return ULDSet(features, targets)
 
@@ -67,10 +67,10 @@ class ULDAgent(DataAgent):
     from uld_core import th
 
     data_root = os.path.join(data_dir, th.data_arg.arg_list[0])
-    subjects = ['Subject_1-6']
+    subjects = ['Subject_1-6'] # , 'Subject_7-12', 'Subject_13-18']
 
     features = rd_data(data_root, subjects, patient_num=6,
-                       dose="1-4 dose")
+                       dose="1-10 dose")
     targets = rd_data(data_root, subjects, patient_num=6)
 
     return features, targets

@@ -17,6 +17,9 @@ def normalize(a):
   a = (a - np.min(a)) / (np.max(a) - np.min(a))
   return a
 
+def find_num(number, mul):
+  return number // mul * mul
+
 
 def rd_series(dirPath, norm=True):
   series_reader = sitk.ImageSeriesReader()
@@ -24,10 +27,16 @@ def rd_series(dirPath, norm=True):
   series_reader.SetFileNames(fileNames)
   data = series_reader.Execute()
   images = sitk.GetArrayFromImage(data)
+  cut = (images.shape[0] - 608) // 2# find_num(images.shape[0], 32)
+  images = images[cut:-cut]
   if norm:
     return normalize(images)
   else:
     return images
+
+
+def output_results(arr, pathname):
+  sitk.WriteImage(arr, pathname)
 
 
 def rd_subject(dataPath, subject, dose="Full_dose", patient_num=6, norm=True):

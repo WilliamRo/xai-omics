@@ -56,6 +56,7 @@ th.patience = 5
 th.print_cycle = 2
 th.updates_per_round = 50
 th.validation_per_round = 2
+th.val_batch_size = 1
 
 th.export_tensors_upon_validation = True
 
@@ -63,13 +64,13 @@ th.export_tensors_upon_validation = True
 def activate():
   if 'deactivate' in th.developer_code: return
 
-  # Load data
-  train_set, val_set, test_set = du.load_data()
-
   # Build model
   assert callable(th.model)
   model = th.model()
   assert isinstance(model, Predictor)
+
+  # Load data
+  train_set, val_set, test_set = du.load_data()
 
   # Rehearse if required
   if th.rehearse:

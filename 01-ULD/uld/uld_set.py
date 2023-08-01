@@ -20,7 +20,7 @@ class ULDSet(DataSet):
 
   def gen_random_window(self, batch_size):
     from uld_core import th
-    # TODO: Randomly sample [S, S, S] pair from features and targets
+    # Randomly sample [S, S, S] pair from features and targets
 
     # self.features/targets.shape = [N, S, H, W, 1]
     s = th.window_size
@@ -33,7 +33,7 @@ class ULDSet(DataSet):
 
   def gen_batches(self, batch_size, shuffle=False, is_training=False):
     if not is_training:
-      features, targets = self.features, self.targets
+      features, targets = self.features[:batch_size, :128], self.targets[:batch_size, :128]
       eval_set = DataSet(features, targets, name=self.name + '-Eval')
       yield eval_set
       return

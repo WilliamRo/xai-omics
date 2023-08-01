@@ -33,7 +33,7 @@ def main(_):
   th.test_size = 2
 
   th.window_size = 128
-  th.eval_window_size = 128
+  # th.eval_window_size = 128
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
