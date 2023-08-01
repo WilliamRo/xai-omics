@@ -2,7 +2,7 @@ import numpy as np
 
 from tframe import DataSet
 from tframe import Predictor
-from utils.data_processing import get_center
+from utils.data_processing import gen_windows
 
 
 class ULDSet(DataSet):
@@ -24,8 +24,7 @@ class ULDSet(DataSet):
 
     # self.features/targets.shape = [N, S, H, W, 1]
     s = th.window_size
-    features = get_center(self.features, s)
-    targets = get_center(self.targets, s)
+    features, targets = gen_windows(self.features, self.targets, batch_size, s)
 
     data_batch = DataSet(features, targets)
 
@@ -33,7 +32,11 @@ class ULDSet(DataSet):
 
 
   def gen_batches(self, batch_size, shuffle=False, is_training=False):
-
+    if not is_training:
+      features, targets = self.features, self.targets
+      eval_set = DataSet(features, targets, name=self.name + '-Eval')
+      yield eval_set
+      return
     round_len = self.get_round_length(batch_size, training=is_training)
 
     # Generate batches

@@ -14,10 +14,10 @@ def load_data():
   # datasets[1].name = 'Val-Set'
   # datasets[2].name = 'Test-Set'
   #
-  # # Report data shape
-  # console.show_info('Data details')
-  # for ds in datasets:
-  #   assert isinstance(ds, ULDSet)
-  #   console.supplement(f'{ds.name}: {ds.features.shape})', level=2)
+  # Report data shape
+  console.show_info('Data details')
+  for ds in datasets:
+    assert isinstance(ds, ULDSet)
+    console.supplement(f'{ds.name}: {ds.features.shape})', level=2)
 
   return datasets

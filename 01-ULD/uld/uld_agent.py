@@ -57,6 +57,8 @@ class ULDAgent(DataAgent):
       ys = np.concatenate(ys, axis=0)
       print(xs.shape)
       return DataSet(xs, ys)
+    if th.data_arg.func_name == 'beta':
+      return ULDSet(features[:, 4:], targets[:, 4:])
 
     return ULDSet(features, targets)
 

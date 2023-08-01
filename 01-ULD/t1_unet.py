@@ -27,10 +27,10 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.data_config = r'alpha 01-ULD/'
+  th.data_config = r'beta 01-ULD/'
 
-  th.val_size = 5
-  th.test_size = 5
+  th.val_size = 2
+  th.test_size = 2
 
   th.window_size = 128
   th.eval_window_size = 128
@@ -41,7 +41,7 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = ''
+  th.suffix = '_beta'
 
   th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------
@@ -49,7 +49,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '8-3-4-2-lrelu'
+  th.archi_string = '4-3-3-2-lrelu'
   # th.archi_string = '16-5-2-3-relu-mp'
   # ---------------------------------------------------------------------------
   # 3. trainer setup

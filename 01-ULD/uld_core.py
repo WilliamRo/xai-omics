@@ -82,7 +82,7 @@ def activate():
   #  itself.
   if th.train:
     model.train(training_set=train_set, validation_set=val_set,
-                trainer_hub=th)
+                test_set=test_set, trainer_hub=th)
   else:
     du.ULDSet.evaluate_model(test_set, model)
 
