@@ -15,7 +15,7 @@ keys = ['Full_dose',
         # '1-4 dose',
         '1-10 dose',
         # '1-20 dose',
-        # '1-50 dose',
+        '1-50 dose',
         # '1-100 dose',
         ]
 mis = []

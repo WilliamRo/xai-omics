@@ -35,6 +35,9 @@ def windows_choose(distr: np.ndarray, windows_size):
 
 
 def get_random_window(arr: np.ndarray, window_size = 128):
+  # for Gamma test
+  arr = np.where(arr != 0, 1, arr)
+
   index = np.random.randint(arr.shape[0] - 1)
   arr = np.array([arr[index]])
   a = np.add.reduce(arr, axis=2)
@@ -66,7 +69,7 @@ def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size, windows_size = 1
 
 
 if __name__ == '__main__':
-  a = rd_data('D:/xai-omics/data/01-ULD/', ['Subject_1-6'], '1-10 dose', 2)
+  a = rd_data('D:/projects/xai-omics/data/01-ULD/', ['Subject_1-6'], '1-10 dose', 2)
   img1, img2 = gen_windows(a, a, 1)
   print(img1.shape, img2.shape)
 

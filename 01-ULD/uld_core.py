@@ -85,7 +85,7 @@ def activate():
     model.train(training_set=train_set, validation_set=val_set,
                 test_set=test_set, trainer_hub=th)
   else:
-    du.ULDSet.evaluate_model(test_set, model)
+    test_set.evaluate_model(model)
 
   # End
   model.shutdown()

@@ -27,7 +27,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.data_config = r'beta 01-ULD/'
+  th.data_config = r'gamma 01-ULD/'
 
   th.val_size = 2
   th.test_size = 2
@@ -41,7 +41,7 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = '_beta'
+  th.suffix = '_gamma'
 
   th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------
@@ -61,8 +61,9 @@ def main(_):
   th.batch_size = 1
   th.val_batch_size = 1
 
-  th.loss_string = 'mse'
+  th.loss_string = 'rmse'
   th.optimizer = 'adam'
+  # th.optimizer = 'sgd'
   th.learning_rate = 0.0003
   th.val_decimals = 7
 

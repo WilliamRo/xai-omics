@@ -7,16 +7,6 @@ from utils.data_processing import gen_windows
 
 class ULDSet(DataSet):
 
-  @property
-  def eval_set(self):
-    from uld_core import th
-    s = th.eval_window_size
-
-    # TODO: Generate dataset for evaluation
-    x = np.zeros(shape=[self.size, s, s, s, 1])
-
-    return ULDSet(x, x)
-
 
   def gen_random_window(self, batch_size):
     from uld_core import th
@@ -33,7 +23,8 @@ class ULDSet(DataSet):
 
   def gen_batches(self, batch_size, shuffle=False, is_training=False):
     if not is_training:
-      features, targets = self.features[:batch_size, :128], self.targets[:batch_size, :128]
+      i = np.random.randint(self.features.shape[0])
+      features, targets = self.features[i:i+1], self.targets[i:i+1]
       eval_set = DataSet(features, targets, name=self.name + '-Eval')
       yield eval_set
       return
@@ -52,23 +43,24 @@ class ULDSet(DataSet):
     if is_training: self._clear_dynamic_round_len()
 
 
-  @staticmethod
-  def evaluate_model(ds: DataSet, model: Predictor, report_metric=True):
+  def evaluate_model(self, model: Predictor, report_metric=True):
     from xomics.gui.dr_gordon import DrGordon
     from xomics import MedicalImage
 
-    if report_metric: model.evaluate_model(ds, batch_size=1)
+    if report_metric: model.evaluate_model(self, batch_size=1)
 
     # pred.shape = [N, s, s, s, 1]
-    pred = model.predict(ds, batch_size=1)
+    data = DataSet(self.features, self.targets)
+    pred = model.predict(data, batch_size=1)
+    print(self.size, pred.shape, self.targets.shape)
 
     # Compare results using DrGordon
     medical_images = [
       MedicalImage(f'Sample-{i}', images={
-        'Input': ds.features[i],
-        'Targets': ds.targets[i],
+        'Input': self.features[i],
+        'Targets': self.targets[i],
         'Model-Output': pred[i]})
-      for i in range(ds.size)]
+      for i in range(self.size)]
 
     dg = DrGordon(medical_images)
     dg.slice_view.set('vmin', auto_refresh=False)

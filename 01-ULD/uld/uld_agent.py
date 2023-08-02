@@ -14,8 +14,8 @@ class ULDAgent(DataAgent):
   def load(cls, data_dir, validate_size, test_size):
     from uld_core import th
     ds: ULDSet = cls.load_as_tframe_data(data_dir)
-    if not th.train:
-      return ds,ds,ds
+    # if not th.train:
+    #   return ds,ds,ds
     return ds.split(-1, validate_size, test_size,
                     names=['Train-Set', 'Val-Set', 'Test-Set'])
 
@@ -25,8 +25,8 @@ class ULDAgent(DataAgent):
 
     # features/targets.shape = [N, S, H, W, 1]
     features, targets = cls.load_as_numpy_arrays(data_dir)
-    if not th.train:
-      return DataSet(features[:, :, 12:-12, 12:-12], targets[:, :, 12:-12, 12:-12])
+    # if not th.train:
+    #   return DataSet(features[:, :, 12:-12, 12:-12], targets[:, :, 12:-12, 12:-12])
     if th.data_arg.func_name == 'alpha':
       s = th.window_size
       # Each x in xs has a shape of [s, s, s, 1]
@@ -57,7 +57,8 @@ class ULDAgent(DataAgent):
       ys = np.concatenate(ys, axis=0)
       # print(xs.shape)
       return DataSet(xs, ys)
-    if th.data_arg.func_name == 'beta':
+    # before beta plan may not be runnable
+    if th.data_arg.func_name in ['beta', 'gamma']:
       return ULDSet(features, targets)
 
     return ULDSet(features, targets)
@@ -67,10 +68,10 @@ class ULDAgent(DataAgent):
     from uld_core import th
 
     data_root = os.path.join(data_dir, th.data_arg.arg_list[0])
-    subjects = ['Subject_1-6'] # , 'Subject_7-12', 'Subject_13-18']
+    subjects = ['Subject_1-6']#, 'Subject_7-12', 'Subject_13-18']
 
     features = rd_data(data_root, subjects, patient_num=6,
-                       dose="1-10 dose")
+                       dose="1-4 dose")
     targets = rd_data(data_root, subjects, patient_num=6)
 
     return features, targets
