@@ -26,6 +26,7 @@ from tframe import Predictor
 from uld.uld_config import ULDConfig as Hub
 
 import uld_du as du
+import uld_tu as tu
 
 
 
@@ -83,7 +84,7 @@ def activate():
   #  itself.
   if th.train:
     model.train(training_set=train_set, validation_set=val_set,
-                test_set=test_set, trainer_hub=th)
+                test_set=test_set, trainer_hub=th, prob=tu.probe)
   else:
     test_set.evaluate_model(model)
 

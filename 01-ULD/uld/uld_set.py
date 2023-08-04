@@ -23,8 +23,8 @@ class ULDSet(DataSet):
 
   def gen_batches(self, batch_size, shuffle=False, is_training=False):
     if not is_training:
-      i = np.random.randint(self.features.shape[0])
-      features, targets = self.features[i:i+1], self.targets[i:i+1]
+      index = np.random.randint(self.features.shape[0], size=batch_size)
+      features, targets = self.features[index], self.targets[index]
       eval_set = DataSet(features, targets, name=self.name + '-Eval')
       yield eval_set
       return
@@ -67,3 +67,23 @@ class ULDSet(DataSet):
     dg.slice_view.set('vmax', auto_refresh=False)
     dg.show()
 
+  def snapshot(self, model):
+    from tframe import Predictor
+    import os
+    import matplotlib.pyplot as plt
+
+    assert isinstance(model, Predictor)
+
+    # (1) Get denoised image (shape=[1, D, H, W, 1])
+    denoised_images = model.predict(self)
+
+    # (2) Get metrics
+    val_dict = model.validate_model(self)
+
+    # (3) Save image
+    metric_str = '-'.join([f'{k}{v:.2f}' for k, v in val_dict.items()])
+    fn = f'Iter{model.counter}-{metric_str}.png'
+    plt.imsave(os.path.join(model.agent.ckpt_dir, fn),
+               denoised_images[0, ..., 0])
+
+  # endregion: Validation and snapshot

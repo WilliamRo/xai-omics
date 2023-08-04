@@ -68,7 +68,8 @@ class ULDAgent(DataAgent):
     from uld_core import th
 
     data_root = os.path.join(data_dir, th.data_arg.arg_list[0])
-    subjects = ['Subject_1-6']#, 'Subject_7-12', 'Subject_13-18']
+    subjects = ['Subject_1-6', 'Subject_7-12', 'Subject_13-18',
+                'Subject_19-24', 'Subject_25-30']
 
     features = rd_data(data_root, subjects, patient_num=6,
                        dose="1-4 dose")

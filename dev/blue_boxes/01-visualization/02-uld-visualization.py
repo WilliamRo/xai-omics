@@ -6,16 +6,16 @@ from xomics import MedicalImage
 import numpy as np
 
 data_dir = r'../../../data/01-ULD/'
-subjects = ['Subject_1-6', 'Subject_7-12', 'Subject_13-18']
+subjects = ['Subject_1-6']#, 'Subject_7-12', 'Subject_13-18']
 patient_num = 1
 
 
 keys = ['Full_dose',
         # '1-2 dose',
-        # '1-4 dose',
+        '1-4 dose',
         '1-10 dose',
         # '1-20 dose',
-        '1-50 dose',
+        # '1-50 dose',
         # '1-100 dose',
         ]
 mis = []
