@@ -56,15 +56,15 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.epoch = 1000
   th.early_stop = True
-  th.patience = 5
+  th.patience = 15
   th.probe_cycle = th.updates_per_round
 
   th.batch_size = 1
   th.val_batch_size = 1
 
   th.loss_string = 'rmse'
-  # th.optimizer = 'adam'
-  th.optimizer = 'sgd'
+  th.optimizer = 'adam'
+  # th.optimizer = 'sgd'
   th.learning_rate = 0.0003
   th.val_decimals = 7
 

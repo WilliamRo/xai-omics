@@ -13,7 +13,7 @@ def normalize(a):
   # b = np.ndarray.flatten(a)
   # plt.hist(b[b!=0], bins=50, range = (0, 10000))
   # plt.show()
-  a = np.clip(a, a_min=None, a_max=3500)
+  # a = np.clip(a, a_min=None, a_max=3500)
   # a[a > 6000] = 0
   a = (a - np.min(a)) / (np.max(a) - np.min(a))
   return a

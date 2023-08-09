@@ -37,15 +37,14 @@ def windows_choose(distr: np.ndarray, windows_size):
 def get_random_window(arr: np.ndarray, window_size = 128):
   # for Gamma test
   # arr = np.where(arr != 0, 1, arr)
-
   index = np.random.randint(arr.shape[0] - 1)
   arr = arr[index:index+1]
   arr = np.where(arr != 0, 1, arr)
-  a = np.add.reduce(arr, axis=2)
-  distr_s = normalize(np.add.reduce(a, axis=2).reshape((-1)))
-  a = np.add.reduce(arr, axis=1)
-  distr_h = normalize(np.add.reduce(a, axis=1).reshape((-1)))
-  distr_w = normalize(np.add.reduce(a, axis=2).reshape((-1)))
+  arr_pro = np.add.reduce(arr, axis=2)
+  distr_s = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
+  arr_pro = np.add.reduce(arr, axis=1)
+  distr_h = normalize(np.add.reduce(arr_pro, axis=1).reshape((-1)))
+  distr_w = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
   # print(h,w)
   s = windows_choose(distr_s, window_size)
   h = windows_choose(distr_h, window_size)
@@ -71,18 +70,21 @@ def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size, windows_size = 1
 
 if __name__ == '__main__':
   a = rd_data('D:/projects/xai-omics/data/01-ULD/', ['Subject_1-6'], '1-10 dose', 2)
-  img = gen_windows(a, a, 1)
-  print(img)
+  # img = gen_windows(a, a, 1)
+  # print(img)
+  num = 20
+  win = gen_windows(a, a, num)
+  print(win[0].shape)
+  di = {}
+  for i in range(num):
+    di[f'test-{i}'] = win[0][i]
 
-  for i in range(10):
-    win = get_random_window(a)
-  #   print(win.shape)
-    mi = MedicalImage('test', {'test': img[0]})
-  #
-    dg = DrGordon([mi])
-    dg.slice_view.set('vmin', auto_refresh=False)
-    dg.slice_view.set('vmax', auto_refresh=False)
-    dg.show()
+  mi = MedicalImage('test', di)
+
+  dg = DrGordon([mi])
+  dg.slice_view.set('vmin', auto_refresh=False)
+  dg.slice_view.set('vmax', auto_refresh=False)
+  dg.show()
   # print(get_center(arr, 128).shape)
   # prob = calc_prob(arr, 128)
   # print(prob.shape)

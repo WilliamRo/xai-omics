@@ -51,6 +51,7 @@ class ULDSet(DataSet):
 
     # pred.shape = [N, s, s, s, 1]
     data = DataSet(self.features, self.targets)
+    # data = self.gen_random_window(128)
     pred = model.predict(data, batch_size=1)
     print(self.size, pred.shape, self.targets.shape)
 
@@ -74,8 +75,9 @@ class ULDSet(DataSet):
 
     assert isinstance(model, Predictor)
 
-    # (1) Get denoised image (shape=[1, D, H, W, 1])
-    denoised_images = model.predict(self)
+    # (1) Get image (shape=[1, S, H, W, 1])
+    data = DataSet(self.features[:1], self.targets[:1])
+    images = model.predict(data)
 
     # (2) Get metrics
     val_dict = model.validate_model(self)
@@ -84,6 +86,6 @@ class ULDSet(DataSet):
     metric_str = '-'.join([f'{k}{v:.2f}' for k, v in val_dict.items()])
     fn = f'Iter{model.counter}-{metric_str}.png'
     plt.imsave(os.path.join(model.agent.ckpt_dir, fn),
-               denoised_images[0, ..., 0])
+               images[0, 320, ..., 0])
 
   # endregion: Validation and snapshot

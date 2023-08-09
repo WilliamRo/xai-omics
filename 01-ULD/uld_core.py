@@ -82,9 +82,10 @@ def activate():
   # Train or evaluate. Note that, although both validation and evaluation use
   #  data_set.data_for_validation, evaluate_denoiser is called by data_set
   #  itself.
+  # th.additional_datasets_for_validation.append(some_data_set)
   if th.train:
     model.train(training_set=train_set, validation_set=val_set,
-                test_set=test_set, trainer_hub=th, prob=tu.probe)
+                test_set=test_set, trainer_hub=th, probe=tu.probe)
   else:
     test_set.evaluate_model(model)
 
