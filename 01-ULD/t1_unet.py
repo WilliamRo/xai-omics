@@ -27,12 +27,13 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.data_config = r'gamma 01-ULD/'
+  th.data_config = r'gamma 01-ULD/ True'
 
   th.val_size = 2
   th.test_size = 2
 
-  th.window_size = 128
+  th.window_size = 64
+  th.slice_size = 16
   # th.eval_window_size = 128
 
   # ---------------------------------------------------------------------------
@@ -51,15 +52,16 @@ def main(_):
 
   th.archi_string = '4-3-3-2-lrelu'
   # th.archi_string = '16-5-2-3-relu-mp'
+  th.learn_delta = 0
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
   th.epoch = 1000
   th.early_stop = True
   th.patience = 15
-  th.probe_cycle = th.updates_per_round
+  th.probe_cycle = 0#th.updates_per_round
 
-  th.batch_size = 1
+  th.batch_size = 16
   th.val_batch_size = 1
 
   th.loss_string = 'rmse'

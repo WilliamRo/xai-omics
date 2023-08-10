@@ -14,7 +14,8 @@ class ULDSet(DataSet):
 
     # self.features/targets.shape = [N, S, H, W, 1]
     s = th.window_size
-    features, targets = gen_windows(self.features, self.targets, batch_size, s)
+    features, targets = gen_windows(self.features, self.targets, batch_size,
+                                    s, th.slice_size)
 
     data_batch = DataSet(features, targets)
 
@@ -76,7 +77,7 @@ class ULDSet(DataSet):
     assert isinstance(model, Predictor)
 
     # (1) Get image (shape=[1, S, H, W, 1])
-    data = DataSet(self.features[:1], self.targets[:1])
+    data = DataSet(self.features[:1, 280:340], self.targets[:1, 280:340])
     images = model.predict(data)
 
     # (2) Get metrics
@@ -86,6 +87,4 @@ class ULDSet(DataSet):
     metric_str = '-'.join([f'{k}{v:.2f}' for k, v in val_dict.items()])
     fn = f'Iter{model.counter}-{metric_str}.png'
     plt.imsave(os.path.join(model.agent.ckpt_dir, fn),
-               images[0, 320, ..., 0])
-
-  # endregion: Validation and snapshot
+               images[0, 320, ..., 0], cmap='gray')

@@ -13,14 +13,14 @@ patient_num = 1
 keys = ['Full_dose',
         # '1-2 dose',
         '1-4 dose',
-        '1-10 dose',
+        # '1-10 dose',
         # '1-20 dose',
         # '1-50 dose',
         # '1-100 dose',
         ]
 mis = []
 
-# data.shape = [n_slice, H, w]
+# data.shape = [1, n_slice, H, w, 1]
 dose = {}
 for dose_tag in keys:
   dose[dose_tag] = rd_data(data_dir, subjects, dose_tag, patient_num)

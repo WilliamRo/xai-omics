@@ -20,6 +20,10 @@ def finalize(model):
   assert isinstance(model, mu.Predictor)
   model.add(mu.HyperConv3D(filters=1, kernel_size=1, activation='sigmoid'))
 
+  if th.learn_delta:
+    model.input_.abbreviation = 'input'
+    model.add(mu.ShortCut(model.input_, mode=mu.ShortCut.Mode.SUM))
+
   # Build model
   # model.build(loss=th.loss_string, metric=['loss'])
   model.build(loss=th.loss_string, metric=[get_ssim_3D(), 'loss'])

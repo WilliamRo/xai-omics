@@ -34,32 +34,37 @@ def windows_choose(distr: np.ndarray, windows_size):
   return int(result)
 
 
-def get_random_window(arr: np.ndarray, window_size = 128):
+def get_random_window(arr: np.ndarray, window_size=128, slice_size=16):
   # for Gamma test
   # arr = np.where(arr != 0, 1, arr)
-  index = np.random.randint(arr.shape[0] - 1)
+  s = np.random.randint(arr.shape[1] - slice_size + 1)
+
+  index = np.random.randint(arr.shape[0])
   arr = arr[index:index+1]
   arr = np.where(arr != 0, 1, arr)
-  arr_pro = np.add.reduce(arr, axis=2)
-  distr_s = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
+  # arr_pro = np.add.reduce(arr, axis=2)
+  # distr_s = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
   arr_pro = np.add.reduce(arr, axis=1)
   distr_h = normalize(np.add.reduce(arr_pro, axis=1).reshape((-1)))
   distr_w = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
   # print(h,w)
-  s = windows_choose(distr_s, window_size)
+  # s = windows_choose(distr_s, slice_size)
   h = windows_choose(distr_h, window_size)
   w = windows_choose(distr_w, window_size)
 
   return index, s, h, w
 
 
-def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size, windows_size = 128):
+def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
+                windows_size=128, slice_size=16):
   features = []
   targets = []
   for _ in range(batch_size):
     index, s, h, w = get_random_window(arr1, windows_size)
-    features.append(arr1[index:index+1, s:s+128, h:h+128, w:w+128, :])
-    targets.append(arr2[index:index+1, s:s+128, h:h+128, w:w+128, :])
+    features.append(arr1[index:index+1, s:s+slice_size,
+                    h:h+windows_size, w:w+windows_size, :])
+    targets.append(arr2[index:index+1, s:s+slice_size,
+                   h:h+windows_size, w:w+windows_size, :])
   features = np.concatenate(features)
   targets = np.concatenate(targets)
 
@@ -78,6 +83,7 @@ if __name__ == '__main__':
   di = {}
   for i in range(num):
     di[f'test-{i}'] = win[0][i]
+    print(di[f'test-{i}'].shape)
 
   mi = MedicalImage('test', di)
 
