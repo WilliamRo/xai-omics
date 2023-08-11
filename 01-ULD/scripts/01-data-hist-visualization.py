@@ -66,8 +66,8 @@ if __name__ == '__main__':
   low = dose['1-4 dose'][0, ..., 0]
   delta = full - low
 
-  metr = ['mse', 'rmse', 'SSIM']
-  output_metrics(full, low, metr)
+  # metr = ['mse', 'rmse', 'SSIM']
+  # output_metrics(full, low, metr)
 
-  # hist_draw(1 - low)#, range=[-0.01, 0.01], equal=0)
+  hist_draw(low, range=[-0.01, 0.01], equal=0)
 

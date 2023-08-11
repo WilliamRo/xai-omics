@@ -72,7 +72,7 @@ class ULDAgent(DataAgent):
                 # 'Subject_19-24', 'Subject_25-30']
 
     features = rd_data(data_root, subjects, patient_num=6,
-                       dose="1-4 dose")
-    targets = rd_data(data_root, subjects, patient_num=6)
+                       dose="1-4 dose", hist_equal=True)
+    targets = rd_data(data_root, subjects, patient_num=6, hist_equal=True)
 
     return features, targets

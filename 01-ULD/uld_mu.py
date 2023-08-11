@@ -26,7 +26,8 @@ def finalize(model):
 
   # Build model
   # model.build(loss=th.loss_string, metric=['loss'])
-  model.build(loss=th.loss_string, metric=[get_ssim_3D(), 'loss'])
+  # model.build(loss=th.loss_string, metric=[get_ssim_3D(), 'loss'])
+  model.build(loss=th.loss_string, metric=[get_ssim_3D(), get_nrmse(), 'loss'])
   return model
 
 
@@ -49,3 +50,14 @@ def get_ssim_3D():
     return tf.image.ssim(truth, output, max_val=1.0)
 
   return Quantity(ssim, tf.reduce_mean, name='SSIM', lower_is_better=False)
+
+
+def get_nrmse():
+  from tframe import tf
+
+  def nrmse(truth, output):
+    # [bs, num_slides, 440, 440, 1]
+    return tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(truth, output)))) / (
+          tf.reduce_max(truth) - tf.reduce_min(truth))
+
+  return Quantity(nrmse, tf.reduce_mean, name='NRMSE', lower_is_better=True)
