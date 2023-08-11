@@ -1,4 +1,6 @@
+import matplotlib.pyplot as plt
 import numpy as np
+from skimage import exposure
 from skimage.metrics import structural_similarity, peak_signal_noise_ratio, \
   mean_squared_error
 from xomics.data_io.mi_reader import rd_data
@@ -44,6 +46,16 @@ def output_metrics(arr1, arr2, metrics: list):
   return result
 
 
+def hist_draw(arr, range=None, log=False, equal=False):
+  arr = arr.reshape(-1)
+  if equal:
+    arr = exposure.equalize_hist(arr)
+  plt.hist(x=arr, bins=50, range=range, log=log)
+  plt.show()
+  return
+
+
+
 
 if __name__ == '__main__':
   dose = {}
@@ -52,7 +64,10 @@ if __name__ == '__main__':
     # print(dose[dose_tag].shape)
   full = dose['Full_dose'][0, ..., 0]
   low = dose['1-4 dose'][0, ..., 0]
+  delta = full - low
 
   metr = ['mse', 'rmse', 'SSIM']
   output_metrics(full, low, metr)
+
+  # hist_draw(1 - low)#, range=[-0.01, 0.01], equal=0)
 

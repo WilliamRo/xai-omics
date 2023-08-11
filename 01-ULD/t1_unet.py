@@ -33,7 +33,7 @@ def main(_):
   th.test_size = 2
 
   th.window_size = 64
-  th.slice_size = 16
+  th.slice_size = 32
   # th.eval_window_size = 128
 
   # ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = '_gamma'
+  th.suffix = '_try'
 
   th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------
@@ -61,7 +61,7 @@ def main(_):
   th.patience = 15
   th.probe_cycle = 0#th.updates_per_round
 
-  th.batch_size = 16
+  th.batch_size = 8
   th.val_batch_size = 1
 
   th.loss_string = 'rmse'

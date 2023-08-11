@@ -59,8 +59,8 @@ class ULDSet(DataSet):
     # Compare results using DrGordon
     medical_images = [
       MedicalImage(f'Sample-{i}', images={
-        'Input': self.features[i],
-        'Targets': self.targets[i],
+        'Input': data.features[i],
+        'Targets': data.targets[i],
         'Model-Output': pred[i]})
       for i in range(self.size)]
 

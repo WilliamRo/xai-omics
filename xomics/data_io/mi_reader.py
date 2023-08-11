@@ -19,7 +19,8 @@ def rd_series(dirPath):
   images = sitk.GetArrayFromImage(data)
   cut = (images.shape[0] - 608) // 2# find_num(images.shape[0], 32)
   images = images[cut:-cut]
-  return normalize(images)
+  return 1 - normalize(images)
+  # return normalize(images)
 
 
 def output_results(arr, pathname):

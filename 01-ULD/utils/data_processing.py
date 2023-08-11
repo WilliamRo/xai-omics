@@ -60,7 +60,7 @@ def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
   features = []
   targets = []
   for _ in range(batch_size):
-    index, s, h, w = get_random_window(arr1, windows_size)
+    index, s, h, w = get_random_window(arr1, windows_size, slice_size)
     features.append(arr1[index:index+1, s:s+slice_size,
                     h:h+windows_size, w:w+windows_size, :])
     targets.append(arr2[index:index+1, s:s+slice_size,
@@ -78,7 +78,7 @@ if __name__ == '__main__':
   # img = gen_windows(a, a, 1)
   # print(img)
   num = 20
-  win = gen_windows(a, a, num)
+  win = gen_windows(a, a, num, slice_size=32)
   print(win[0].shape)
   di = {}
   for i in range(num):
