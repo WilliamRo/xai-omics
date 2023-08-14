@@ -5,7 +5,7 @@ from uld.uld_set import ULDSet, DataSet
 
 import os
 
-from xomics.data_io.mi_reader import rd_data
+from xomics.data_io.mi_reader import load_data
 
 
 class ULDAgent(DataAgent):
@@ -14,20 +14,44 @@ class ULDAgent(DataAgent):
   def load(cls, data_dir, validate_size, test_size):
     from uld_core import th
     ds: ULDSet = cls.load_as_tframe_data(data_dir)
-    # if not th.train:
-    #   return ds,ds,ds
-    return ds.split(-1, validate_size, test_size,
-                    names=['Train-Set', 'Val-Set', 'Test-Set'])
+    if th.exp_name in ['alpha', 'beta', 'gamma']:
+      return ds.split(-1, validate_size, test_size,
+                      names=['Train-Set', 'Val-Set', 'Test-Set'])
+    else:
+      return ds.get_subsets(-1, validate_size, test_size,
+                            names=['Train-Set', 'Val-Set', 'Test-Set'])
 
   @classmethod
-  def load_as_tframe_data(cls, data_dir) -> ULDSet | DataSet:
+  def load_as_tframe_data(cls, data_dir):
     from uld_core import th
 
     # features/targets.shape = [N, S, H, W, 1]
-    features, targets = cls.load_as_numpy_arrays(data_dir)
-    # if not th.train:
-    #   return DataSet(features[:, :, 12:-12, 12:-12], targets[:, :, 12:-12, 12:-12])
-    if th.data_arg.func_name == 'alpha':
+    if th.exp_name in ['alpha', 'beta', 'gamma']:
+      features, targets = cls.load_as_numpy_arrays(data_dir)
+      return cls.early_exp(th, th.exp_name, features, targets)
+    else:
+      data_root = os.path.join(data_dir, th.data_kwargs['dataset'])
+      dose = th.data_kwargs['dose']
+      return ULDSet.load_as_uldset(data_root, dose)
+
+
+# Keep this function to run alpha beta gamma exp
+  @classmethod
+  def load_as_numpy_arrays(cls, data_dir):
+    from uld_core import th
+
+    data_root = os.path.join(data_dir, th.data_kwargs['dataset'])
+    dose = th.data_kwargs['dose']
+    subjects = [i for i in range(1, 7)]
+
+    features = load_data(data_root, subjects, dose)
+    targets = load_data(data_root, subjects, "Full")
+
+    return features, targets
+
+  @classmethod
+  def early_exp(cls, th, expname, features, targets):
+    if expname == 'alpha':
       s = th.window_size
       # Each x in xs has a shape of [s, s, s, 1]
       xs = []
@@ -45,7 +69,7 @@ class ULDAgent(DataAgent):
       ys = np.concatenate(ys, axis=0)
       print(xs.shape)
       return DataSet(xs, ys)
-    if th.data_arg.func_name == 'alpha2':
+    if expname == 'alpha2':
       xs = []
       ys = []
 
@@ -58,21 +82,5 @@ class ULDAgent(DataAgent):
       # print(xs.shape)
       return DataSet(xs, ys)
     # before beta plan may not be runnable
-    if th.data_arg.func_name in ['beta', 'gamma']:
-      return ULDSet(features, targets)
-
-    return ULDSet(features, targets)
-
-  @classmethod
-  def load_as_numpy_arrays(cls, data_dir):
-    from uld_core import th
-
-    data_root = os.path.join(data_dir, th.data_arg.arg_list[0])
-    subjects = ['Subject_1-6']#, 'Subject_7-12', 'Subject_13-18']
-                # 'Subject_19-24', 'Subject_25-30']
-
-    features = rd_data(data_root, subjects, patient_num=6,
-                       dose="1-4 dose", hist_equal=True)
-    targets = rd_data(data_root, subjects, patient_num=6, hist_equal=True)
-
-    return features, targets
+    if expname in ['beta', 'gamma']:
+      return ULDSet(features=features, targets=targets)

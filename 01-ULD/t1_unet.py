@@ -27,7 +27,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.data_config = r'gamma 01-ULD/ True'
+  th.data_config = r'delta dataset=01-ULD dose=1-4'
 
   th.val_size = 2
   th.test_size = 2
@@ -63,6 +63,8 @@ def main(_):
 
   th.batch_size = 8
   th.val_batch_size = 1
+
+  th.buffer_size = 6
 
   th.loss_string = 'rmse'
   th.optimizer = 'adam'

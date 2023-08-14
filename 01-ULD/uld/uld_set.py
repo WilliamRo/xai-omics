@@ -1,12 +1,29 @@
-import numpy as np
+import random
+from os import listdir
 
+import numpy as np
+from tframe import console
 from tframe import DataSet
 from tframe import Predictor
 from utils.data_processing import gen_windows
+from xomics.data_io.mi_reader import load_data
 
 
 class ULDSet(DataSet):
 
+  def __init__(self, data_dir=None, dose=None, buffer_size=None,
+               subjects=None, name=None, data_dict=None):
+    # super().__init__(**kwargs)
+    self.data_dir = data_dir
+    self.buffer_size = buffer_size
+    self.subjects = listdir(self.data_dir) if subjects is None else subjects
+    self.data_fetcher = self.fetch_data
+    self.dose = dose
+    self.name = name
+
+    self.data_dict = {} if data_dict is None else data_dict
+    # Necessary fields to prevent errors
+    self.is_rnn_input = False
 
   def gen_random_window(self, batch_size):
     from uld_core import th
@@ -29,6 +46,8 @@ class ULDSet(DataSet):
       eval_set = DataSet(features, targets, name=self.name + '-Eval')
       yield eval_set
       return
+    elif callable(self.data_fetcher):
+      self.data_fetcher(self)
     round_len = self.get_round_length(batch_size, training=is_training)
 
     # Generate batches
@@ -68,6 +87,39 @@ class ULDSet(DataSet):
     dg.slice_view.set('vmin', auto_refresh=False)
     dg.slice_view.set('vmax', auto_refresh=False)
     dg.show()
+
+  @staticmethod
+  def fetch_data(self):
+    if self.buffer_size is None:
+      subjects = self.subjects
+    else:
+      subjects = list(np.random.choice(self.subjects, self.buffer_size))
+    console.show_status(f'Fetching signal groups to {self.data_dir} ...')
+    self.features = load_data(self.data_dir, subjects, self.dose)
+    self.targets = load_data(self.data_dir, subjects, "Full")
+
+
+  @classmethod
+  def load_as_uldset(cls, data_dir, dose):
+    from tframe import hub as th
+    return ULDSet(data_dir=data_dir, dose=dose,
+                  buffer_size=th.buffer_size)
+
+
+  def get_subsets(self, *sizes, names):
+    # TODO: improve the function like split
+    if len(sizes) != 3:
+      raise SystemError("The function is need to upgrade!")
+    results = random.sample(self.subjects, sizes[1]+sizes[2])
+    for i in results:
+      self.subjects.remove(i)
+    self.name = names[0]
+
+    return self, self.__class__(self.data_dir, self.dose, self.buffer_size,
+                                results[:sizes[1]], names[1]), \
+        self.__class__(self.data_dir, self.dose, self.buffer_size,
+                       results[-sizes[2]:], names[2])
+
 
   def snapshot(self, model):
     from tframe import Predictor

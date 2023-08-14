@@ -1,38 +1,29 @@
 import os
 
-from xomics.data_io.mi_reader import rd_data
+from xomics.data_io.mi_reader import load_data
 from xomics.gui.dr_gordon import DrGordon
 from xomics import MedicalImage
 import numpy as np
 
 data_dir = r'../../../data/01-ULD/'
-subjects = ['Subject_1-6']#, 'Subject_7-12', 'Subject_13-18']
+subjects = [1, 3, 5, 10, 12]
 patient_num = 1
 
 
-keys = ['Full_dose',
-        # '1-2 dose',
-        '1-4 dose',
-        # '1-10 dose',
-        # '1-20 dose',
-        # '1-50 dose',
-        # '1-100 dose',
+keys = ['Full',
+        # '1-2',
+        '1-4',
+        # '1-10',
+        # '1-20',
+        # '1-50',
+        # '1-100',
         ]
 mis = []
 
-# data.shape = [1, n_slice, H, w, 1]
-dose = {}
-for dose_tag in keys:
-  dose[dose_tag] = rd_data(data_dir, subjects, dose_tag, patient_num)
-  print(dose[dose_tag].shape)
-
-for i in range(len(subjects)*patient_num):
-  img_dict = {}
-
-  for key in dose.keys():
-    img_dict[key] = dose[key][i]
-
-  mi = MedicalImage(f'Patient-{i}', img_dict)
+for subject in subjects:
+  img = load_data(data_dir, subject, keys)
+  data_dict = dict(zip(keys, img))
+  mi = MedicalImage(f'Subject-{subject}', data_dict)
   mis.append(mi)
 
 # Visualization

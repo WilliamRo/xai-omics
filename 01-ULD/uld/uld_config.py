@@ -11,10 +11,21 @@ class ULDConfig(SmartTrainerHub):
   learn_delta = Flag.boolean(True, 'Whether to add shortcut at the end',
                              is_key=None)
   slice_size = Flag.integer(16, 'Slice size during training', is_key=None)
+  buffer_size = Flag.integer(3, 'Number of subject groups loaded per round',
+                                is_key=None)
 
   @property
   def data_arg(self) -> Arguments:
     return Arguments.parse(self.data_config)
+
+  @property
+  def exp_name(self):
+    return Arguments.parse(self.data_config).func_name
+
+  @property
+  def data_kwargs(self) -> dict:
+    return Arguments.parse(self.data_config).arg_dict
+
 
 
 # New hub class inherited from SmartTrainerHub must be registered
