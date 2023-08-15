@@ -74,4 +74,4 @@ def get_psnr():
     # [bs, num_slides, 440, 440, 1]
     return tf.image.psnr(truth, output, 1)
 
-  return Quantity(psnr, tf.reduce_mean, name='PSNR', lower_is_better=True)
+  return Quantity(psnr, tf.reduce_mean, name='PSNR', lower_is_better=False)
