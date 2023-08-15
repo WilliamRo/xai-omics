@@ -16,7 +16,13 @@ class ULDSet(DataSet):
     # super().__init__(**kwargs)
     self.data_dir = data_dir
     self.buffer_size = buffer_size
-    self.subjects = listdir(self.data_dir) if subjects is None else subjects
+    self.subjects = []
+    if subjects is None:
+      for i in listdir(data_dir):
+        if 'subject' in i:
+          self.subjects.append(i)
+    else:
+      self.subjects = subjects
     self.data_fetcher = self.fetch_data
     self.dose = dose
     self.name = name
@@ -90,10 +96,10 @@ class ULDSet(DataSet):
 
   @staticmethod
   def fetch_data(self):
-    if self.buffer_size is None:
+    if self.buffer_size is None or self.buffer_size >= len(self.subjects):
       subjects = self.subjects
     else:
-      subjects = list(np.random.choice(self.subjects, self.buffer_size))
+      subjects = np.random.choice(self.subjects, self.buffer_size, replace=False)
     console.show_status(f'Fetching signal groups to {self.data_dir} ...')
     self.features = load_data(self.data_dir, subjects, self.dose)
     self.targets = load_data(self.data_dir, subjects, "Full")

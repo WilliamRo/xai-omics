@@ -1,68 +1,16 @@
 import os
-from typing import List
-import matplotlib.pyplot as plt
 import numpy as np
-import SimpleITK as sitk
-from skimage import exposure
 from tframe import console
 
 
-def normalize(a):
-  a = (a - np.min(a)) / np.max(a)
-  return a
 
-
-def rd_series(dirPath, hist_equal=False):
-  series_reader = sitk.ImageSeriesReader()
-  fileNames = series_reader.GetGDCMSeriesFileNames(dirPath)
-  series_reader.SetFileNames(fileNames)
-  data = series_reader.Execute()
-
-  images = sitk.GetArrayFromImage(data)
-  cut = (images.shape[0] - 608) // 2  # find_num(images.shape[0], 32)
-  images = images[cut:-cut]
-  # return 1 - normalize(images)
-  if hist_equal:
-    return exposure.equalize_hist(normalize(images), mask=images != 0)
-  else:
-    return normalize(images)
-    # return images
-
-
-def output_results(arr, pathname):
-  sitk.WriteImage(arr, pathname)
-
-
-def rd_subject(dataPath, subject, dose="Full_dose",
-               patient_num=6, hist_equal=False):
-  patients = os.listdir(os.path.join(dataPath, subject))[:patient_num]
-  images = []
-
-  for patient in patients:
-    dirPath = os.path.join(dataPath, subject, patient, dose)
-    images.append(rd_series(dirPath, hist_equal))
-
-  results = np.concatenate([arr[np.newaxis] for arr in images], axis=0)
-  results = results.reshape(results.shape + (1,))
-
-  return results
-
-
-def rd_data(dataPath, subjects: List, dose="Full_dose",
-            patient_num=6, hist_equal=False):
-  data = []
-  for subject in subjects:
-    data.append(rd_subject(dataPath, subject, dose, patient_num, hist_equal))
-  data = np.concatenate(data, axis=0)
-
-  return data
 
 
 # npy data load function
 def load_numpy_data(datadir: str, subjects, doses):
   if type(subjects) is int and type(doses) is list:
     return load_data_by_subject(datadir, subjects, doses)
-  elif type(subjects) is list and type(doses) is str:
+  elif type(subjects) in [list, np.ndarray] and type(doses) is str:
     return load_data_by_dose(datadir, subjects, doses)
   elif type(subjects) is int and type(doses) is str:
     filepath = os.path.join(datadir, f'subject{subjects}',

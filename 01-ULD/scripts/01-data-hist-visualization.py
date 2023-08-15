@@ -3,22 +3,19 @@ import numpy as np
 from skimage import exposure
 from skimage.metrics import structural_similarity, peak_signal_noise_ratio, \
   mean_squared_error
-from xomics.data_io.mi_reader import rd_data
+from xomics.data_io.mi_reader import load_data
 
 
 
 
-data_dir = r'../../data/01-ULD/'
-subjects = ['Subject_1-6']
-patient_num = 1
 dose_tags = [
-  'Full_dose',
-  # '1-2 dose',
-  '1-4 dose',
-  # '1-10 dose',
-  # '1-20 dose',
-  # '1-50 dose',
-  # '1-100 dose',
+  'Full',
+  '1-2',
+  '1-4',
+  '1-10',
+  '1-20',
+  '1-50',
+  '1-100',
   ]
 
 
@@ -32,6 +29,8 @@ def calc_metric(arr1, arr2, metric='mse'):
     return structural_similarity(arr1, arr2, data_range=1)
   elif metric == 'psnr':
     return peak_signal_noise_ratio(arr1, arr2)
+  elif metric == 'nrmse':
+    return np.sqrt(np.sum(np.square(arr1-arr2))/np.sum(np.square(arr1)))
   else:
     raise ValueError('Unsupported Metric')
 
@@ -58,16 +57,18 @@ def hist_draw(arr, range=None, log=False, equal=False):
 
 
 if __name__ == '__main__':
-  dose = {}
-  for dose_tag in dose_tags:
-    dose[dose_tag] = rd_data(data_dir, subjects, dose_tag, patient_num)
-    # print(dose[dose_tag].shape)
-  full = dose['Full_dose'][0, ..., 0]
-  low = dose['1-4 dose'][0, ..., 0]
-  delta = full - low
+  dirpath = '../../data/01-ULD/'
+  full = load_data(dirpath, 1, dose_tags[0])
+  # print(imgs[0].shape)
+  full = full[0, ..., 0]
+  # low = dose['1-4 dose'][0, ..., 0]
+  # delta = full - low
 
-  # metr = ['mse', 'rmse', 'SSIM']
-  # output_metrics(full, low, metr)
+  metr = ['nrmse', 'SSIM', 'psnr',]
+  for i in range(len(dose_tags[1:])):
+    print(f'{dose_tags[1:][i]} dose:')
+    img = load_data(dirpath, 1, dose_tags[1:][i])[0, ..., 0]
+    output_metrics(full, img, metr)
 
-  hist_draw(low, range=[-0.01, 0.01], equal=0)
+  # hist_draw(low, range=[-0.01, 0.01], equal=0)
 

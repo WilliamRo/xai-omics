@@ -29,11 +29,11 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.data_config = r'delta dataset=01-ULD dose=1-4'
 
-  th.val_size = 2
-  th.test_size = 2
+  th.val_size = 30
+  th.test_size = 1
 
   th.window_size = 64
-  th.slice_size = 32
+  th.slice_size = 64
   # th.eval_window_size = 128
 
   # ---------------------------------------------------------------------------
@@ -61,10 +61,10 @@ def main(_):
   th.patience = 15
   th.probe_cycle = 0#th.updates_per_round
 
-  th.batch_size = 8
+  th.batch_size = 2
   th.val_batch_size = 1
 
-  th.buffer_size = 6
+  th.buffer_size = 18
 
   th.loss_string = 'rmse'
   th.optimizer = 'adam'

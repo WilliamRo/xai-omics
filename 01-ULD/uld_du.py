@@ -18,7 +18,7 @@ def load_data():
   console.show_info('Data details')
   for ds in datasets:
     assert isinstance(ds, ULDSet)
-    # if ds.name != 'Train-Set':
+    # if ds.name != 'Test-Set':
     ds.fetch_data(ds)
     console.supplement(f'{ds.name}: {ds.features.shape})', level=2)
     # else:

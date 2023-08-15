@@ -26,8 +26,9 @@ def finalize(model):
 
   # Build model
   # model.build(loss=th.loss_string, metric=['loss'])
-  model.build(loss=th.loss_string, metric=[get_ssim_3D(), 'loss'])
-  # model.build(loss=th.loss_string, metric=[get_ssim_3D(), get_nrmse(), 'loss'])
+  # model.build(loss=th.loss_string, metric=[get_ssim_3D(), 'loss'])
+  model.build(loss=th.loss_string, metric=[
+    get_ssim_3D(), get_nrmse(), get_psnr(),'loss'])
   return model
 
 
@@ -58,9 +59,10 @@ def get_nrmse():
 
   def nrmse(truth, output):
     # [bs, num_slides, 440, 440, 1]
-    return tf.sqrt(
-      tf.reduce_sum(tf.square(truth - output)) / tf.reduce_sum(tf.square(truth))
-    )
+    axis = list(range(1, len(truth.shape)))
+    a = tf.reduce_sum(tf.square(truth - output), axis=axis)
+    b = tf.reduce_sum(tf.square(truth), axis=axis)
+    return tf.sqrt(a / b)
 
   return Quantity(nrmse, tf.reduce_mean, name='NRMSE', lower_is_better=True)
 
@@ -68,9 +70,8 @@ def get_nrmse():
 def get_psnr():
   from tframe import tf
 
-  def nrmse(truth, output):
+  def psnr(truth, output):
     # [bs, num_slides, 440, 440, 1]
-    return tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(truth, output)))) / (
-        tf.reduce_max(truth) - tf.reduce_min(truth))
+    return tf.image.psnr(truth, output, 1)
 
-  return Quantity(nrmse, tf.reduce_mean, name='NRMSE', lower_is_better=True)
+  return Quantity(psnr, tf.reduce_mean, name='PSNR', lower_is_better=True)

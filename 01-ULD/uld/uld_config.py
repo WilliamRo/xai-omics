@@ -11,7 +11,7 @@ class ULDConfig(SmartTrainerHub):
   learn_delta = Flag.boolean(True, 'Whether to add shortcut at the end',
                              is_key=None)
   slice_size = Flag.integer(16, 'Slice size during training', is_key=None)
-  buffer_size = Flag.integer(3, 'Number of subject groups loaded per round',
+  buffer_size = Flag.integer(6, 'Number of subject groups loaded per round',
                                 is_key=None)
 
   @property
