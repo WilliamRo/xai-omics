@@ -1,14 +1,13 @@
 import os
 import numpy as np
+from matplotlib import pyplot as plt
+
 from tframe import console
-
-
-
 
 
 # npy data load function
 def load_numpy_data(datadir: str, subjects, doses):
-  if type(subjects) is int and type(doses) is list:
+  if type(subjects) is int and type(doses) in [list, np.ndarray]:
     return load_data_by_subject(datadir, subjects, doses)
   elif type(subjects) in [list, np.ndarray] and type(doses) is str:
     return load_data_by_dose(datadir, subjects, doses)
@@ -44,18 +43,42 @@ def load_data_by_subject(datadir: str, subject: int, doses: list):
   return np.concatenate(arr)
 
 
-def load_data(datadir: str, subjects, doses):
-  return load_numpy_data(datadir, subjects, doses)
+def load_data(datadir: str,
+              subjects: int | str | list | np.ndarray,
+              doses: str | list | np.ndarray):
+  """
+  support 3 ways to load data
+  :param datadir:  data file directory
+  :param subjects:
+  :param doses:
+  :return:
+  """
+  from uld_core import th
+
+  data = load_numpy_data(datadir, subjects, doses)
+  if th.use_color:
+    data = get_color_data(data, "rainbow")
+    # data = get_color_data(data, "inferno")
+  if th.use_tanh:
+    k = 10.
+    data = np.tanh(k * data)
+  return data
 
 
 # npy end
+def get_color_data(data, cmap):
+  sm = plt.colormaps[cmap]
+  cm = sm(data[:, ..., 0])[:, ..., :-1]
+  return cm
+
+
 
 
 if __name__ == '__main__':
   filePath = '../../data/01-ULD/'
   img = load_numpy_data(filePath, 1, ['Full', '1-4'])
-  print(img.shape)
 
+  print(get_color_data(img, "rainbow"))
   # keys = ['Full_dose',
   #         '1-2 dose',
   #         '1-4 dose',

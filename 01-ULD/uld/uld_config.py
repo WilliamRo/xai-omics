@@ -14,6 +14,10 @@ class ULDConfig(SmartTrainerHub):
   buffer_size = Flag.integer(6, 'Number of subject groups loaded per round',
                                 is_key=None)
 
+  use_color = Flag.boolean(False, 'Whether transform the data to rgb',
+                           is_key=None)
+  use_tanh = Flag.boolean(False, 'Whether use tanh to preprocess the data',
+                           is_key=None)
   @property
   def data_arg(self) -> Arguments:
     return Arguments.parse(self.data_config)

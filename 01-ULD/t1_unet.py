@@ -36,6 +36,9 @@ def main(_):
   th.slice_size = 64
   # th.eval_window_size = 128
 
+  th.use_color = False
+  th.use_tanh = True
+
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
   # ---------------------------------------------------------------------------

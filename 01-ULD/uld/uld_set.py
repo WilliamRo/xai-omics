@@ -114,8 +114,14 @@ class ULDSet(DataSet):
 
   def get_subsets(self, *sizes, names):
     # TODO: improve the function like split
+    sizes = list(sizes)
     if len(sizes) != 3:
       raise SystemError("The function is need to upgrade!")
+    num = sizes[1] + sizes[2]
+    if num < 3:
+      raise ValueError("The data is too less to train!")
+    if num > len(self.subjects):
+      sizes[1], sizes[2] = 1, 1
     results = random.sample(self.subjects, sizes[1]+sizes[2])
     for i in results:
       self.subjects.remove(i)

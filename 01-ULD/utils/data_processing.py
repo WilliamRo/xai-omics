@@ -4,6 +4,7 @@ from typing import Tuple
 
 from matplotlib import pyplot as plt
 
+from xomics.data_io.mi_reader import load_data
 from xomics import MedicalImage
 from xomics.gui.dr_gordon import DrGordon
 
@@ -44,6 +45,7 @@ def get_random_window(arr: np.ndarray, window_size=128, slice_size=16):
   # arr_pro = np.add.reduce(arr, axis=2)
   # distr_s = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
   arr_pro = np.add.reduce(arr, axis=1)
+  arr_pro = np.add.reduce(arr_pro, axis=3)
   distr_h = normalize(np.add.reduce(arr_pro, axis=1).reshape((-1)))
   distr_w = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
   # print(h,w)
@@ -73,9 +75,9 @@ def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
 
 
 if __name__ == '__main__':
-  # a = rd_data('D:/projects/xai-omics/data/01-ULD/', ['Subject_1-6'], '1-10 dose', 2)
-  # img = gen_windows(a, a, 1)
-  # print(img)
+  a = load_data('D:/projects/xai-omics/data/01-ULD/', 1, "Full")
+  img = gen_windows(a, a, 1)
+  print(a.shape, img[0].shape)
   pass
   # num = 20
   # win = gen_windows(a, a, num, slice_size=32)

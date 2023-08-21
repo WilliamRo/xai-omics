@@ -11,11 +11,14 @@ def get_initial_model():
 
   model = mu.Predictor(th.mark)
   model.add(mu.Input(sample_shape=th.input_shape))
+  # if th.use_tanh:
+  #   model.add()
   return model
 
 
 def finalize(model):
   from uld_core import th
+  from tframe import tf
 
   assert isinstance(model, mu.Predictor)
   model.add(mu.HyperConv3D(filters=1, kernel_size=1, activation='sigmoid'))
@@ -23,18 +26,18 @@ def finalize(model):
   if th.learn_delta:
     model.input_.abbreviation = 'input'
     model.add(mu.ShortCut(model.input_, mode=mu.ShortCut.Mode.SUM))
-
+  # if th.use_tanh:
+    # model.add()
   # Build model
   # model.build(loss=th.loss_string, metric=['loss'])
   # model.build(loss=th.loss_string, metric=[get_ssim_3D(), 'loss'])
-  model.build(loss=th.loss_string, metric=[
-    get_ssim_3D(), get_nrmse(), get_psnr(),'loss'])
+  model.build(loss=get_nrmse(), metric=[
+    get_ssim_3D(), get_nrmse(), get_psnr(),'rmse'])
   return model
 
 
 def get_unet(arc_string='8-3-4-2-relu-mp', **kwargs):
   model = get_initial_model()
-
   mu.UNet(3, arc_string=arc_string, **kwargs).add_to(model)
 
   return finalize(model)
