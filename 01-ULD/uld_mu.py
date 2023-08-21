@@ -31,8 +31,8 @@ def finalize(model):
   # Build model
   # model.build(loss=th.loss_string, metric=['loss'])
   # model.build(loss=th.loss_string, metric=[get_ssim_3D(), 'loss'])
-  model.build(loss=get_nrmse(), metric=[
-    get_ssim_3D(), get_nrmse(), get_psnr(),'rmse'])
+  model.build(loss=th.loss_string, metric=[
+    get_ssim_3D(), get_nrmse(), get_psnr(), 'loss'])
   return model
 
 
