@@ -44,10 +44,11 @@ def get_random_window(arr: np.ndarray, window_size=128, slice_size=16):
   arr = np.where(arr != 0, 1, arr)
   # arr_pro = np.add.reduce(arr, axis=2)
   # distr_s = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
+  arr = arr[:, s:s+slice_size]
   arr_pro = np.add.reduce(arr, axis=1)
   arr_pro = np.add.reduce(arr_pro, axis=3)
-  distr_h = normalize(np.add.reduce(arr_pro, axis=1).reshape((-1)))
-  distr_w = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
+  distr_w = normalize(np.add.reduce(arr_pro, axis=1).reshape((-1)))
+  distr_h = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
   # print(h,w)
   # s = windows_choose(distr_s, slice_size)
   h = windows_choose(distr_h, window_size)

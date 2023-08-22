@@ -16,8 +16,10 @@ class ULDConfig(SmartTrainerHub):
 
   use_color = Flag.boolean(False, 'Whether transform the data to rgb',
                            is_key=None)
-  use_tanh = Flag.boolean(False, 'Whether use tanh to preprocess the data',
-                           is_key=None)
+  use_tanh = Flag.float(0.0, 'use tanh(kx) to preprocess the data',
+                        is_key=None)
+  use_clip = Flag.float(1.0, "clip the data value", is_key=None)
+
   @property
   def data_arg(self) -> Arguments:
     return Arguments.parse(self.data_config)

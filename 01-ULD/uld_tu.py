@@ -12,7 +12,7 @@ def probe(trainer):
   assert isinstance(trainer, Trainer) and isinstance(th, ULDConfig)
 
   # Get indices from th
-  val_set: ULDSet = trainer.validation_set
+  val_set: ULDSet = trainer.test_set
 
   # Take snapshot
   val_set.snapshot(trainer.model)

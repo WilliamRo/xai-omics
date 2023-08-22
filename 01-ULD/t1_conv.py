@@ -11,12 +11,19 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'unet'
-id = 1
+model_name = 'conv'
+id = 2
 def model():
+  mu = m.mu
   th = core.th
 
-  return m.get_unet(th.archi_string)
+  model = m.get_initial_model()
+
+  for str_c in th.archi_string.split('-'):
+    c = int(str_c)
+    model.add(mu.HyperConv3D(c, th.kernel_size, activation=th.activation))
+
+  return m.finalize(model)
 
 
 def main(_):
@@ -37,7 +44,6 @@ def main(_):
   # th.eval_window_size = 128
 
   th.use_color = False
-  th.use_tanh = 50
   th.use_clip = 0.9
 
   # ---------------------------------------------------------------------------
@@ -46,7 +52,6 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = f'_tanh{th.use_tanh}'
 
   th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------
@@ -54,8 +59,12 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '4-3-3-2-lrelu'
-  # th.archi_string = '16-5-2-3-relu-mp'
+  th.use_tanh = 0
+
+  th.archi_string = '8-8'
+  th.kernel_size = 5
+  th.activation = 'lrelu'
+
   th.learn_delta = 0
   # ---------------------------------------------------------------------------
   # 3. trainer setup
@@ -82,6 +91,8 @@ def main(_):
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
   th.mark = '{}({})'.format(model_name, th.archi_string)
+  if th.use_tanh != 0: th.mark += f'-tanh({th.use_tanh})'
+
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()
 

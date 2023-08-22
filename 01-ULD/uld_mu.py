@@ -1,6 +1,7 @@
 from tframe.core.quantity import Quantity
 from tframe import console
 from tframe import mu
+from uld.operators.tanh_layers import Tanh_k, Atanh_k
 
 import numpy as np
 
@@ -11,8 +12,8 @@ def get_initial_model():
 
   model = mu.Predictor(th.mark)
   model.add(mu.Input(sample_shape=th.input_shape))
-  # if th.use_tanh:
-  #   model.add()
+  if th.use_tanh != 0:
+    model.add(Tanh_k(k=th.use_tanh))
   return model
 
 
@@ -21,7 +22,12 @@ def finalize(model):
   from tframe import tf
 
   assert isinstance(model, mu.Predictor)
-  model.add(mu.HyperConv3D(filters=1, kernel_size=1, activation='sigmoid'))
+  model.add(mu.HyperConv3D(filters=1, kernel_size=1))
+
+  if th.use_tanh != 0:
+    model.add(Atanh_k(k=th.use_tanh))
+  else:
+    model.add(mu.Activation('sigmoid'))
 
   if th.learn_delta:
     model.input_.abbreviation = 'input'
@@ -48,7 +54,11 @@ def get_ssim_3D():
 
   def ssim(truth, output):
     # [bs, num_slides, 440, 440, 1]
-    shape = [-1, 440, 440, 1]
+    from uld_core import th
+    if th.use_color:
+      shape = [-1, 440, 440, 3]
+    else:
+      shape = [-1, 440, 440, 1]
     truth, output = [tf.reshape(x, shape) for x in (truth, output)]
 
     return tf.image.ssim(truth, output, max_val=1.0)

@@ -56,12 +56,15 @@ def load_data(datadir: str,
   from uld_core import th
 
   data = load_numpy_data(datadir, subjects, doses)
+
+  if th.use_clip < 1.0:
+    data = np.clip(data, 0, th.use_clip)
   if th.use_color:
-    data = get_color_data(data, "rainbow")
+    data = get_color_data(data, "nipy_spectral")
     # data = get_color_data(data, "inferno")
-  if th.use_tanh:
-    k = 10.
-    data = np.tanh(k * data)
+  # if th.use_tanh > 0:
+  #   k = th.use_tanh
+  #   data = np.tanh(k * data)
   return data
 
 

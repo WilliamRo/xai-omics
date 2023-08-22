@@ -1,12 +1,10 @@
 import random
-from os import listdir
-
 import numpy as np
 from tframe import console
 from tframe import DataSet
 from tframe import Predictor
-from utils.data_processing import gen_windows
-from xomics.data_io.mi_reader import load_data
+
+
 
 
 class ULDSet(DataSet):
@@ -14,6 +12,7 @@ class ULDSet(DataSet):
   def __init__(self, data_dir=None, dose=None, buffer_size=None,
                subjects=None, name=None, data_dict=None):
     # super().__init__(**kwargs)
+    from os import listdir
     self.data_dir = data_dir
     self.buffer_size = buffer_size
     self.subjects = []
@@ -33,6 +32,7 @@ class ULDSet(DataSet):
 
   def gen_random_window(self, batch_size):
     from uld_core import th
+    from utils.data_processing import gen_windows
     # Randomly sample [S, S, S] pair from features and targets
 
     # self.features/targets.shape = [N, S, H, W, 1]
@@ -96,6 +96,7 @@ class ULDSet(DataSet):
 
   @staticmethod
   def fetch_data(self):
+    from xomics.data_io.mi_reader import load_data
     if self.buffer_size is None or self.buffer_size >= len(self.subjects):
       subjects = self.subjects
     else:
@@ -137,12 +138,26 @@ class ULDSet(DataSet):
     from tframe import Predictor
     import os
     import matplotlib.pyplot as plt
+    from utils.metrics_calc import get_metrics
 
     assert isinstance(model, Predictor)
 
+    slice_num = 320
+    if model.counter == 50:
+      metrics = ['SSIM', 'NRMSE', 'PSNR', 'RMSE']
+      fmetric = get_metrics(self.targets[0, ..., 0],
+                            self.features[0, ..., 0], metrics)
+      fm_str = '-'.join([f'{k}{v:.5f}' for k, v in fmetric.items()])
+      ffn = f'Feature-Slice{slice_num}-{fm_str}.png'
+      tfn = f'Target-Slice{slice_num}.png'
+      plt.imsave(os.path.join(model.agent.ckpt_dir, ffn),
+                 self.features[0, slice_num, ..., 0], cmap='gray')
+      plt.imsave(os.path.join(model.agent.ckpt_dir, tfn),
+                 self.targets[0, slice_num, ..., 0], cmap='gray')
+
     # (1) Get image (shape=[1, S, H, W, 1])
-    data = DataSet(self.features[:1, 280:340], self.targets[:1, 280:340])
-    images = model.predict(data)
+    # data = DataSet(self.features[:1, 314:330], self.targets[:1, 314:330])
+    images = model.predict(self)
 
     # (2) Get metrics
     val_dict = model.validate_model(self)
@@ -151,4 +166,4 @@ class ULDSet(DataSet):
     metric_str = '-'.join([f'{k}{v:.2f}' for k, v in val_dict.items()])
     fn = f'Iter{model.counter}-{metric_str}.png'
     plt.imsave(os.path.join(model.agent.ckpt_dir, fn),
-               images[0, 320, ..., 0], cmap='gray')
+               images[0, slice_num, ..., 0], cmap='gray')
