@@ -37,8 +37,8 @@ def main(_):
   # th.eval_window_size = 128
 
   th.use_color = False
-  th.use_tanh = 50
-  th.use_clip = 0.9
+  th.use_tanh = 0
+  th.use_clip = 16.0
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
@@ -46,7 +46,10 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = f'_tanh{th.use_tanh}'
+  if th.use_tanh != 0:
+    th.suffix = f'_tanh{th.use_tanh}'
+  else:
+    th.suffix = f'_clip{th.use_clip}'
 
   th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------

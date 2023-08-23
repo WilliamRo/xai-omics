@@ -146,7 +146,8 @@ class ULDSet(DataSet):
     if model.counter == 50:
       metrics = ['SSIM', 'NRMSE', 'PSNR', 'RMSE']
       fmetric = get_metrics(self.targets[0, ..., 0],
-                            self.features[0, ..., 0], metrics)
+                            self.features[0, ..., 0],
+                            metrics, data_range=1)
       fm_str = '-'.join([f'{k}{v:.5f}' for k, v in fmetric.items()])
       ffn = f'Feature-Slice{slice_num}-{fm_str}.png'
       tfn = f'Target-Slice{slice_num}.png'

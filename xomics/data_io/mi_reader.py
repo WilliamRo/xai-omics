@@ -3,6 +3,16 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from tframe import console
+from xomics.data_io.raw_reader import calc_SUV
+
+
+def load_tags(filepath):
+  tags = {}
+  with open(filepath, 'r') as f:
+    for data in f.readlines():
+      data = data.split(',')
+      tags[data[0]] = float(data[1])
+  return tags
 
 
 # npy data load function
@@ -14,7 +24,7 @@ def load_numpy_data(datadir: str, subjects, doses):
   elif type(subjects) is int and type(doses) is str:
     filepath = os.path.join(datadir, f'subject{subjects}',
                             f'subject{subjects}_{doses}.npy')
-    return np.load(filepath)
+    return npy_load(filepath)
   else:
     raise TypeError("Subjects or Doses type is wrong!")
 
@@ -26,7 +36,7 @@ def load_data_by_dose(datadir: str, subjects: list, dose: str):
       subject = int(subject[7:])
     filepath = os.path.join(datadir, f'subject{subject}',
                             f'subject{subject}_{dose}.npy')
-    arr.append(np.load(filepath))
+    arr.append(npy_load(filepath))
     console.supplement(f'Loaded `{filepath}`', level=2)
   return np.concatenate(arr)
 
@@ -38,7 +48,7 @@ def load_data_by_subject(datadir: str, subject: int, doses: list):
   for dose in doses:
     filepath = os.path.join(datadir, f'subject{subject}',
                             f'subject{subject}_{dose}.npy')
-    arr.append(np.load(filepath))
+    arr.append(npy_load(filepath))
     console.supplement(f'Loaded `{filepath}`', level=2)
   return np.concatenate(arr)
 
@@ -57,8 +67,8 @@ def load_data(datadir: str,
 
   data = load_numpy_data(datadir, subjects, doses)
 
-  if th.use_clip < 1.0:
-    data = np.clip(data, 0, th.use_clip)
+  if th.use_clip != np.Inf:
+    data = np.clip(data, 0, th.use_clip) / th.use_clip
   if th.use_color:
     data = get_color_data(data, "nipy_spectral")
     # data = get_color_data(data, "inferno")
@@ -75,13 +85,29 @@ def get_color_data(data, cmap):
   return cm
 
 
+def npy_load(filepath, slice_num=608, suv=True):
+  data = np.load(filepath)
+  if suv:
+    tmp = os.path.split(filepath)
+    tagpath = os.path.join(tmp[0], f'tags_{tmp[1][:-3]}txt')
+    tags = load_tags(tagpath)
+    data = calc_SUV(data, tags)
+    # print(np.max(suv), np.mean(suv))
+
+  if data.shape[1] % 2 != 0:
+    data = data[:, 1:]
+  cut = (data.shape[1] - slice_num) // 2
+  data = data[:, cut:-cut]
+  return data
+
+
 
 
 if __name__ == '__main__':
   filePath = '../../data/01-ULD/'
-  img = load_numpy_data(filePath, 1, ['Full', '1-4'])
+  img = load_numpy_data(filePath, 1, ['Full'])
 
-  print(get_color_data(img, "rainbow"))
+  print(img.shape)
   # keys = ['Full_dose',
   #         '1-2 dose',
   #         '1-4 dose',

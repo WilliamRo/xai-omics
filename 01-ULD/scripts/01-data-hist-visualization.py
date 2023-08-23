@@ -31,7 +31,7 @@ def hist_draw(arr, bins: str | int = 'auto', axis_range=None, log=False, equal=F
   if equal:
     arr = exposure.equalize_hist(arr)
   arr = arr[arr > 0.015]
-  plt.hist(x=arr, bins=bins, range=axis_range, log=log, density=True)
+  plt.hist(x=arr, bins=bins, range=axis_range, log=log)
   plt.show()
   return
 
@@ -48,12 +48,13 @@ def slice_hist_draw(arr: np.ndarray):
 
 if __name__ == '__main__':
   from uld_core import th
-  th.use_tanh = False
-  th.use_clip = 0.15
+  th.use_tanh = 0
+  th.use_clip = 16
   dirpath = '../../data/01-ULD/'
-  full = load_data(dirpath, 2, dose_tags[0])
+  full = load_data(dirpath, 1, dose_tags[0])
   # print(imgs[0].shape)
   full = full[0, ..., 0]
+  print(np.max(full))
   # low = dose['1-4 dose'][0, ..., 0]
   # delta = full - low
 
@@ -62,6 +63,6 @@ if __name__ == '__main__':
   #   print(f'{dose_tags[1:][i]} dose:')
   #   img = load_data(dirpath, 1, dose_tags[1:][i])[0, ..., 0]
   #   output_metrics(full, img, metr)
-  hist_draw(full, bins=50, axis_range=(0, 0.2))
+  hist_draw(full, bins=50)
   # slice_distr = slice_hist_draw(full)
   # hist_draw(slice_distr, bins=60)

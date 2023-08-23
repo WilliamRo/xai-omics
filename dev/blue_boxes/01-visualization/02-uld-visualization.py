@@ -7,13 +7,13 @@ from xomics import MedicalImage
 import numpy as np
 
 data_dir = r'../../../data/01-ULD/'
-subjects = [3]
+subjects = [1, 2, 3, 4, 5]
 patient_num = 1
 mode = "uld-train"
 
 from uld_core import th
-th.use_clip = 0.9
-th.use_tanh = 50
+th.use_clip = 16
+th.use_tanh = 0
 
 keys = ['Full',
         # '1-2',
