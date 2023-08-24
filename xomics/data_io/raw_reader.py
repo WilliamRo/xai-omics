@@ -2,18 +2,37 @@ import os
 import numpy as np
 from pydicom import dcmread
 import SimpleITK as sitk
-from skimage import exposure
 
 
-def normalize(a):
-  a = (a - np.min(a)) / np.max(a)
-  return a
 
 
 def rd_file(filepath):
+  """
+  use simpleITK to read file
+  :param filepath:
+  :return: data array
+  """
   itk_img = sitk.ReadImage(filepath)
   img = sitk.GetArrayFromImage(itk_img)
   return img
+
+
+def rd_series(dirpath):
+  """
+  use SimpleITK to read image series
+  :param dirpath: directory path name
+  :return:
+  """
+  series_reader = sitk.ImageSeriesReader()
+  filenames = series_reader.GetGDCMSeriesFileNames(dirpath)
+  series_reader.SetFileNames(filenames)
+  data = series_reader.Execute()
+  images = sitk.GetArrayFromImage(data)
+  return images
+
+
+def wr_file(arr, pathname):
+  sitk.WriteImage(arr, pathname)
 
 
 def get_tags(dirpath, isSeries=False):
@@ -45,13 +64,13 @@ def get_tags(dirpath, isSeries=False):
 
 
 def wr_tags(tags, path):
-  with open(path,'w+') as f:
+  with open(path, 'w+') as f:
     for name, val in tags.items():
       f.write(f'{name},{val}\n')
 
 
 def dicom_time(t):
-  t = str(t)
+  t = str(int(t))
   if len(t) == 5:
     t = '0' + t
   h_t = float(t[0:2])
@@ -71,51 +90,14 @@ def calc_SUV(data, tags, norm=False):
   return PET_SUV
 
 
-def rd_series(dirpath):
-  series_reader = sitk.ImageSeriesReader()
-  filenames = series_reader.GetGDCMSeriesFileNames(dirpath)
-  series_reader.SetFileNames(filenames)
-  data = series_reader.Execute()
-  images = sitk.GetArrayFromImage(data)
-  return images
-
-
-def wr_file(arr, pathname):
-  sitk.WriteImage(arr, pathname)
-
-
 def npy_save(data, filepath):
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
   np.save(filepath, data)
 
-# for uld train raw data
-def rd_uld_train(datapath, subject, dose="Full_dose"):
-  patients = os.listdir(os.path.join(datapath, subject))
-  images = []
-  tags = []
 
-  for patient in patients:
-    dirpath = os.path.join(datapath, subject, patient, dose)
-    # img = normalize(rd_series(dirpath))
-    img = rd_series(dirpath)
-    tag_dict = get_tags(dirpath, isSeries=True)
-    # if img.shape[0] % 2 != 0:
-    #   img = img[1:]
-    # cut = (img.shape[0] - 608) // 2
-    # img = img[cut:-cut]
-    img = img.reshape((1,) + img.shape + (1,))
-
-    images.append(img)
-    tags.append(tag_dict)
-
-  # results = np.concatenate([arr[np.newaxis] for arr in images], axis=0)
-  # results = results.reshape(results.shape + (1,))
-
-  return images, tags
-
-
-def gen_npy(path, n_path):
-  subjects = os.listdir(path)[:-1]
+def gen_uld_npy(path, n_path):
+  from xomics.data_io.uld_reader import rd_uld_train
+  subjects = os.listdir(path)
   count = 0
   for subject in subjects:
     count += 1
@@ -143,17 +125,6 @@ def gen_npy(path, n_path):
         num += 1
 
 
-# for uld test raw data
-def rd_uld_test(dirpath, datanum=1):
-  files = os.listdir(dirpath)[:datanum]
-  arr = []
-  for file in files:
-    filepath = os.path.join(dirpath, file)
-    arr.append(rd_file(filepath))
-  results = np.stack(arr)
-  return results
-
-
 
 
 if __name__ == '__main__':
@@ -168,7 +139,7 @@ if __name__ == '__main__':
     ]
   path = "../../data/01-ULD-RAW/"
   n_path = "../../data/01-ULD/"
-  gen_npy(path, n_path)
+  gen_uld_npy(path, n_path)
   # tags = get_tags(os.path.join(path, s))
   # wr_tags(tags, path+'tags.txt')
 

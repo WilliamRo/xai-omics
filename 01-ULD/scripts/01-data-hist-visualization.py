@@ -49,9 +49,9 @@ def slice_hist_draw(arr: np.ndarray):
 if __name__ == '__main__':
   from uld_core import th
   th.use_tanh = 0
-  th.use_clip = 16
+  th.use_clip = 25
   dirpath = '../../data/01-ULD/'
-  full = load_data(dirpath, 1, dose_tags[0])
+  full = load_data(dirpath, 12, dose_tags[0])
   # print(imgs[0].shape)
   full = full[0, ..., 0]
   print(np.max(full))

@@ -85,14 +85,14 @@ def get_color_data(data, cmap):
   return cm
 
 
-def npy_load(filepath, slice_num=608, suv=True):
+def npy_load(filepath, slice_num=608, suv=False):
   data = np.load(filepath)
   if suv:
     tmp = os.path.split(filepath)
     tagpath = os.path.join(tmp[0], f'tags_{tmp[1][:-3]}txt')
     tags = load_tags(tagpath)
     data = calc_SUV(data, tags)
-    # print(np.max(suv), np.mean(suv))
+    # print(np.max(data), np.mean(data))
 
   if data.shape[1] % 2 != 0:
     data = data[:, 1:]
@@ -105,7 +105,8 @@ def npy_load(filepath, slice_num=608, suv=True):
 
 if __name__ == '__main__':
   filePath = '../../data/01-ULD/'
-  img = load_numpy_data(filePath, 1, ['Full'])
+  # img = load_numpy_data(filePath, 8, ['Full'])
+  img = load_data(filePath, 9, ['Full'])
 
   print(img.shape)
   # keys = ['Full_dose',
@@ -116,19 +117,3 @@ if __name__ == '__main__':
   #         '1-50 dose',
   #         '1-100 dose',
   #         ]
-  # subjects = os.listdir('../../data/01-ULD/')
-  # datapath = '../../data/01-ULD'
-  # path = '../../data/'
-  # num = 1
-  # for subject in subjects:
-  #   for dose in keys:
-  #     results = rd_subject(datapath, subject, dose)
-  #     cnum = num
-  #     for i in range(results.shape[0]):
-  #       filepath = os.path.join(path, f'subject{cnum}')
-  #       if not os.path.exists(filepath):
-  #         os.mkdir(filepath)
-  #       np.save(os.path.join(filepath,f'subject{cnum}_{dose[:-5]}.npy'),results[i:i+1])
-  #       print(f'subject{cnum} {dose} completed!')
-  #       cnum+=1
-  #   num=cnum

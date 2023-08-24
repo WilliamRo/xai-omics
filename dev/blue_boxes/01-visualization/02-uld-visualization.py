@@ -1,18 +1,16 @@
 import os
-
 from xomics.data_io.mi_reader import load_data
-from xomics.data_io.raw_reader import rd_uld_test
+from xomics.data_io.uld_reader import rd_uld_test
 from xomics.gui.dr_gordon import DrGordon
 from xomics import MedicalImage
 import numpy as np
 
 data_dir = r'../../../data/01-ULD/'
-subjects = [1, 2, 3, 4, 5]
-patient_num = 1
+subjects = [12]
 mode = "uld-train"
 
 from uld_core import th
-th.use_clip = 16
+th.use_clip = 25.0
 th.use_tanh = 0
 
 keys = ['Full',

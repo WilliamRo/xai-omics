@@ -1,3 +1,5 @@
+import numpy as np
+
 from roma import Arguments
 from tframe.trainers import SmartTrainerHub
 from tframe.configs.config_base import Flag
@@ -18,7 +20,7 @@ class ULDConfig(SmartTrainerHub):
                            is_key=None)
   use_tanh = Flag.float(0.0, 'use tanh(kx) to preprocess the data',
                         is_key=None)
-  use_clip = Flag.float(1.0, "clip the data value", is_key=None)
+  use_clip = Flag.float(np.Inf, "clip the data value", is_key=None)
 
   @property
   def data_arg(self) -> Arguments:

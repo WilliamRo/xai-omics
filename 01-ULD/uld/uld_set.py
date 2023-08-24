@@ -104,7 +104,7 @@ class ULDSet(DataSet):
     console.show_status(f'Fetching signal groups to {self.data_dir} ...')
     self.features = load_data(self.data_dir, subjects, self.dose)
     self.targets = load_data(self.data_dir, subjects, "Full")
-
+    # self.targets = self.features
 
   @classmethod
   def load_as_uldset(cls, data_dir, dose):

@@ -76,24 +76,25 @@ def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
 
 
 if __name__ == '__main__':
-  a = load_data('D:/projects/xai-omics/data/01-ULD/', 1, "Full")
-  img = gen_windows(a, a, 1)
-  print(a.shape, img[0].shape)
+  a = load_data('D:/projects/xai-omics/data/01-ULD/', [1, 5, 12], "1-4")
+  b = load_data('D:/projects/xai-omics/data/01-ULD/', [1, 5, 12], "Full")
+  num = 25
+  img_f, img_t = gen_windows(a, b, num)
+  # print(len(img))
+  # print(a.shape, img[0].shape)
   pass
-  # num = 20
-  # win = gen_windows(a, a, num, slice_size=32)
-  # print(win[0].shape)
-  # di = {}
-  # for i in range(num):
-  #   di[f'test-{i}'] = win[0][i]
-  #   print(di[f'test-{i}'].shape)
-  #
-  # mi = MedicalImage('test', di)
-  #
-  # dg = DrGordon([mi])
-  # dg.slice_view.set('vmin', auto_refresh=False)
-  # dg.slice_view.set('vmax', auto_refresh=False)
-  # dg.show()
+  di_f = {}
+  di_t = {}
+  for i in range(num):
+    di_f[f'feature-{i}'] = img_f[i]
+  for i in range(num):
+    di_t[f'target-{i}'] = img_t[i]
+  mi_f = MedicalImage('feature', di_f)
+  mi_t = MedicalImage('target', di_t)
+  dg = DrGordon([mi_f, mi_t])
+  dg.slice_view.set('vmin', auto_refresh=False)
+  dg.slice_view.set('vmax', auto_refresh=False)
+  dg.show()
   # print(get_center(arr, 128).shape)
   # prob = calc_prob(arr, 128)
   # print(prob.shape)
