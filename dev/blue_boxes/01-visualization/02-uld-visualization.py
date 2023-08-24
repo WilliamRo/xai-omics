@@ -10,7 +10,7 @@ subjects = [12]
 mode = "uld-train"
 
 from uld_core import th
-th.use_clip = 25.0
+th.use_clip = np.Inf
 th.use_tanh = 0
 
 keys = ['Full',

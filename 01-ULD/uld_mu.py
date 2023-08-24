@@ -1,7 +1,7 @@
 from tframe.core.quantity import Quantity
 from tframe import console
 from tframe import mu
-from uld.operators.tanh_layers import Tanh_k, Atanh_k
+from uld.operators.custom_layers import Tanh_k, Atanh_k
 
 import numpy as np
 

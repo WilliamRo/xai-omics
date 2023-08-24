@@ -1,3 +1,5 @@
+import numpy as np
+
 import uld_core as core
 import uld_mu as m
 
@@ -36,9 +38,13 @@ def main(_):
   th.slice_size = 128
   # th.eval_window_size = 128
 
-  th.use_color = False
+  th.slice_num = 608
   th.use_tanh = 0
-  th.use_clip = 16.0
+  th.use_color = False
+  th.use_suv = False
+  th.norm_by_feature = False
+  th.train_self = not th.norm_by_feature
+  # th.use_clip = 1.0
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
@@ -46,10 +52,17 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
+  th.suffix = ''
+  if th.train_self:
+    th.suffix += '_self'
+  if th.use_suv:
+    th.suffix += '_SUV'
+  if th.norm_by_feature:
+    th.suffix += '_normBF'
   if th.use_tanh != 0:
-    th.suffix = f'_tanh{th.use_tanh}'
-  else:
-    th.suffix = f'_clip{th.use_clip}'
+    th.suffix += f'_tanh{th.use_tanh}'
+  if th.use_clip != np.Inf:
+    th.suffix += f'_clip{th.use_clip}'
 
   th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------

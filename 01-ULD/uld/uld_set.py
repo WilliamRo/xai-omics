@@ -97,14 +97,25 @@ class ULDSet(DataSet):
   @staticmethod
   def fetch_data(self):
     from xomics.data_io.mi_reader import load_data
+    from uld_core import th
     if self.buffer_size is None or self.buffer_size >= len(self.subjects):
       subjects = self.subjects
     else:
-      subjects = np.random.choice(self.subjects, self.buffer_size, replace=False)
-    console.show_status(f'Fetching signal groups to {self.data_dir} ...')
-    self.features = load_data(self.data_dir, subjects, self.dose)
-    self.targets = load_data(self.data_dir, subjects, "Full")
-    # self.targets = self.features
+      subjects = list(np.random.choice(self.subjects, self.buffer_size,
+                                       replace=False))
+    console.show_status(f'Fetching signal groups from {self.data_dir} ...')
+    if th.norm_by_feature:
+      doses = {
+        "feature": self.dose,
+        "target": "Full"
+      }
+      self.features, self.targets = load_data(self.data_dir, subjects, doses)
+    elif th.train_self:
+      self.features = load_data(self.data_dir, subjects, self.dose)
+      self.targets = self.features
+    else:
+      self.features = load_data(self.data_dir, subjects, self.dose)
+      self.targets = load_data(self.data_dir, subjects, "Full")
 
   @classmethod
   def load_as_uldset(cls, data_dir, dose):

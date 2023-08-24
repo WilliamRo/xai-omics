@@ -18,9 +18,16 @@ class ULDConfig(SmartTrainerHub):
 
   use_color = Flag.boolean(False, 'Whether transform the data to rgb',
                            is_key=None)
+  use_suv = Flag.boolean(False, 'Whether transform the data to SUV',
+                         is_key=None)
   use_tanh = Flag.float(0.0, 'use tanh(kx) to preprocess the data',
                         is_key=None)
   use_clip = Flag.float(np.Inf, "clip the data value", is_key=None)
+  train_self = Flag.boolean(False, "let feature and target are same", is_key=None)
+
+  norm_by_feature = Flag.boolean(False, 'Whether use feature set to normalize '
+                                        'the target', is_key=None)
+  slice_num = Flag.integer(608, "the data slice number", is_key=None)
 
   @property
   def data_arg(self) -> Arguments:
