@@ -38,21 +38,22 @@ def get_random_window(arr: np.ndarray, window_size=128, slice_size=16):
   # for Gamma test
   # arr = np.where(arr != 0, 1, arr)
   s = np.random.randint(arr.shape[1] - slice_size + 1)
-
+  h = np.random.randint(arr.shape[2] - window_size + 1)
+  w = np.random.randint(arr.shape[3] - window_size + 1)
   index = np.random.randint(arr.shape[0])
-  arr = arr[index:index+1]
-  arr = np.where(arr != 0, 1, arr)
+  # arr = arr[index:index+1]
+  # arr = np.where(arr != 0, 1, arr)
   # arr_pro = np.add.reduce(arr, axis=2)
   # distr_s = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
-  arr = arr[:, s:s+slice_size]
-  arr_pro = np.add.reduce(arr, axis=1)
-  arr_pro = np.add.reduce(arr_pro, axis=3)
-  distr_w = normalize(np.add.reduce(arr_pro, axis=1).reshape((-1)))
-  distr_h = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
+  # arr = arr[:, s:s+slice_size]
+  # arr_pro = np.add.reduce(arr, axis=1)
+  # arr_pro = np.add.reduce(arr_pro, axis=3)
+  # distr_w = normalize(np.add.reduce(arr_pro, axis=1).reshape((-1)))
+  # distr_h = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
   # print(h,w)
   # s = windows_choose(distr_s, slice_size)
-  h = windows_choose(distr_h, window_size)
-  w = windows_choose(distr_w, window_size)
+  # h = windows_choose(distr_h, window_size)
+  # w = windows_choose(distr_w, window_size)
 
   return index, s, h, w
 
@@ -82,7 +83,6 @@ if __name__ == '__main__':
   img_f, img_t = gen_windows(a, b, num)
   # print(len(img))
   # print(a.shape, img[0].shape)
-  pass
   di_f = {}
   di_t = {}
   for i in range(num):

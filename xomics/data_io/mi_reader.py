@@ -15,11 +15,10 @@ def load_tags(filepath):
   return tags
 
 
-# npy data load function
 def load_numpy_data(datadir: str, subjects, doses):
   if type(subjects) is str:
     subjects = int(subjects[7:])
-  if type(subjects) is list:
+  if type(subjects) is list and type(subjects[0]) is not int:
     subjects = [int(subject[7:]) for subject in subjects]
 
   condition = (type(subjects), type(doses))
@@ -29,6 +28,8 @@ def load_numpy_data(datadir: str, subjects, doses):
     (int, str): load_one_data,
     (list, dict): load_data_pair,
   }
+  if condition not in conditions_dict.keys():
+    raise TypeError(f"Unsupported Type combination {condition}!")
 
   return conditions_dict[condition](datadir, subjects, doses)
 
@@ -42,7 +43,8 @@ def load_data_by_dose(datadir: str, subjects: list[int], dose: str):
   for subject in subjects:
     filepath = os.path.join(datadir, f'subject{subject}',
                             f'subject{subject}_{dose}.npy')
-    arr.append(npy_load(filepath))
+    data, _ = npy_load(filepath)
+    arr.append(data)
   return np.concatenate(arr)
 
 
@@ -51,7 +53,8 @@ def load_data_by_subject(datadir: str, subject: int, doses: list[str]):
   for dose in doses:
     filepath = os.path.join(datadir, f'subject{subject}',
                             f'subject{subject}_{dose}.npy')
-    arr.append(npy_load(filepath))
+    data, _ = npy_load(filepath)
+    arr.append(data)
   return np.concatenate(arr)
 
 
@@ -64,10 +67,8 @@ def load_data_pair(datadir: str, subjects: list[int], doses: dict):
     t_filepath = os.path.join(datadir, f'subject{subject}',
                               f'subject{subject}_{doses["target"]}.npy')
 
-    feature = npy_load(f_filepath)
-    target = npy_load(t_filepath)
-    feature, norm = normalize(feature)
-    target = normalize(target, norm)
+    feature, norm = npy_load(f_filepath)
+    target = npy_load(t_filepath, norm=norm)
 
     features.append(feature)
     targets.append(target)
@@ -109,7 +110,7 @@ def get_color_data(data, cmap):
   return cm
 
 
-def npy_load(filepath):
+def npy_load(filepath, norm=None):
   from uld_core import th
   data = np.load(filepath)
   console.supplement(f'Loaded `{os.path.split(filepath)[-1]}`', level=2)
@@ -117,11 +118,11 @@ def npy_load(filepath):
     tmp = os.path.split(filepath)
     tagpath = os.path.join(tmp[0], f'tags_{tmp[1][:-3]}txt')
     tags = load_tags(tagpath)
-    return pre_process(data, tags)
-  return pre_process(data)
+    return pre_process(data, tags=tags, norm=norm)
+  return pre_process(data, norm=norm)
 
 
-def pre_process(data, tags=None):
+def pre_process(data, tags=None, norm=None):
   from uld_core import th
 
   if data.shape[1] % 2 != 0:
@@ -135,8 +136,8 @@ def pre_process(data, tags=None):
     data = np.clip(data, 0, th.use_clip) / th.use_clip
   if th.use_color:
     data = get_color_data(data, "nipy_spectral")
-  return data
-
+  return normalize(data, norm)
+  # return data
 
 
 

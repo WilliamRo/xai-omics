@@ -23,22 +23,26 @@ def finalize(model):
 
   assert isinstance(model, mu.Predictor)
   model.add(mu.HyperConv3D(filters=1, kernel_size=1))
+  # model.add(mu.Activation('sigmoid'))
 
-  if th.use_tanh != 0:
-    model.add(Atanh_k(k=th.use_tanh))
-  else:
-    model.add(mu.Activation('sigmoid'))
+
 
   if th.learn_delta:
     model.input_.abbreviation = 'input'
     model.add(mu.ShortCut(model.input_, mode=mu.ShortCut.Mode.SUM))
-  # if th.use_tanh:
-    # model.add()
+    # model.add(mu.Activation('lrelu'))
+
+  if th.use_tanh != 0:
+    model.add(Atanh_k(k=th.use_tanh))
+  # else:
+  #   model.add(mu.Activation('sigmoid'))
   # Build model
   # model.build(loss=th.loss_string, metric=['loss'])
   # model.build(loss=th.loss_string, metric=[get_ssim_3D(), 'loss'])
   model.build(loss=th.loss_string, metric=[
-    get_ssim_3D(), get_nrmse(), get_psnr(), 'loss'])
+    get_ssim_3D(), get_nrmse(), get_psnr(), get_pw_rmse(), 'loss'])
+  # model.build(loss=get_pw_rmse(), metric=[
+  #   get_ssim_3D(), get_nrmse(), get_psnr(), 'loss'])
   return model
 
 
@@ -49,9 +53,21 @@ def get_unet(arc_string='8-3-4-2-relu-mp', **kwargs):
   return finalize(model)
 
 
+def get_pw_rmse():
+  from tframe import tf
+  """SET th.batch_size=1 ?"""
+  def pw_rmse(truth, output):
+    # [bs, num_slides, 440, 440, 1]
+    axis = list(range(1, len(truth.shape)))
+    a = tf.square(truth - output)
+    b = tf.square(truth) + 0.001
+    return tf.sqrt(tf.reduce_mean(a / b, axis=axis))
+
+  return Quantity(pw_rmse, tf.reduce_mean, name='PW_RMSE', lower_is_better=True)
+
+
 def get_ssim_3D():
   from tframe import tf
-
   def ssim(truth, output):
     # [bs, num_slides, 440, 440, 1]
     from uld_core import th

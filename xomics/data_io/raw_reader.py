@@ -139,7 +139,8 @@ if __name__ == '__main__':
     ]
   path = "../../data/01-ULD-RAW/"
   n_path = "../../data/01-ULD/"
-  gen_uld_npy(path, n_path)
+  # gen_uld_npy(path, n_path)
+
   # tags = get_tags(os.path.join(path, s))
   # wr_tags(tags, path+'tags.txt')
 

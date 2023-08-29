@@ -42,3 +42,21 @@ def rd_uld_train(datapath: str, subject, dose="Full_dose"):
     tags.append(tag_dict)
 
   return images, tags
+
+
+
+
+if __name__ == '__main__':
+  doses = [
+    'Full_dose',
+    '1-2 dose',
+    '1-4 dose',
+    '1-10 dose',
+    '1-20 dose',
+    '1-50 dose',
+    '1-100 dose',
+  ]
+  path = "../../data/01-ULD/testset"
+  img = rd_uld_test(path)
+  print(img.shape)
+

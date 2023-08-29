@@ -26,6 +26,7 @@ mis = []
 if mode == 'uld-train':
   for subject in subjects:
     img = load_data(data_dir, subject, keys)
+    img[(img < 0.00005) & (img > 0)] = 1
     data_dict = dict(zip(keys, img))
     mi = MedicalImage(f'Subject-{subject}', data_dict)
     mis.append(mi)

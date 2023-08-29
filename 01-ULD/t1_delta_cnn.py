@@ -1,10 +1,9 @@
-import numpy as np
-
 import uld_core as core
 import uld_mu as m
 
 from tframe import console
 from tframe import tf
+from tframe.layers.merge import Merge
 from tframe.utils.misc import date_string
 from tframe.utils.organizer.task_tools import update_job_dir
 
@@ -13,12 +12,46 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'unet'
-id = 1
+model_name = 'delta'
+id = 3
+
+class WeightedSum(Merge):
+  full_name = 'weighted_sum'
+  abbreviation = 'ws'
+
+  def __init__(self, w):
+    self.w = w
+    self.abbreviation += f'{w}'
+    self.full_name += f'{w}'
+
+  def _link(self, x_list, **kwargs):
+    assert len(x_list) == 2
+    return x_list[0] + x_list[1] * self.w
+
+
 def model():
+  mu = m.mu
   th = core.th
 
-  return m.get_unet(th.archi_string)
+  model = m.get_initial_model()
+
+  conv = lambda n: mu.HyperConv3D(
+    filters=n, kernel_size=th.kernel_size, activation=th.activation)
+
+  vertices = [
+    [conv(8)],
+    [conv(1)],
+    [WeightedSum(1.0)],
+    # [mu.Activation('sigmoid')]
+  ]
+  edges = '1;01;101'
+  fm = m.mu.ForkMergeDAG(vertices, edges, name='Delta')
+  model.add(fm)
+
+  model.build(loss=m.get_pw_rmse(), metric=[
+    m.get_ssim_3D(), m.get_nrmse(), m.get_psnr(), 'loss'])
+
+  return model
 
 
 def main(_):
@@ -44,7 +77,6 @@ def main(_):
   th.use_suv = False
   th.norm_by_feature = True
   th.train_self = not th.norm_by_feature
-  # th.use_clip = 1.0
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
@@ -52,17 +84,7 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = ''
-  if th.train_self:
-    th.suffix += '_self'
-  if th.use_suv:
-    th.suffix += '_SUV'
-  if th.norm_by_feature:
-    th.suffix += '_normBF'
-  if th.use_tanh != 0:
-    th.suffix += f'_tanh{th.use_tanh}'
-  if th.use_clip != np.Inf:
-    th.suffix += f'_clip{th.use_clip}'
+  th.suffix = '_self'
 
   th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------
@@ -71,9 +93,10 @@ def main(_):
   th.model = model
 
   th.archi_string = '4-3-3-2-lrelu'
-  # th.archi_string = '8-5-2-3-lrelu'
-  th.learn_delta = 0
+  th.kernel_size = 5
+  th.activation = 'lrelu'
 
+  th.learn_delta = 1
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -88,9 +111,7 @@ def main(_):
   th.buffer_size = 18
 
   th.loss_string = 'rmse'
-  th.developer_code = 'adam'
-
-  th.optimizer = th.developer_code
+  th.optimizer = 'adam'
   # th.optimizer = 'sgd'
   th.learning_rate = 0.0003
   th.val_decimals = 7
@@ -100,9 +121,9 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
-  if th.learn_delta:
-    th.suffix = '_res' + th.suffix
-  th.mark = '{}({})'.format(model_name, th.archi_string)
+  th.mark = '{}'.format(model_name)
+  if th.use_tanh != 0: th.mark += f'-tanh({th.use_tanh})'
+
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()
 

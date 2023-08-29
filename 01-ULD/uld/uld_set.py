@@ -78,7 +78,7 @@ class ULDSet(DataSet):
     # pred.shape = [N, s, s, s, 1]
     data = DataSet(self.features, self.targets)
     # data = self.gen_random_window(128)
-    pred = model.predict(data, batch_size=1)
+    pred = model.predict(data)
     print(self.size, pred.shape, self.targets.shape)
 
     # Compare results using DrGordon
@@ -86,8 +86,9 @@ class ULDSet(DataSet):
       MedicalImage(f'Sample-{i}', images={
         'Input': data.features[i],
         'Targets': data.targets[i],
-        'Model-Output': pred[i]})
-      for i in range(self.size)]
+        'Model-Output': pred[i],
+        'Delta': np.square(pred[i] - data.targets[i])
+    }) for i in range(self.size)]
 
     dg = DrGordon(medical_images)
     dg.slice_view.set('vmin', auto_refresh=False)
@@ -103,7 +104,7 @@ class ULDSet(DataSet):
     else:
       subjects = list(np.random.choice(self.subjects, self.buffer_size,
                                        replace=False))
-    console.show_status(f'Fetching signal groups from {self.data_dir} ...')
+    console.show_status(f'Fetching data subjects from {self.data_dir} ...')
     if th.norm_by_feature:
       doses = {
         "feature": self.dose,
@@ -155,18 +156,19 @@ class ULDSet(DataSet):
 
     slice_num = 320
     if model.counter == 50:
-      metrics = ['SSIM', 'NRMSE', 'PSNR', 'RMSE']
+      metrics = ['SSIM', 'NRMSE', 'PSNR', 'PW_RMSE', 'RMSE']
       fmetric = get_metrics(self.targets[0, ..., 0],
                             self.features[0, ..., 0],
                             metrics, data_range=1)
       fm_str = '-'.join([f'{k}{v:.5f}' for k, v in fmetric.items()])
       ffn = f'Feature-Slice{slice_num}-{fm_str}.png'
       tfn = f'Target-Slice{slice_num}.png'
+      feature = self.features[0, slice_num, ..., 0]
+      target = self.targets[0, slice_num, ..., 0]
       plt.imsave(os.path.join(model.agent.ckpt_dir, ffn),
-                 self.features[0, slice_num, ..., 0], cmap='gray')
+                 feature, cmap='gray', vmin=0., vmax=np.max(feature))
       plt.imsave(os.path.join(model.agent.ckpt_dir, tfn),
-                 self.targets[0, slice_num, ..., 0], cmap='gray')
-
+                 target, cmap='gray', vmin=0., vmax=np.max(target))
     # (1) Get image (shape=[1, S, H, W, 1])
     # data = DataSet(self.features[:1, 314:330], self.targets[:1, 314:330])
     images = model.predict(self)
@@ -175,7 +177,8 @@ class ULDSet(DataSet):
     val_dict = model.validate_model(self)
 
     # (3) Save image
-    metric_str = '-'.join([f'{k}{v:.2f}' for k, v in val_dict.items()])
+    metric_str = '-'.join([f'{k}{v:.5f}' for k, v in val_dict.items()])
     fn = f'Iter{model.counter}-{metric_str}.png'
+    img = images[0, slice_num, ..., 0]
     plt.imsave(os.path.join(model.agent.ckpt_dir, fn),
-               images[0, slice_num, ..., 0], cmap='gray')
+               img, cmap='gray', vmin=0., vmax=np.max(img))
