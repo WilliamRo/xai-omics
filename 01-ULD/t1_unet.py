@@ -37,13 +37,13 @@ def main(_):
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
-
   th.slice_num = 608
-  th.use_tanh = 0
-  th.use_color = False
-  th.use_suv = False
+
+
+  # th.use_color = False
+  # th.use_suv = False
   th.norm_by_feature = True
-  th.train_self = not th.norm_by_feature
+  # th.train_self = not th.norm_by_feature
   # th.use_clip = 1.0
 
   # ---------------------------------------------------------------------------
@@ -53,16 +53,7 @@ def main(_):
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
   th.suffix = ''
-  if th.train_self:
-    th.suffix += '_self'
-  if th.use_suv:
-    th.suffix += '_SUV'
-  if th.norm_by_feature:
-    th.suffix += '_normBF'
-  if th.use_tanh != 0:
-    th.suffix += f'_tanh{th.use_tanh}'
-  if th.use_clip != np.Inf:
-    th.suffix += f'_clip{th.use_clip}'
+
 
   th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------
@@ -72,8 +63,11 @@ def main(_):
 
   th.archi_string = '4-3-3-2-lrelu'
   # th.archi_string = '8-5-2-3-lrelu'
-  th.learn_delta = 0
 
+  th.use_tanh = 0
+  th.learn_delta = 0
+  th.rand_batch = True
+  th.use_sigmoid = False
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -101,7 +95,21 @@ def main(_):
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
   if th.learn_delta:
-    th.suffix = '_res' + th.suffix
+    th.suffix += '_delta'
+  if th.use_sigmoid:
+    th.suffix += '_sig'
+  if th.rand_batch:
+    th.suffix += '_randBatch'
+  if th.train_self:
+    th.suffix += '_self'
+  if th.use_suv:
+    th.suffix += '_SUV'
+  if th.norm_by_feature:
+    th.suffix += '_normBF'
+  if th.use_tanh != 0:
+    th.suffix += f'_tanh{th.use_tanh}'
+  if th.use_clip != np.Inf:
+    th.suffix += f'_clip{th.use_clip}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()

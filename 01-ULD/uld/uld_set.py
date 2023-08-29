@@ -38,7 +38,7 @@ class ULDSet(DataSet):
     # self.features/targets.shape = [N, S, H, W, 1]
     s = th.window_size
     features, targets = gen_windows(self.features, self.targets, batch_size,
-                                    s, th.slice_size)
+                                    s, th.slice_size, th.rand_batch)
 
     data_batch = DataSet(features, targets)
 

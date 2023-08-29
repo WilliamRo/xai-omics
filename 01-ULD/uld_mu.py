@@ -1,7 +1,7 @@
 from tframe.core.quantity import Quantity
 from tframe import console
 from tframe import mu
-from uld.operators.custom_layers import Tanh_k, Atanh_k
+from uld.operators.custom_layers import Tanh_k, Atanh_k, Clip
 
 import numpy as np
 
@@ -23,19 +23,19 @@ def finalize(model):
 
   assert isinstance(model, mu.Predictor)
   model.add(mu.HyperConv3D(filters=1, kernel_size=1))
-  # model.add(mu.Activation('sigmoid'))
 
-
+  if th.use_tanh != 0:
+    model.add(Atanh_k(k=th.use_tanh))
 
   if th.learn_delta:
     model.input_.abbreviation = 'input'
     model.add(mu.ShortCut(model.input_, mode=mu.ShortCut.Mode.SUM))
-    # model.add(mu.Activation('lrelu'))
 
-  if th.use_tanh != 0:
-    model.add(Atanh_k(k=th.use_tanh))
-  # else:
-  #   model.add(mu.Activation('sigmoid'))
+  if th.use_sigmoid:
+    model.add(mu.Activation('sigmoid'))
+  else:
+    model.add(Clip(0, 1.2))
+
   # Build model
   # model.build(loss=th.loss_string, metric=['loss'])
   # model.build(loss=th.loss_string, metric=[get_ssim_3D(), 'loss'])

@@ -34,36 +34,40 @@ def windows_choose(distr: np.ndarray, windows_size):
   return int(result)
 
 
-def get_random_window(arr: np.ndarray, window_size=128, slice_size=16):
+def get_random_window(arr: np.ndarray, window_size=128, slice_size=16,
+                      true_rand=True):
   # for Gamma test
   # arr = np.where(arr != 0, 1, arr)
   s = np.random.randint(arr.shape[1] - slice_size + 1)
-  h = np.random.randint(arr.shape[2] - window_size + 1)
-  w = np.random.randint(arr.shape[3] - window_size + 1)
   index = np.random.randint(arr.shape[0])
-  # arr = arr[index:index+1]
-  # arr = np.where(arr != 0, 1, arr)
+
+  if true_rand:
+    h = np.random.randint(arr.shape[2] - window_size + 1)
+    w = np.random.randint(arr.shape[3] - window_size + 1)
+  else:
+    arr = arr[index:index+1]
+    arr = np.where(arr != 0, 1, arr)
   # arr_pro = np.add.reduce(arr, axis=2)
   # distr_s = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
-  # arr = arr[:, s:s+slice_size]
-  # arr_pro = np.add.reduce(arr, axis=1)
-  # arr_pro = np.add.reduce(arr_pro, axis=3)
-  # distr_w = normalize(np.add.reduce(arr_pro, axis=1).reshape((-1)))
-  # distr_h = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
+    arr = arr[:, s:s+slice_size]
+    arr_pro = np.add.reduce(arr, axis=1)
+    arr_pro = np.add.reduce(arr_pro, axis=3)
+    distr_w = normalize(np.add.reduce(arr_pro, axis=1).reshape((-1)))
+    distr_h = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
   # print(h,w)
   # s = windows_choose(distr_s, slice_size)
-  # h = windows_choose(distr_h, window_size)
-  # w = windows_choose(distr_w, window_size)
+    h = windows_choose(distr_h, window_size)
+    w = windows_choose(distr_w, window_size)
 
   return index, s, h, w
 
 
 def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
-                windows_size=128, slice_size=16):
+                windows_size=128, slice_size=16, true_rand=True):
   features = []
   targets = []
   for _ in range(batch_size):
-    index, s, h, w = get_random_window(arr1, windows_size, slice_size)
+    index, s, h, w = get_random_window(arr1, windows_size, slice_size, true_rand)
     features.append(arr1[index:index+1, s:s+slice_size,
                     h:h+windows_size, w:w+windows_size, :])
     targets.append(arr2[index:index+1, s:s+slice_size,
@@ -80,7 +84,7 @@ if __name__ == '__main__':
   a = load_data('D:/projects/xai-omics/data/01-ULD/', [1, 5, 12], "1-4")
   b = load_data('D:/projects/xai-omics/data/01-ULD/', [1, 5, 12], "Full")
   num = 25
-  img_f, img_t = gen_windows(a, b, num)
+  img_f, img_t = gen_windows(a, b, num, true_rand=False)
   # print(len(img))
   # print(a.shape, img[0].shape)
   di_f = {}
