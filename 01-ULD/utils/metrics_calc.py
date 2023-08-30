@@ -19,6 +19,7 @@ def calc_metric(arr1, arr2, metric='mse', data_range=1.0):
   elif metric == 'rmse':
     return np.sqrt(mean_squared_error(arr1, arr2))
   elif metric == 'ssim':
+    assert len(arr1.shape) == 3
     return structural_similarity(arr1, arr2, data_range=data_range)
   elif metric == 'psnr':
     return peak_signal_noise_ratio(arr1, arr2, data_range=data_range)
