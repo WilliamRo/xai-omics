@@ -29,7 +29,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.data_config = r'delta dataset=01-ULD dose=1-4'
+  th.data_config = r'epsilon dataset=01-ULD dose=1-4'
 
   th.val_size = 30
   th.test_size = 1
@@ -37,14 +37,13 @@ def main(_):
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
+  th.data_shape = [1, 608, 440, 440, 1]
 
-  th.slice_num = 608
-  th.use_tanh = 0
-  th.use_color = False
-  th.use_suv = False
-  th.norm_by_feature = False
-  th.train_self = not th.norm_by_feature
-  # th.use_clip = 1.0
+
+  # th.use_suv = False
+  th.norm_by_feature = True
+  # th.train_self = not th.norm_by_feature
+  # th.max_clip = 1.0
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
@@ -52,17 +51,8 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = ''
-  if th.train_self:
-    th.suffix += '_self'
-  if th.use_suv:
-    th.suffix += '_SUV'
-  if th.norm_by_feature:
-    th.suffix += '_normBF'
-  if th.use_tanh != 0:
-    th.suffix += f'_tanh{th.use_tanh}'
-  if th.use_clip != np.Inf:
-    th.suffix += f'_clip{th.use_clip}'
+  th.suffix = f'_w{th.window_size}_s{th.slice_size}'
+
 
   th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------
@@ -71,8 +61,12 @@ def main(_):
   th.model = model
 
   th.archi_string = '4-3-3-2-lrelu'
-  # th.archi_string = '16-5-2-3-relu-mp'
-  th.learn_delta = 0
+  # th.archi_string = '8-5-2-3-lrelu'
+
+  th.use_tanh = 0
+  th.learn_delta = False
+  th.rand_batch = True
+  th.use_sigmoid = False
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -87,7 +81,9 @@ def main(_):
   th.buffer_size = 18
 
   th.loss_string = 'rmse'
-  th.optimizer = 'adam'
+  th.developer_code = 'adam'
+
+  th.optimizer = th.developer_code
   # th.optimizer = 'sgd'
   th.learning_rate = 0.0003
   th.val_decimals = 7
@@ -97,6 +93,22 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
+  if th.learn_delta:
+    th.suffix += '_delta'
+  if th.use_sigmoid:
+    th.suffix += '_sig'
+  if not th.rand_batch:
+    th.suffix += '_fakeRandBS'
+  if th.train_self:
+    th.suffix += '_self'
+  if th.use_suv:
+    th.suffix += '_SUV'
+  if not th.norm_by_feature:
+    th.suffix += '_normSelf'
+  if th.use_tanh != 0:
+    th.suffix += f'_tanh{th.use_tanh}'
+  if th.max_clip != None:
+    th.suffix += f'_clip(0,{th.use_clip})'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()

@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage import exposure
-from xomics.data_io.mi_reader import load_data
-from utils.metrics_calc import calc_metric, get_metrics
+from xomics.data_io.npy_reader import load_data
 
 dose_tags = [
   'Full',
@@ -15,54 +14,42 @@ dose_tags = [
   ]
 
 
-
-
-
-def output_metrics(arr1, arr2, metrics: list):
-  result = get_metrics(arr1, arr2, metrics)
-  for metric, value in result.items():
-    print(f'{metric}: {value}')
-
-  return result
-
-
 def hist_draw(arr, bins: str | int = 'auto', axis_range=None, log=False, equal=False):
   arr = arr.reshape(-1)
   if equal:
     arr = exposure.equalize_hist(arr)
-  arr = arr[arr > 0.015]
+  arr = arr[arr > 0]
+
   plt.hist(x=arr, bins=bins, range=axis_range, log=log)
+  plt.xlabel("Normalized Intensity")
+  plt.ylabel("Number")
+  plt.title("PET Image Histogram")
+
   plt.show()
   return
 
 
-def slice_hist_draw(arr: np.ndarray):
-  arr = np.add.reduce(arr, axis=1)
-  arr = np.add.reduce(arr, axis=1).reshape(-1)
+def draw_outs(arr, gsize, pos, range, bins, rowspan=1, colspan=1):
+  ax1 = plt.subplot2grid(gsize, pos, rowspan=rowspan, colspan=colspan)
+  ax1.hist(x=arr, bins=bins, range=range)
+  return ax1
 
-  return arr
 
+def mapping(arr: np.ndarray):
+  scope_list = []
+  func_list = []
+  return np.piecewise(arr, scope_list, func_list)
 
 
 
 
 if __name__ == '__main__':
-  from uld_core import th
-  th.use_tanh = 0
-  th.use_clip = 25
   dirpath = '../../data/01-ULD/'
-  full = load_data(dirpath, 12, dose_tags[0])
+  full = load_data(dirpath, 6, dose_tags[0])
   # print(imgs[0].shape)
   full = full[0, ..., 0]
-  print(np.max(full))
-  # low = dose['1-4 dose'][0, ..., 0]
-  # delta = full - low
+  print(full.shape)
+  # full[full < 0.00005] = 0
+  hist_draw(full, bins=50, axis_range=(0, 1))
 
-  metr = ['nrmse', 'SSIM', 'psnr', 'rmse']
-  # for i in range(len(dose_tags[1:])):
-  #   print(f'{dose_tags[1:][i]} dose:')
-  #   img = load_data(dirpath, 1, dose_tags[1:][i])[0, ..., 0]
-  #   output_metrics(full, img, metr)
-  hist_draw(full, bins=50)
   # slice_distr = slice_hist_draw(full)
-  # hist_draw(slice_distr, bins=60)

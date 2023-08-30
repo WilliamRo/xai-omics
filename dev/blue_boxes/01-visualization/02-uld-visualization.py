@@ -1,5 +1,5 @@
 import os
-from xomics.data_io.mi_reader import load_data
+from xomics.data_io.npy_reader import load_data
 from xomics.data_io.uld_reader import rd_uld_test
 from xomics.gui.dr_gordon import DrGordon
 from xomics import MedicalImage
@@ -26,6 +26,7 @@ mis = []
 if mode == 'uld-train':
   for subject in subjects:
     img = load_data(data_dir, subject, keys)
+    # img[(img < 0.00005) & (img > 0)] = 1
     data_dict = dict(zip(keys, img))
     mi = MedicalImage(f'Subject-{subject}', data_dict)
     mis.append(mi)

@@ -3,6 +3,7 @@ import uld_mu as m
 
 from tframe import console
 from tframe import tf
+from tframe.layers.merge import Merge
 from tframe.utils.misc import date_string
 from tframe.utils.organizer.task_tools import update_job_dir
 
@@ -11,33 +12,53 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'conv'
-id = 2
+model_name = 'delta'
+id = 3
+
+class WeightedSum(Merge):
+  full_name = 'weighted_sum'
+  abbreviation = 'ws'
+
+  def __init__(self, w):
+    self.w = w
+    self.abbreviation += f'{w}'
+    self.full_name += f'{w}'
+
+  def _link(self, x_list, **kwargs):
+    assert len(x_list) == 2
+    return x_list[0] + x_list[1] * self.w
+
+
 def model():
   mu = m.mu
   th = core.th
-  c = 4
 
   model = m.get_initial_model()
-  model.add(mu.HyperConv3D(filters=8, kernel_size=th.kernel_size,
-                           activation=th.activation))
-  # x = model.layers[0]
-  #
-  # for i in range(50):
-  #   model.add(mu.HyperConv3D(filters=4, kernel_size=1, activation=th.activation))
-  #   model.add(mu.HyperConv3D(c, th.kernel_size, activation=th.activation))
-  #   model.add(mu.HyperConv3D(filters=1, kernel_size=1))
-  #
-  #   model.add(mu.ShortCut(x, mode=mu.ShortCut.Mode.SUM))
-  #   x = model.add(mu.Activation(th.activation), output_name=f"block{i}")
-  return m.finalize(model)
+
+  conv = lambda n: mu.HyperConv3D(
+    filters=n, kernel_size=th.kernel_size, activation=th.activation)
+
+  vertices = [
+    [conv(8)],
+    [conv(1)],
+    [WeightedSum(1.0)],
+    # [mu.Activation('sigmoid')]
+  ]
+  edges = '1;01;101'
+  fm = m.mu.ForkMergeDAG(vertices, edges, name='Delta')
+  model.add(fm)
+
+  model.build(loss=m.get_pw_rmse(), metric=[
+    m.get_ssim_3D(), m.get_nrmse(), m.get_psnr(), 'loss'])
+
+  return model
 
 
 def main(_):
   console.start('{} on Ultra Low Dose task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 1
+  th.rehearse = 0
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -54,7 +75,7 @@ def main(_):
   th.use_tanh = 0
   th.use_color = False
   th.use_suv = False
-  th.norm_by_feature = False
+  th.norm_by_feature = True
   th.train_self = not th.norm_by_feature
 
   # ---------------------------------------------------------------------------
@@ -71,7 +92,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '4'
+  th.archi_string = '4-3-3-2-lrelu'
   th.kernel_size = 5
   th.activation = 'lrelu'
 
@@ -100,7 +121,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
-  th.mark = '{}({})'.format(model_name, th.archi_string)
+  th.mark = '{}'.format(model_name)
   if th.use_tanh != 0: th.mark += f'-tanh({th.use_tanh})'
 
   th.gather_summ_name = th.prefix + summ_name + '.sum'

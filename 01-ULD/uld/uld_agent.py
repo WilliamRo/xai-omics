@@ -5,7 +5,7 @@ from uld.uld_set import ULDSet, DataSet
 
 import os
 
-from xomics.data_io.mi_reader import load_data
+from xomics.data_io.npy_reader import load_data
 
 
 class ULDAgent(DataAgent):
