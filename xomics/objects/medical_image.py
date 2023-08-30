@@ -52,7 +52,7 @@ class MedicalImage(Nomear):
     assert isinstance(path, str)
 
     with open(path, 'rb') as input:
-      # console.show_status('Loading `{}` ...'.format(path))
+      console.show_status('Loading `{}` ...'.format(path))
       return pickle.load(input)
 
 
