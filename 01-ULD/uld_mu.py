@@ -1,11 +1,16 @@
-from tframe.core.quantity import Quantity
-from tframe import console
 from tframe import mu
 from uld.operators.custom_layers import Tanh_k, Atanh_k, Clip
+from uld.operators.custom_loss import get_ssim_3D, get_nrmse, get_psnr, \
+  get_pw_rmse
 
-import numpy as np
+EPSILON = 0.001
 
-
+custom_loss = {
+  'ssim': get_ssim_3D(),
+  'nrmse': get_nrmse(),
+  'psnr': get_psnr(),
+  'pw_rmse': get_pw_rmse(EPSILON),
+}
 
 def get_initial_model():
   from uld_core import th
@@ -27,22 +32,21 @@ def finalize(model):
   if th.use_tanh != 0:
     model.add(Atanh_k(k=th.use_tanh))
 
-  if th.learn_delta:
-    model.input_.abbreviation = 'input'
-    model.add(mu.ShortCut(model.input_, mode=mu.ShortCut.Mode.SUM))
-
   if th.use_sigmoid:
     model.add(mu.Activation('sigmoid'))
   else:
     model.add(Clip(0, 1.2))
 
+  if th.learn_delta:
+    model.input_.abbreviation = 'input'
+    model.add(mu.ShortCut(model.input_, mode=mu.ShortCut.Mode.SUM))
+
   # Build model
-  # model.build(loss=th.loss_string, metric=['loss'])
-  # model.build(loss=th.loss_string, metric=[get_ssim_3D(), 'loss'])
-  model.build(loss=th.loss_string, metric=[
-    get_ssim_3D(), get_nrmse(), get_psnr(), get_pw_rmse(), 'loss'])
-  # model.build(loss=get_pw_rmse(), metric=[
-  #   get_ssim_3D(), get_nrmse(), get_psnr(), 'loss'])
+  if th.loss_string not in custom_loss:
+    model.build(loss=th.loss_string, metric=[
+      get_ssim_3D(), get_nrmse(), get_psnr(), get_pw_rmse(), 'loss'])
+  else:
+    model.build(loss=custom_loss[th.loss_string], metric=custom_loss.items())
   return model
 
 
@@ -53,54 +57,4 @@ def get_unet(arc_string='8-3-4-2-relu-mp', **kwargs):
   return finalize(model)
 
 
-def get_pw_rmse():
-  from tframe import tf
-  """SET th.batch_size=1 ?"""
-  def pw_rmse(truth, output):
-    # [bs, num_slides, 440, 440, 1]
-    axis = list(range(1, len(truth.shape)))
-    a = tf.square(truth - output)
-    b = tf.square(truth) + 0.001
-    return tf.sqrt(tf.reduce_mean(a / b, axis=axis))
 
-  return Quantity(pw_rmse, tf.reduce_mean, name='PW_RMSE', lower_is_better=True)
-
-
-def get_ssim_3D():
-  from tframe import tf
-  def ssim(truth, output):
-    # [bs, num_slides, 440, 440, 1]
-    from uld_core import th
-    if th.use_color:
-      shape = [-1, 440, 440, 3]
-    else:
-      shape = [-1, 440, 440, 1]
-    truth, output = [tf.reshape(x, shape) for x in (truth, output)]
-
-    return tf.image.ssim(truth, output, max_val=1.0)
-
-  return Quantity(ssim, tf.reduce_mean, name='SSIM', lower_is_better=False)
-
-
-def get_nrmse():
-  """SET th.[e]val_batch_size=1"""
-  from tframe import tf
-
-  def nrmse(truth, output):
-    # [bs, num_slides, 440, 440, 1]
-    axis = list(range(1, len(truth.shape)))
-    a = tf.reduce_sum(tf.square(truth - output), axis=axis)
-    b = tf.reduce_sum(tf.square(truth), axis=axis)
-    return tf.sqrt(a / b)
-
-  return Quantity(nrmse, tf.reduce_mean, name='NRMSE', lower_is_better=True)
-
-
-def get_psnr():
-  from tframe import tf
-
-  def psnr(truth, output):
-    # [bs, num_slides, 440, 440, 1]
-    return tf.image.psnr(truth, output, 1)
-
-  return Quantity(psnr, tf.reduce_mean, name='PSNR', lower_is_better=False)

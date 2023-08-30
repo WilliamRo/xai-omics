@@ -105,18 +105,29 @@ class ULDSet(DataSet):
       subjects = list(np.random.choice(self.subjects, self.buffer_size,
                                        replace=False))
     console.show_status(f'Fetching data subjects from {self.data_dir} ...')
+
+    kwargs = {
+      'use_suv': th.use_suv,
+      'clip': (0, th.max_clip),
+      'cmap': th.color_map,
+      'shape': th.data_shape,
+    }
     if th.norm_by_feature:
       doses = {
         "feature": self.dose,
         "target": "Full"
       }
-      self.features, self.targets = load_data(self.data_dir, subjects, doses)
+      self.features, self.targets = load_data(self.data_dir, subjects,
+                                              doses, **kwargs)
     elif th.train_self:
-      self.features = load_data(self.data_dir, subjects, self.dose)
+      self.features = load_data(self.data_dir, subjects, self.dose, **kwargs)
       self.targets = self.features
     else:
-      self.features = load_data(self.data_dir, subjects, self.dose)
-      self.targets = load_data(self.data_dir, subjects, "Full")
+      self.features = load_data(self.data_dir, subjects, self.dose, **kwargs)
+      self.targets = load_data(self.data_dir, subjects, "Full", **kwargs)
+
+
+
 
   @classmethod
   def load_as_uldset(cls, data_dir, dose):

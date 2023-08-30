@@ -25,11 +25,11 @@ def main(_):
   console.start('{} on Ultra Low Dose task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = 1
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.data_config = r'delta dataset=01-ULD dose=1-4'
+  th.data_config = r'epsilon dataset=01-ULD dose=1-4'
 
   th.val_size = 30
   th.test_size = 1
@@ -37,14 +37,13 @@ def main(_):
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
-  th.slice_num = 608
+  th.data_shape = [1, 608, 440, 440, 1]
 
 
-  # th.use_color = False
   # th.use_suv = False
   th.norm_by_feature = True
   # th.train_self = not th.norm_by_feature
-  # th.use_clip = 1.0
+  # th.max_clip = 1.0
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
@@ -52,7 +51,7 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = ''
+  th.suffix = f'_w{th.window_size}_s{th.slice_size}'
 
 
   th.visible_gpu_id = 0
@@ -98,18 +97,18 @@ def main(_):
     th.suffix += '_delta'
   if th.use_sigmoid:
     th.suffix += '_sig'
-  if th.rand_batch:
-    th.suffix += '_randBatch'
+  if not th.rand_batch:
+    th.suffix += '_fakeRandBS'
   if th.train_self:
     th.suffix += '_self'
   if th.use_suv:
     th.suffix += '_SUV'
-  if th.norm_by_feature:
-    th.suffix += '_normBF'
+  if not th.norm_by_feature:
+    th.suffix += '_normSelf'
   if th.use_tanh != 0:
     th.suffix += f'_tanh{th.use_tanh}'
-  if th.use_clip != np.Inf:
-    th.suffix += f'_clip{th.use_clip}'
+  if th.max_clip != None:
+    th.suffix += f'_clip(0,{th.use_clip})'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()

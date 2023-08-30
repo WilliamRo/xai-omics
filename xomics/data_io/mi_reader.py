@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 from tframe import console
 from xomics.data_io.raw_reader import calc_SUV
 
+SUBJECT_NAME = 'subject'
 
 def load_tags(filepath):
   tags = {}
@@ -15,11 +16,11 @@ def load_tags(filepath):
   return tags
 
 
-def load_numpy_data(datadir: str, subjects, doses):
+def load_numpy_data(datadir: str, subjects, doses, **kwargs):
   if type(subjects) is str:
-    subjects = int(subjects[7:])
+    subjects = int(subjects[len(SUBJECT_NAME):])
   if type(subjects) is list and type(subjects[0]) is not int:
-    subjects = [int(subject[7:]) for subject in subjects]
+    subjects = [int(subject[len(SUBJECT_NAME):]) for subject in subjects]
 
   condition = (type(subjects), type(doses))
   conditions_dict = {
@@ -31,44 +32,44 @@ def load_numpy_data(datadir: str, subjects, doses):
   if condition not in conditions_dict.keys():
     raise TypeError(f"Unsupported Type combination {condition}!")
 
-  return conditions_dict[condition](datadir, subjects, doses)
+  return conditions_dict[condition](datadir, subjects, doses, **kwargs)
 
 
-def load_one_data(datadir: str, subject: int, dose: str):
-  return load_data_by_subject(datadir, subject, [dose])
+def load_one_data(datadir: str, subject: int, dose: str, **kwargs):
+  return load_data_by_subject(datadir, subject, [dose], **kwargs)
 
 
-def load_data_by_dose(datadir: str, subjects: list[int], dose: str):
+def load_data_by_dose(datadir: str, subjects: list[int], dose: str, **kwargs):
   arr = []
   for subject in subjects:
-    filepath = os.path.join(datadir, f'subject{subject}',
-                            f'subject{subject}_{dose}.npy')
-    data, _ = npy_load(filepath)
+    filepath = os.path.join(datadir, f'{SUBJECT_NAME}{subject}',
+                            f'{SUBJECT_NAME}{subject}_{dose}.npy')
+    data, _ = npy_load(filepath, **kwargs)
     arr.append(data)
   return np.concatenate(arr)
 
 
-def load_data_by_subject(datadir: str, subject: int, doses: list[str]):
+def load_data_by_subject(datadir: str, subject: int, doses: list[str], **kwargs):
   arr = []
   for dose in doses:
-    filepath = os.path.join(datadir, f'subject{subject}',
-                            f'subject{subject}_{dose}.npy')
-    data, _ = npy_load(filepath)
+    filepath = os.path.join(datadir, f'{SUBJECT_NAME}{subject}',
+                            f'{SUBJECT_NAME}{subject}_{dose}.npy')
+    data, _ = npy_load(filepath, **kwargs)
     arr.append(data)
   return np.concatenate(arr)
 
 
-def load_data_pair(datadir: str, subjects: list[int], doses: dict):
+def load_data_pair(datadir: str, subjects: list[int], doses: dict, **kwargs):
   features = []
   targets = []
   for subject in subjects:
-    f_filepath = os.path.join(datadir, f'subject{subject}',
-                              f'subject{subject}_{doses["feature"]}.npy')
-    t_filepath = os.path.join(datadir, f'subject{subject}',
-                              f'subject{subject}_{doses["target"]}.npy')
+    f_filepath = os.path.join(datadir, f'{SUBJECT_NAME}{subject}',
+                              f'{SUBJECT_NAME}{subject}_{doses["feature"]}.npy')
+    t_filepath = os.path.join(datadir, f'{SUBJECT_NAME}{subject}',
+                              f'{SUBJECT_NAME}{subject}_{doses["target"]}.npy')
 
-    feature, norm = npy_load(f_filepath)
-    target = npy_load(t_filepath, norm=norm)
+    feature, norm = npy_load(f_filepath, **kwargs)
+    target = npy_load(t_filepath, norm=norm, **kwargs)
 
     features.append(feature)
     targets.append(target)
@@ -85,7 +86,8 @@ def normalize(arr, norm=None):
 
 def load_data(datadir: str,
               subjects: int | str | list,
-              doses: str | list | dict):
+              doses: str | list | dict,
+              **kwargs):
   """
   support 3 ways to load data
   :param datadir:  data file directory
@@ -93,13 +95,8 @@ def load_data(datadir: str,
   :param doses:
   :return: data
   """
-  from uld_core import th
 
-  if th.norm_by_feature:
-    return load_numpy_data(datadir, subjects, doses)
-  else:
-    data = load_numpy_data(datadir, subjects, doses)
-
+  data = load_numpy_data(datadir, subjects, doses, **kwargs)
 
   return data
 
@@ -110,32 +107,52 @@ def get_color_data(data, cmap):
   return cm
 
 
-def npy_load(filepath, norm=None):
-  from uld_core import th
+def npy_load(filepath, norm=None, use_suv=False, **kwargs):
   data = np.load(filepath)
   console.supplement(f'Loaded `{os.path.split(filepath)[-1]}`', level=2)
-  if th.use_suv:
+  if use_suv:
     tmp = os.path.split(filepath)
     tagpath = os.path.join(tmp[0], f'tags_{tmp[1][:-3]}txt')
     tags = load_tags(tagpath)
-    return pre_process(data, tags=tags, norm=norm)
-  return pre_process(data, norm=norm)
+    return pre_process(data, tags=tags, norm=norm, use_suv=use_suv, **kwargs)
+  return pre_process(data, norm=norm, **kwargs)
 
 
-def pre_process(data, tags=None, norm=None):
-  from uld_core import th
+def norm_size(data, shape):
+  """
+  :param data:
+  :param shape: must be even
+  :return:
+  """
+  data_shape = data.shape
+  shape = tuple(shape)
+  assert len(data_shape) == len(shape)
+  num = len(shape)
+  if np.all(data_shape >= shape):
+    for i in range(num):
+      if data_shape[i] == shape[i]:
+        continue
+      else:
+        if data_shape[i] % 2 != 0:
+          data = np.delete(data, 0, axis=i)
+        cut = (data.shape[i] - shape[i]) // 2
+        data = np.delete(data, np.s_[0:cut], axis=i)
+        data = np.delete(data, np.s_[data.shape[i]-cut:data.shape[i]], axis=i)
+  else:
+    raise ValueError('The normalized shape is too large!')
+  return data
 
-  if data.shape[1] % 2 != 0:
-    data = data[:, 1:]
-  cut = (data.shape[1] - th.slice_num) // 2
-  data = data[:, cut:-cut]
 
-  if th.use_suv:
+def pre_process(data, tags=None, norm=None,
+                use_suv=False, clip=None, cmap=None, shape=None):
+  if shape is not None:
+    data = norm_size(data, shape)
+  if use_suv:
     data = calc_SUV(data, tags)
-  if th.use_clip != np.Inf:
-    data = np.clip(data, 0, th.use_clip) / th.use_clip
-  if th.use_color:
-    data = get_color_data(data, "nipy_spectral")
+  if clip is not None:
+    data = np.clip(data, clip[0], clip[1])
+  if cmap is not None:
+    data = get_color_data(data, cmap)
   return normalize(data, norm)
   # return data
 
@@ -144,7 +161,7 @@ def pre_process(data, tags=None, norm=None):
 if __name__ == '__main__':
   filePath = '../../data/01-ULD/'
   # img = load_numpy_data(filePath, 8, ['Full'])
-  img = load_data(filePath, 2, ['Full', '1-2'])
+  img = load_data(filePath, 2, ['Full', '1-2'], shape=[1, 608, 440, 440, 1])
 
   print(img.shape)
   # keys = ['Full_dose',
