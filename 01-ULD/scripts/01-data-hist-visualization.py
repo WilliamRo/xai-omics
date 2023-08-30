@@ -3,7 +3,7 @@ from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
 from skimage import exposure
-from xomics.data_io.mi_reader import load_data
+from xomics.data_io.npy_reader import load_data
 from utils.metrics_calc import calc_metric, get_metrics
 
 dose_tags = [

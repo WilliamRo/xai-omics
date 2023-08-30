@@ -1,6 +1,6 @@
 import os
 
-from xomics.data_io.raw_reader import npy_save, wr_tags
+from xomics.data_io.utils.raw_rw import npy_save, wr_tags
 
 
 def gen_uld_npy(path, n_path):

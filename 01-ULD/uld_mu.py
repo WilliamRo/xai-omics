@@ -42,11 +42,11 @@ def finalize(model):
     model.add(mu.ShortCut(model.input_, mode=mu.ShortCut.Mode.SUM))
 
   # Build model
+  metrics = list(custom_loss.values())
   if th.loss_string not in custom_loss:
-    model.build(loss=th.loss_string, metric=[
-      get_ssim_3D(), get_nrmse(), get_psnr(), get_pw_rmse(), 'loss'])
+    model.build(loss=th.loss_string, metric=metrics + ['loss'])
   else:
-    model.build(loss=custom_loss[th.loss_string], metric=custom_loss.items())
+    model.build(loss=custom_loss[th.loss_string], metric=metrics)
   return model
 
 

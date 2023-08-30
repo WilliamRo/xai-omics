@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from xomics.data_io.raw_reader import rd_file, rd_series, get_tags
+from xomics.data_io.utils.raw_rw import rd_file, rd_series, get_tags
 
 
 def rd_uld_test(dirpath, datanum=1):

@@ -5,7 +5,7 @@ import numpy as np
 
 from utils.data_processing import get_random_window
 from xomics import MedicalImage
-from xomics.data_io.mi_reader import load_data
+from xomics.data_io.npy_reader import load_data
 from xomics.gui.dr_gordon import DrGordon
 
 
@@ -29,14 +29,14 @@ def record(windows_size, slice_size):
 if __name__ == '__main__':
   num = 100000
   win_size = s_size = 128
-  dir_list = os.listdir(".")
+  dir_list = os.listdir("./tmp")
 
   if f"test{num}.npy" not in dir_list:
-    a = load_data('D:/projects/xai-omics/data/01-ULD/', [1, 3, 5, 8, 10, 12], "Full")
+    a = load_data('../../data/01-ULD/', [1, 3, 5, 8, 10, 12], "Full")
     result = record(win_size, s_size)
     np.save(f"test{num}.npy", result)
   else:
-    result = np.load(f"test{num}.npy")
+    result = np.load(f"./tmp/test{num}.npy")
 
   mi = MedicalImage("test", {f"{num}": result[0]})
   dg = DrGordon([mi])

@@ -4,7 +4,7 @@ from typing import Tuple
 
 from matplotlib import pyplot as plt
 
-from xomics.data_io.mi_reader import load_data
+from xomics.data_io.npy_reader import load_data
 from xomics import MedicalImage
 from xomics.gui.dr_gordon import DrGordon
 

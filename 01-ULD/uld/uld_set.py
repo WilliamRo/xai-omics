@@ -97,7 +97,7 @@ class ULDSet(DataSet):
 
   @staticmethod
   def fetch_data(self):
-    from xomics.data_io.mi_reader import load_data
+    from xomics.data_io.npy_reader import load_data
     from uld_core import th
     if self.buffer_size is None or self.buffer_size >= len(self.subjects):
       subjects = self.subjects
