@@ -88,12 +88,13 @@ class ULDSet(DataSet):
         'Targets': data.targets[i],
         'Model-Output': pred[i],
         'Delta': np.square(pred[i] - data.targets[i])
-    }) for i in range(self.size)]
+      }) for i in range(self.size)]
 
     dg = DrGordon(medical_images)
     dg.slice_view.set('vmin', auto_refresh=False)
     dg.slice_view.set('vmax', auto_refresh=False)
     dg.show()
+
 
   @staticmethod
   def fetch_data(self):
@@ -112,6 +113,7 @@ class ULDSet(DataSet):
       'cmap': th.color_map,
       'shape': th.data_shape,
     }
+
     if th.norm_by_feature:
       doses = {
         "feature": self.dose,
@@ -139,22 +141,31 @@ class ULDSet(DataSet):
   def get_subsets(self, *sizes, names):
     # TODO: improve the function like split
     sizes = list(sizes)
-    if len(sizes) != 3:
-      raise SystemError("The function is need to upgrade!")
-    num = sizes[1] + sizes[2]
-    if num < 3:
-      raise ValueError("The data is too less to train!")
-    if num > len(self.subjects):
-      sizes[1], sizes[2] = 1, 1
-    results = random.sample(self.subjects, sizes[1]+sizes[2])
-    for i in results:
-      self.subjects.remove(i)
-    self.name = names[0]
+    autos = sizes.count(-1)
+    assert len(sizes) == 3
+    assert autos <= 1
 
-    return self, self.__class__(self.data_dir, self.dose, self.buffer_size,
-                                results[:sizes[1]], names[1]), \
-        self.__class__(self.data_dir, self.dose, self.buffer_size,
-                       results[-sizes[2]:], names[2])
+    num = np.sum(sizes) + autos
+    if num > len(self.subjects):
+      num = len(self.subjects) - 2
+      sizes = [-1, 1, 1]
+
+    index = sizes.index(-1)
+    results = random.sample(self.subjects, num)
+    sub_list = []
+    for k in range(len(sizes)):
+      if k != index:
+        item = self.__class__(self.data_dir, self.dose, self.buffer_size,
+                              results[:sizes[k]], names[k])
+        results = results[sizes[k]:]
+      else:
+        for i in results:
+          self.subjects.remove(i)
+        self.name = names[index]
+        item = self
+      sub_list.append(item)
+
+    return sub_list
 
 
   def snapshot(self, model):

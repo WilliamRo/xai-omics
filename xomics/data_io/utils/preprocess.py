@@ -1,6 +1,25 @@
 import numpy as np
 
 
+def dicom_time(t):
+  t = str(int(t))
+  if len(t) == 5:
+    t = '0' + t
+  h_t = float(t[0:2])
+  m_t = float(t[2:4])
+  s_t = float(t[4:6])
+  return h_t * 3600 + m_t * 60 + s_t
+
+
+def calc_SUV(data, tags, norm=False):
+  decay_time = dicom_time(tags['ST']) - dicom_time(tags['RST'])
+  decay_dose = float(tags['RTD']) * pow(2, -float(decay_time) / float(tags['RHL']))
+  SUVbwScaleFactor = (1000 * float(tags['PW'])) / decay_dose
+  if norm:
+    PET_SUV = (data * float(tags['RS']) + float(tags['RI'])) * SUVbwScaleFactor
+  else:
+    PET_SUV = data * SUVbwScaleFactor
+  return PET_SUV
 
 
 def normalize(arr, norm=None):
@@ -47,7 +66,6 @@ def pre_process(data, tags=None, norm=None,
   if shape is not None:
     data = norm_size(data, shape)
   if use_suv:
-    from xomics.data_io.utils.raw_rw import calc_SUV
     data = calc_SUV(data, tags)
   if clip is not None:
     data = np.clip(data, clip[0], clip[1])

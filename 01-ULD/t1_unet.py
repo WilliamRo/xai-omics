@@ -25,7 +25,7 @@ def main(_):
   console.start('{} on Ultra Low Dose task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 1
+  th.rehearse = 0
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ def main(_):
   # th.archi_string = '8-5-2-3-lrelu'
 
   th.use_tanh = 0
-  th.learn_delta = 0
+  th.learn_delta = False
   th.rand_batch = True
   th.use_sigmoid = False
   # ---------------------------------------------------------------------------

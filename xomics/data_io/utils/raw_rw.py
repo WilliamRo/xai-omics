@@ -69,27 +69,6 @@ def wr_tags(tags, path):
       f.write(f'{name},{val}\n')
 
 
-def dicom_time(t):
-  t = str(int(t))
-  if len(t) == 5:
-    t = '0' + t
-  h_t = float(t[0:2])
-  m_t = float(t[2:4])
-  s_t = float(t[4:6])
-  return h_t * 3600 + m_t * 60 + s_t
-
-
-def calc_SUV(data, tags, norm=False):
-  decay_time = dicom_time(tags['ST']) - dicom_time(tags['RST'])
-  decay_dose = float(tags['RTD']) * pow(2, -float(decay_time) / float(tags['RHL']))
-  SUVbwScaleFactor = (1000 * float(tags['PW'])) / decay_dose
-  if norm:
-    PET_SUV = (data * float(tags['RS']) + float(tags['RI'])) * SUVbwScaleFactor
-  else:
-    PET_SUV = data * SUVbwScaleFactor
-  return PET_SUV
-
-
 def npy_save(data, filepath):
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
   np.save(filepath, data)
