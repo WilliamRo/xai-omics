@@ -1,7 +1,10 @@
 from collections import OrderedDict
 from roma import Nomear
+from tframe import local
+from tframe import console
 
 import numpy as np
+import pickle
 
 
 
@@ -10,6 +13,7 @@ class MedicalImage(Nomear):
 
   def __init__(self, key='noname', images=None, labels=None):
     self.key = key
+    self.EXTENSION = 'mi'
 
     if images is None: images = OrderedDict()
     if labels is None: labels = OrderedDict()
@@ -36,15 +40,32 @@ class MedicalImage(Nomear):
 
   # region: Public Mehtods
 
-  def save(self, path):
-    pass
+  def save(self, filepath):
+    if filepath.split('.')[-1] != self.EXTENSION:
+      filepath += '.{}'.format(self.EXTENSION)
+    with open(filepath, 'wb') as output:
+      pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
+
+
+  @classmethod
+  def load(self, path):
+    assert isinstance(path, str)
+
+    with open(path, 'rb') as input:
+      # console.show_status('Loading `{}` ...'.format(path))
+      return pickle.load(input)
+
 
   # endregion: Public Mehtods
 
   # region: Private Mehtods
 
   def _check_data(self):
-    pass
+    for image in self.images.values():
+      assert self.representative.shape == image.shape
+
+    for label in self.labels.values():
+      assert self.representative.shape == label.shape
 
   # endregion: Private Mehtods
 
