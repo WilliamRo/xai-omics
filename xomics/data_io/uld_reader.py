@@ -1,6 +1,8 @@
+from xomics.data_io.utils.raw_rw import rd_file, rd_series, get_tags
+
 import os
 import numpy as np
-from xomics.data_io.utils.raw_rw import rd_file, rd_series, get_tags
+
 
 
 def rd_uld_test(dirpath, datanum=1):
@@ -42,7 +44,6 @@ def rd_uld_train(datapath: str, subject, dose="Full_dose"):
     tags.append(tag_dict)
 
   return images, tags
-
 
 
 

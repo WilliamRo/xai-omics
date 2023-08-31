@@ -1,8 +1,11 @@
+from tframe import console
+from typing import Union
+from xomics.data_io.utils.preprocess import pre_process
+
 import os
 import numpy as np
 
-from tframe import console
-from xomics.data_io.utils.preprocess import pre_process
+
 
 SUBJECT_NAME = 'subject'
 
@@ -77,8 +80,8 @@ def load_data_pair(datadir: str, subjects: list[int], doses: dict, **kwargs):
 
 
 def load_data(datadir: str,
-              subjects: int | str | list,
-              doses: str | list | dict,
+              subjects: Union[int, str, list],
+              doses: Union[str, list, dict],
               **kwargs):
   """
   support 3 ways to load data

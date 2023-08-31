@@ -19,5 +19,7 @@ for file in mi_file:
 
 # Visualization
 dg = DrGordon(mi_list)
+dg.slice_view.set('vmin', auto_refresh=False)
+dg.slice_view.set('vmax', auto_refresh=False)
 dg.show()
 
