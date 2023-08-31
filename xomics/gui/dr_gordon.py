@@ -103,7 +103,7 @@ class SliceView(Plotter):
     # Settable attributes
     self.new_settable_attr('color_bar', False, bool, 'Color bar')
     self.new_settable_attr('ctv_key', None, str, 'Key of CTV to show')
-    self.new_settable_attr('cmap', 'gray', float, 'Color map')
+    self.new_settable_attr('cmap', 'gray', str, 'Color map')
     self.new_settable_attr('vmin', 0., float, 'Min value')
     self.new_settable_attr('vmax', 1., float, 'Max value')
     self.new_settable_attr('show_ground_truth', False, bool,
@@ -178,7 +178,7 @@ class SliceView(Plotter):
         self.selected_medical_image.labels.keys())]
       return '\n'.join(hints)
 
-    self.pictor.command_hints['ta'] = get_anno_hints
+    self.command_hints['ta'] = get_anno_hints
 
   # endregion: Overwritting
 
