@@ -1,63 +1,84 @@
-from xomics.data_io.utils.raw_rw import rd_file, rd_series, get_tags
+from typing import Union
+from tframe import console
+from xomics.data_io.npy_reader import NpyReader
+from xomics.data_io.utils.preprocess import calc_SUV, get_color_data
 
 import os
 import numpy as np
 
 
 
-def rd_uld_test(dirpath, datanum=1):
-  """
-  read uld test raw data
-  :param dirpath:
-  :param datanum: how many data to read
-  :return: data
-  """
-  files = os.listdir(dirpath)[:datanum]
-  arr = []
-  for file in files:
-    filepath = os.path.join(dirpath, file)
-    arr.append(rd_file(filepath))
-  results = np.stack(arr)
-  return results
+class UldReader(NpyReader):
 
+  def __init__(self, datadir: str):
+    super().__init__(datadir)
+    self.tags = None
+    self.conditions_dict[(list, dict)] = self.load_data_pair
 
-def rd_uld_train(datapath: str, subject, dose="Full_dose"):
-  """
-  for uld train raw data
-  :param datapath:
-  :param subject:
-  :param dose:
-  :return:
-  """
-  patients = os.listdir(os.path.join(datapath, subject))
-  images = []
-  tags = []
+  def _pre_process(self, use_suv=False, cmap=None):
+    if use_suv:
+      tags = self.load_tags()
+      self._data = calc_SUV(self._data, tags)
+    if cmap:
+      self._data = get_color_data(self._data, cmap)
+    if True in np.isnan(self._data):
+      print("BAD DATA!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-  for patient in patients:
-    dirpath = os.path.join(datapath, subject, patient, dose)
-    img = rd_series(dirpath)
+  def load_data(self, subjects: Union[int, str, list],
+                doses: Union[str, list, dict],
+                **kwargs):
+    """
+    support 4 ways to load data
+    :param subjects:
+    :param doses:
+    :return: data
+    """
+    return self._load_data(subjects, doses, **kwargs)
 
-    tag_dict = get_tags(dirpath, isSeries=True)
-    img = img.reshape((1,) + img.shape + (1,))
+  def load_tags(self):
+    tmp = self.current_filepath
+    tagpath = os.path.join(tmp[0], f'tags_{tmp[1][:-3]}txt')
+    tags = {}
+    with open(tagpath, 'r') as f:
+      for data in f.readlines():
+        data = data.split(',')
+        tags[data[0]] = float(data[1])
+    return tags
 
-    images.append(img)
-    tags.append(tag_dict)
+  def load_data_pair(self, subjects: list[int], doses: dict, **kwargs):
+    features = []
+    targets = []
+    for subject in subjects:
+      f_filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
+                                f'{self.SUBJECT_NAME}{subject}_{doses["feature"]}.npy')
+      t_filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
+                                f'{self.SUBJECT_NAME}{subject}_{doses["target"]}.npy')
 
-  return images, tags
+      self.npy_load(f_filepath, ret_norm=True, **kwargs)
+      feature, norm = self._data
+      self.npy_load(t_filepath, norm=norm, **kwargs)
+      target = self._data
+
+      features.append(feature)
+      targets.append(target)
+
+    return np.concatenate(features), np.concatenate(targets)
+
 
 
 
 if __name__ == '__main__':
-  doses = [
-    'Full_dose',
-    '1-2 dose',
-    '1-4 dose',
-    '1-10 dose',
-    '1-20 dose',
-    '1-50 dose',
-    '1-100 dose',
-  ]
-  path = "../../data/01-ULD/testset"
-  img = rd_uld_test(path)
-  print(img.shape)
+  filePath = '../../data/01-ULD/'
+  # img = load_numpy_data(filePath, 8, ['Full'])
+  reader = UldReader(filePath)
+  img = reader.load_data(2, ['Full', '1-2'], shape=[1, 608, 440, 440, 1])
 
+  print(img.shape)
+  # keys = ['Full_dose',
+  #         '1-2 dose',
+  #         '1-4 dose',
+  #         '1-10 dose',
+  #         '1-20 dose',
+  #         '1-50 dose',
+  #         '1-100 dose',
+  #         ]

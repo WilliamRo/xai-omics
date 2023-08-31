@@ -1,12 +1,5 @@
 import numpy as np
 
-from typing import Tuple
-
-from matplotlib import pyplot as plt
-
-from xomics.data_io.npy_reader import load_data
-from xomics import MedicalImage
-from xomics.gui.dr_gordon import DrGordon
 
 
 # self.features/targets.shape = [N, S, H, W, 2]
@@ -81,8 +74,14 @@ def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
 
 
 if __name__ == '__main__':
-  a = load_data('D:/projects/xai-omics/data/01-ULD/', [1, 5, 12], "1-4")
-  b = load_data('D:/projects/xai-omics/data/01-ULD/', [1, 5, 12], "Full")
+  from xomics import MedicalImage
+  from xomics.data_io.uld_reader import UldReader
+  from xomics.gui.dr_gordon import DrGordon
+
+  path = '../'
+  reader = UldReader(path)
+  a = reader.load_data([1, 5, 12], "1-4")
+  b = reader.load_data([1, 5, 12], "Full")
   num = 25
   img_f, img_t = gen_windows(a, b, num, true_rand=False)
   # print(len(img))

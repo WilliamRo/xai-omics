@@ -3,8 +3,7 @@ import numpy as np
 from tframe import console
 from tframe import DataSet
 from tframe import Predictor
-
-
+from xomics.data_io.uld_reader import UldReader
 
 
 class ULDSet(DataSet):
@@ -23,6 +22,7 @@ class ULDSet(DataSet):
     else:
       self.subjects = subjects
     self.data_fetcher = self.fetch_data
+    self.reader: UldReader = UldReader(self.data_dir)
     self.dose = dose
     self.name = name
 
@@ -87,7 +87,7 @@ class ULDSet(DataSet):
         'Input': data.features[i],
         'Targets': data.targets[i],
         'Model-Output': pred[i],
-        'Delta': np.square(pred[i] - data.targets[i])
+        # 'Delta': np.square(pred[i] - data.targets[i])
       }) for i in range(self.size)]
 
     dg = DrGordon(medical_images)
@@ -98,7 +98,9 @@ class ULDSet(DataSet):
 
   @staticmethod
   def fetch_data(self):
-    from xomics.data_io.npy_reader import load_data
+    return self._fetch_data()
+
+  def _fetch_data(self):
     from uld_core import th
     if self.buffer_size is None or self.buffer_size >= len(self.subjects):
       subjects = self.subjects
@@ -119,14 +121,14 @@ class ULDSet(DataSet):
         "feature": self.dose,
         "target": "Full"
       }
-      self.features, self.targets = load_data(self.data_dir, subjects,
-                                              doses, **kwargs)
+      self.features, self.targets = self.reader.load_data(subjects,
+                                                          doses, **kwargs)
     elif th.train_self:
-      self.features = load_data(self.data_dir, subjects, self.dose, **kwargs)
-      self.targets = self.features
+      self.features = self.reader.load_data(subjects, self.dose, **kwargs)
+      self.targets = self.reader.data
     else:
-      self.features = load_data(self.data_dir, subjects, self.dose, **kwargs)
-      self.targets = load_data(self.data_dir, subjects, "Full", **kwargs)
+      self.features = self.reader.load_data(subjects, self.dose, **kwargs)
+      self.targets = self.reader.load_data(subjects, "Full", **kwargs)
 
 
 
@@ -187,10 +189,12 @@ class ULDSet(DataSet):
       tfn = f'Target-Slice{slice_num}.png'
       feature = self.features[0, slice_num, ..., 0]
       target = self.targets[0, slice_num, ..., 0]
+      vmax = np.max(target)
+      self.vmax = vmax
       plt.imsave(os.path.join(model.agent.ckpt_dir, ffn),
-                 feature, cmap='gray', vmin=0., vmax=np.max(feature))
+                 feature, cmap='gray', vmin=0., vmax=vmax)
       plt.imsave(os.path.join(model.agent.ckpt_dir, tfn),
-                 target, cmap='gray', vmin=0., vmax=np.max(target))
+                 target, cmap='gray', vmin=0., vmax=vmax)
     # (1) Get image (shape=[1, S, H, W, 1])
     # data = DataSet(self.features[:1, 314:330], self.targets[:1, 314:330])
     images = model.predict(self)
@@ -203,4 +207,4 @@ class ULDSet(DataSet):
     fn = f'Iter{model.counter}-{metric_str}.png'
     img = images[0, slice_num, ..., 0]
     plt.imsave(os.path.join(model.agent.ckpt_dir, fn),
-               img, cmap='gray', vmin=0., vmax=np.max(img))
+               img, cmap='gray', vmin=0., vmax=self.vmax)

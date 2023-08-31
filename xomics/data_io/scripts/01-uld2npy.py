@@ -1,10 +1,9 @@
+from xomics.data_io.utils.raw_rw import npy_save, wr_tags
+from xomics.data_io.utils.uld_raw_rd import rd_uld_train
+
 import os
 
-from xomics.data_io.utils.raw_rw import npy_save, wr_tags
-
-
 def gen_uld_npy(path, n_path):
-  from xomics.data_io.uld_reader import rd_uld_train
   subjects = os.listdir(path)
   count = 0
   for subject in subjects:

@@ -22,10 +22,11 @@ def calc_SUV(data, tags, norm=False):
   return PET_SUV
 
 
-def normalize(arr, norm=None):
+def normalize(arr, norm=None, ret_norm=False):
   if norm is None:
     norm = np.max(arr)
-    return arr / norm, norm
+    if ret_norm:
+      return arr / norm, norm
   return arr / norm
 
 
@@ -61,15 +62,3 @@ def norm_size(data, shape):
   return data
 
 
-def pre_process(data, tags=None, norm=None,
-                use_suv=False, clip=None, cmap=None, shape=None):
-  if shape is not None:
-    data = norm_size(data, shape)
-  if use_suv:
-    data = calc_SUV(data, tags)
-  if clip is not None:
-    data = np.clip(data, clip[0], clip[1])
-  if cmap is not None:
-    data = get_color_data(data, cmap)
-  return normalize(data, norm)
-  # return data

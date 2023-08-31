@@ -51,7 +51,8 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = f'_w{th.window_size}_s{th.slice_size}'
+  th.suffix = 'test'
+  th.suffix += f'_{th.data_kwargs["dose"]}_w{th.window_size}_s{th.slice_size}'
 
 
   th.visible_gpu_id = 0
@@ -75,7 +76,7 @@ def main(_):
   th.patience = 15
   th.probe_cycle = th.updates_per_round
 
-  th.batch_size = 1
+  th.batch_size = 4
   th.val_batch_size = 1
 
   th.buffer_size = 18
