@@ -1,4 +1,6 @@
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+from xomics.data_io.uld_reader import UldReader
 from xomics.gui.dr_gordon import DrGordon, SliceView, Plotter
 from xomics import MedicalImage
 
@@ -14,20 +16,6 @@ class ULDExplorer(DrGordon):
 
     self.dv = DoseViewer(self)
     self.set_to_axis(self.Keys.PLOTTERS, [self.dv], overwrite=True)
-
-  # region: Data IO
-
-  @staticmethod
-  def load_subject(data_dir, subject, doses):
-    data_dict = {}
-    for dose in doses:
-      file_path = os.path.join(data_dir, f'subject{subject}',
-                              f'subject{subject}_{dose}.npy')
-      data_dict[f'{dose}'] = np.load(file_path)[0]
-    return MedicalImage(f'Subject-{subject}', data_dict)
-
-  # endregion: Data IO
-
 
 
 class DoseViewer(SliceView):
@@ -64,10 +52,10 @@ class HistogramViewer(Plotter):
 
 class DeltaViewer(SliceView):
 
-  def __init__(self, dr_gordon=None):
+  def __init__(self, dr_gordon=None, target_key='Full'):
     # Call parent's constructor
     super().__init__(pictor=dr_gordon)
-
+    self.TARGET_KEY = target_key
     self.new_settable_attr('cmap', 'RdBu', str, 'Color map')
     self.new_settable_attr(
       'alpha', 1.0, float,
@@ -80,7 +68,7 @@ class DeltaViewer(SliceView):
     mi: MedicalImage = self.selected_medical_image
 
     # Show slice
-    full_dose_slice = mi.images['Full'][x]
+    full_dose_slice = mi.images[self.TARGET_KEY][x]
     image: np.ndarray = mi.images[self.displayed_layer_key][x]
     delta = full_dose_slice - self.get('alpha') * image
 
@@ -129,7 +117,8 @@ if __name__ == '__main__':
     # '1-50',
     '1-100',
   ]
-  mi_list = [ULDExplorer.load_subject(data_dir, s, doses) for s in subjects]
+  reader = UldReader(data_dir)
+  mi_list = reader.load_mi_data(subjects, doses, raw=True)
 
   ue = ULDExplorer(mi_list)
   ue.add_plotter(HistogramViewer())

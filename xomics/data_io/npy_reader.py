@@ -1,5 +1,7 @@
 from tframe import console
 from typing import Union
+
+from xomics import MedicalImage
 from xomics.data_io.utils.preprocess import norm_size, normalize
 
 import os
@@ -75,6 +77,15 @@ class NpyReader:
     :return: data
     """
     return self._load_data(subjects, doses, **kwargs)
+
+  def load_mi_data(self, subjects: list, doses: list, **kwargs):
+    mis = []
+    for subject in subjects:
+      img_doses = self.load_data(subject, doses, **kwargs)
+      data_dict = dict(zip(doses, img_doses))
+      mi = MedicalImage(f'{self.SUBJECT_NAME}-{subject}', data_dict)
+      mis.append(mi)
+    return mis
 
   def npy_load(self, filepath, **kwargs):
     self.current_filepath = filepath

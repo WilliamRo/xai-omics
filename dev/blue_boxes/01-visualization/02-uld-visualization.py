@@ -5,7 +5,7 @@ from xomics import MedicalImage
 
 data_dir = r'../../../data/01-ULD/'
 subjects = [1, 12]
-mode = "uld-pair"
+mode = "uld-train"
 
 
 keys = ['Full',
@@ -20,11 +20,7 @@ mis = []
 reader = UldReader(data_dir)
 
 if mode == 'uld-train':
-  for subject in subjects:
-    img = reader.load_data(subject, keys)
-    data_dict = dict(zip(keys, img))
-    mi = MedicalImage(f'Subject-{subject}', data_dict)
-    mis.append(mi)
+  mis = reader.load_mi_data(subjects, keys)
 
 if mode == 'uld-pair':
   doses = {

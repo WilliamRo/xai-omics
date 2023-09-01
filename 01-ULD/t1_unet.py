@@ -51,7 +51,7 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = 'test'
+  th.suffix = ''
   th.suffix += f'_{th.data_kwargs["dose"]}_w{th.window_size}_s{th.slice_size}'
 
 

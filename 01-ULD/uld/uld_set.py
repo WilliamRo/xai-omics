@@ -1,5 +1,7 @@
 import random
 import numpy as np
+
+
 from tframe import console
 from tframe import DataSet
 from tframe import Predictor
@@ -70,7 +72,7 @@ class ULDSet(DataSet):
 
 
   def evaluate_model(self, model: Predictor, report_metric=True):
-    from xomics.gui.dr_gordon import DrGordon
+    from dev.explorers.uld_explorer.uld_explorer import ULDExplorer, DeltaViewer
     from xomics import MedicalImage
 
     if report_metric: model.evaluate_model(self, batch_size=1)
@@ -90,10 +92,19 @@ class ULDSet(DataSet):
         # 'Delta': np.square(pred[i] - data.targets[i])
       }) for i in range(self.size)]
 
-    dg = DrGordon(medical_images)
-    dg.slice_view.set('vmin', auto_refresh=False)
-    dg.slice_view.set('vmax', auto_refresh=False)
-    dg.show()
+    # dg = DrGordon(medical_images)
+    # dg.slice_view.set('vmin', auto_refresh=False)
+    # dg.slice_view.set('vmax', auto_refresh=False)
+    # dg.show()
+
+    ue = ULDExplorer(medical_images)
+    ue.dv.set('vmin', auto_refresh=False)
+    ue.dv.set('vmax', auto_refresh=False)
+
+    delta_viewer = DeltaViewer(target_key='Targets')
+    delta_viewer.set('vmax', auto_refresh=False)
+    ue.add_plotter(delta_viewer)
+    ue.show()
 
 
   @staticmethod
@@ -129,8 +140,6 @@ class ULDSet(DataSet):
     else:
       self.features = self.reader.load_data(subjects, self.dose, **kwargs)
       self.targets = self.reader.load_data(subjects, "Full", **kwargs)
-
-
 
 
   @classmethod
