@@ -11,7 +11,7 @@ import os
 
 
 input_dir = r'../../../data/02-PET-CT-Y1/mi/'
-mi_file = os.listdir(input_dir)[:5]
+mi_file = os.listdir(input_dir)[:2]
 
 mi_list = []
 for file in mi_file:
