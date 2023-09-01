@@ -22,6 +22,7 @@ def load_data():
       ds.fetch_data(ds)
       console.supplement(f'{ds.name}: {ds.features.shape})', level=2)
     else:
-      console.supplement(f'{ds.name} Buffer Size: {ds.buffer_size}', level=2)
+      console.supplement(f'{ds.name}: Buffer Size: {ds.buffer_size} \
+                         Num: {len(ds.subjects)}', level=2)
 
   return datasets

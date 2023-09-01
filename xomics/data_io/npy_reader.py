@@ -1,115 +1,106 @@
+from tframe import console
+from typing import Union
+from xomics.data_io.utils.preprocess import norm_size, normalize
+
 import os
 import numpy as np
 
-from tframe import console
-from xomics.data_io.utils.preprocess import pre_process
-
-SUBJECT_NAME = 'subject'
-
-def load_tags(filepath):
-  tags = {}
-  with open(filepath, 'r') as f:
-    for data in f.readlines():
-      data = data.split(',')
-      tags[data[0]] = float(data[1])
-  return tags
 
 
-def load_numpy_data(datadir: str, subjects, doses, **kwargs):
-  if type(subjects) is str:
-    subjects = int(subjects[len(SUBJECT_NAME):])
-  if type(subjects) is list and type(subjects[0]) is not int:
-    subjects = [int(subject[len(SUBJECT_NAME):]) for subject in subjects]
 
-  condition = (type(subjects), type(doses))
-  conditions_dict = {
-    (int, list): load_data_by_subject,
-    (list, str): load_data_by_dose,
-    (int, str): load_one_data,
-    (list, dict): load_data_pair,
-  }
-  if condition not in conditions_dict.keys():
-    raise TypeError(f"Unsupported Type combination {condition}!")
+class NpyReader:
 
-  return conditions_dict[condition](datadir, subjects, doses, **kwargs)
+  def __init__(self, datadir: str):
+    self.SUBJECT_NAME = 'subject'
+    self.datadir = datadir
+    self.current_filepath = None
+    self.data = None
+    self._data = None
+    self.conditions_dict = {
+      (int, list): self.load_data_by_subject,
+      (list, str): self.load_data_by_dose,
+      (int, str): self.load_one_data,
+    }
 
+  def _load_data(self, subjects, doses, **kwargs):
+    self.data = self.load_numpy_data(subjects, doses, **kwargs)
+    return self.data
 
-def load_one_data(datadir: str, subject: int, dose: str, **kwargs):
-  return load_data_by_subject(datadir, subject, [dose], **kwargs)
+  def _npy_load(self, **kwargs):
+    return self.pre_process(**kwargs)
 
+  def _pre_process(self, **kwargs):
+    pass
 
-def load_data_by_dose(datadir: str, subjects: list[int], dose: str, **kwargs):
-  arr = []
-  for subject in subjects:
-    filepath = os.path.join(datadir, f'{SUBJECT_NAME}{subject}',
-                            f'{SUBJECT_NAME}{subject}_{dose}.npy')
-    data, _ = npy_load(filepath, **kwargs)
-    arr.append(data)
-  return np.concatenate(arr)
+  def load_numpy_data(self, subjects, doses, **kwargs):
+    if type(subjects) is str:
+      subjects = int(subjects[len(self.SUBJECT_NAME):])
+    if type(subjects) is list and type(subjects[0]) is not int:
+      subjects = [int(subject[len(self.SUBJECT_NAME):]) for subject in subjects]
 
+    condition = (type(subjects), type(doses))
 
-def load_data_by_subject(datadir: str, subject: int, doses: list[str], **kwargs):
-  arr = []
-  for dose in doses:
-    filepath = os.path.join(datadir, f'{SUBJECT_NAME}{subject}',
-                            f'{SUBJECT_NAME}{subject}_{dose}.npy')
-    data, _ = npy_load(filepath, **kwargs)
-    arr.append(data)
-  return np.concatenate(arr)
+    if condition not in self.conditions_dict.keys():
+      raise TypeError(f"Unsupported Type combination {condition}!")
+    return self.conditions_dict[condition](subjects, doses, **kwargs)
 
+  def load_one_data(self, subject: int, dose: str, **kwargs):
+    return self.load_data_by_subject(subject, [dose], **kwargs)
 
-def load_data_pair(datadir: str, subjects: list[int], doses: dict, **kwargs):
-  features = []
-  targets = []
-  for subject in subjects:
-    f_filepath = os.path.join(datadir, f'{SUBJECT_NAME}{subject}',
-                              f'{SUBJECT_NAME}{subject}_{doses["feature"]}.npy')
-    t_filepath = os.path.join(datadir, f'{SUBJECT_NAME}{subject}',
-                              f'{SUBJECT_NAME}{subject}_{doses["target"]}.npy')
+  def load_data_by_dose(self, subjects: list[int], dose: str, **kwargs):
+    arr = []
+    for subject in subjects:
+      filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
+                              f'{self.SUBJECT_NAME}{subject}_{dose}.npy')
+      self.npy_load(filepath, **kwargs)
+      arr.append(self._data)
+    return np.concatenate(arr)
 
-    feature, norm = npy_load(f_filepath, **kwargs)
-    target = npy_load(t_filepath, norm=norm, **kwargs)
+  def load_data_by_subject(self, subject: int, doses: list[str], **kwargs):
+    arr = []
+    for dose in doses:
+      filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
+                              f'{self.SUBJECT_NAME}{subject}_{dose}.npy')
+      self.npy_load(filepath, **kwargs)
+      arr.append(self._data)
+    return np.concatenate(arr)
 
-    features.append(feature)
-    targets.append(target)
+  def load_data(self, subjects: Union[int, str, list],
+                doses: Union[str, list],
+                **kwargs):
+    """
+    support 3 ways to load data
+    :param subjects:
+    :param doses:
+    :return: data
+    """
+    return self._load_data(subjects, doses, **kwargs)
 
-  return np.concatenate(features), np.concatenate(targets)
+  def npy_load(self, filepath, **kwargs):
+    self.current_filepath = filepath
+    self._data = np.load(filepath)
+    console.supplement(f'Loaded `{os.path.split(filepath)[-1]}`', level=2)
+    return self._npy_load(**kwargs)
 
-
-def load_data(datadir: str,
-              subjects: int | str | list,
-              doses: str | list | dict,
-              **kwargs):
-  """
-  support 3 ways to load data
-  :param datadir:  data file directory
-  :param subjects:
-  :param doses:
-  :return: data
-  """
-
-  data = load_numpy_data(datadir, subjects, doses, **kwargs)
-
-  return data
-
-
-def npy_load(filepath, norm=None, use_suv=False, **kwargs):
-  data = np.load(filepath)
-  console.supplement(f'Loaded `{os.path.split(filepath)[-1]}`', level=2)
-  if use_suv:
-    tmp = os.path.split(filepath)
-    tagpath = os.path.join(tmp[0], f'tags_{tmp[1][:-3]}txt')
-    tags = load_tags(tagpath)
-    return pre_process(data, tags=tags, norm=norm, use_suv=use_suv, **kwargs)
-  return pre_process(data, norm=norm, **kwargs)
-
+  def pre_process(self,
+                  norm=None, shape=None,
+                  raw=False, clip=None,
+                  ret_norm=False, **kwargs):
+    if shape is not None:
+      self._data = norm_size(self._data, shape)
+    if clip is not None:
+      self._data = np.clip(self._data, clip[0], clip[1])
+    self._pre_process(**kwargs)
+    if not raw:
+      self._data = normalize(self._data, norm, ret_norm=ret_norm)
 
 
 
 if __name__ == '__main__':
   filePath = '../../data/01-ULD/'
   # img = load_numpy_data(filePath, 8, ['Full'])
-  img = load_data(filePath, 2, ['Full', '1-2'], shape=[1, 608, 440, 440, 1])
+  reader = NpyReader(filePath)
+  img = reader.load_data(2, ['Full', '1-2'], shape=[1, 608, 440, 440, 1])
 
   print(img.shape)
   # keys = ['Full_dose',

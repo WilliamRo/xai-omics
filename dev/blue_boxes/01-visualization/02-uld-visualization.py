@@ -1,17 +1,12 @@
-import os
-from xomics.data_io.npy_reader import load_data
-from xomics.data_io.uld_reader import rd_uld_test
+from xomics.data_io.uld_reader import UldReader
+from xomics.data_io.utils.uld_raw_rd import rd_uld_test
 from xomics.gui.dr_gordon import DrGordon
 from xomics import MedicalImage
-import numpy as np
 
 data_dir = r'../../../data/01-ULD/'
-subjects = [12]
-mode = "uld-train"
+subjects = [1, 12]
+mode = "uld-pair"
 
-from uld_core import th
-th.use_clip = np.Inf
-th.use_tanh = 0
 
 keys = ['Full',
         # '1-2',
@@ -22,13 +17,23 @@ keys = ['Full',
         # '1-100',
         ]
 mis = []
+reader = UldReader(data_dir)
 
 if mode == 'uld-train':
   for subject in subjects:
-    img = load_data(data_dir, subject, keys)
-    # img[(img < 0.00005) & (img > 0)] = 1
+    img = reader.load_data(subject, keys)
     data_dict = dict(zip(keys, img))
     mi = MedicalImage(f'Subject-{subject}', data_dict)
+    mis.append(mi)
+
+if mode == 'uld-pair':
+  doses = {
+    "feature": keys[1],
+    "target": keys[0]
+  }
+  img_f, img_l = reader.load_data(subjects, doses)
+  for i in range(img_f.shape[0]):
+    mi = MedicalImage(f'Subject-i', {'Full': img_f[i], 'Low': img_l[i]})
     mis.append(mi)
 
 if mode == 'uld-test':

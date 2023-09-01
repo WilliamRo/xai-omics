@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
   k = 50
 
-  np_x = np.array([-5.2, 0.2, 0.8, 5.7, np.Inf], dtype=float)
+  np_x = np.array([np.NaN, -5.2, 0.2, 0.8, 5.7, np.Inf], dtype=float)
   # print(f'np_x = {np_x}')
   #
   # np_h1 = np.tanh(np_x * k)

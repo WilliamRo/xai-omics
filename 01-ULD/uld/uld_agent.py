@@ -5,7 +5,6 @@ from uld.uld_set import ULDSet, DataSet
 
 import os
 
-from xomics.data_io.npy_reader import load_data
 
 
 class ULDAgent(DataAgent):
@@ -34,18 +33,18 @@ class ULDAgent(DataAgent):
       dose = th.data_kwargs['dose']
       return ULDSet.load_as_uldset(data_root, dose)
 
-
-# Keep this function to run alpha beta gamma exp
+  # Keep this function to run alpha beta gamma exp
   @classmethod
   def load_as_numpy_arrays(cls, data_dir):
     from uld_core import th
-
+    from xomics.data_io.npy_reader import NpyReader
     data_root = os.path.join(data_dir, th.data_kwargs['dataset'])
     dose = th.data_kwargs['dose']
     subjects = [i for i in range(1, 7)]
 
-    features = load_data(data_root, subjects, dose)
-    targets = load_data(data_root, subjects, "Full")
+    reader = NpyReader(data_root)
+    features = reader.load_data(subjects, dose)
+    targets = reader.load_data(subjects, "Full")
 
     return features, targets
 
