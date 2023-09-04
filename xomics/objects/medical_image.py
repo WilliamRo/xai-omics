@@ -42,7 +42,7 @@ class MedicalImage(Nomear):
 
   # endregion: Properties
 
-  # region: Public Mehtods
+  # region: Public Methods
 
   def save(self, filepath):
     if filepath.split('.')[-1] != self.EXTENSION:
@@ -84,9 +84,9 @@ class MedicalImage(Nomear):
     return [bottom_z, bottom_x, bottom_y], [top_z, top_x, top_y]
 
 
-  # endregion: Public Mehtods
+  # endregion: Public Methods
 
-  # region: Private Mehtods
+  # region: Private Methods
 
   def _check_data(self):
     for image in self.images.values():
@@ -136,6 +136,6 @@ class MedicalImage(Nomear):
                          bottom[0]:top[0], bottom[1]:top[1], bottom[2]:top[2]]
 
 
-# endregion: Private Mehtods
+# endregion: Private Methods
 
 
