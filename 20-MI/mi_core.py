@@ -34,7 +34,7 @@ import mi_du as du
 # -----------------------------------------------------------------------------
 th = Hub(as_global=True)
 th.config_dir()
-th.data_dir = os.path.join(ROOT, '10-MI/data')
+th.data_dir = os.path.join(ROOT, '20-MI/data')
 
 # -----------------------------------------------------------------------------
 # Device configuration
