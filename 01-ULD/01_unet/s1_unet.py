@@ -2,11 +2,13 @@ import sys
 sys.path.append('../')
 sys.path.append('../../')
 
+
+from uld.uld_config import ULDConfig
 from tframe.utils.script_helper import Helper
+
+Helper.register_flags(ULDConfig)
 s = Helper()
 
-from uld_core import th
-s.register_flags(type(th))
 # -----------------------------------------------------------------------------
 # Configure data set here
 # -----------------------------------------------------------------------------

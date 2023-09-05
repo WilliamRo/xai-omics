@@ -5,7 +5,7 @@ from xomics import MedicalImage
 
 data_dir = r'../../../data/01-ULD/'
 subjects = [1, 12]
-mode = "uld-test"
+mode = "uld-train"
 
 
 keys = ['Full',

@@ -132,7 +132,7 @@ if __name__ == '__main__':
   filePath = '../../data/01-ULD/'
   # img = load_numpy_data(filePath, 8, ['Full'])
   reader = NpyReader(filePath)
-  img = reader.load_data(2, ['Full', '1-2'], shape=[1, 608, 440, 440, 1])
+  img = reader.load_data(2, ['Full', '1-2'], shape=[1, 672, 440, 440, 1])
 
   print(img.shape)
   # keys = ['Full_dose',

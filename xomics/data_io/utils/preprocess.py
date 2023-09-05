@@ -47,18 +47,16 @@ def norm_size(data, shape):
   shape = tuple(shape)
   assert len(data_shape) == len(shape)
   num = len(shape)
-  if np.all(data_shape >= shape):
+  assert np.all(data_shape <= shape)
+  if np.any(data_shape < shape):
     for i in range(num):
       if data_shape[i] == shape[i]:
         continue
       else:
-        if data_shape[i] % 2 != 0:
-          data = np.delete(data, 0, axis=i)
-        cut = (data.shape[i] - shape[i]) // 2
-        data = np.delete(data, np.s_[0:cut], axis=i)
-        data = np.delete(data, np.s_[data.shape[i]-cut:data.shape[i]], axis=i)
-  else:
-    raise ValueError('The normalized shape is too large!')
+        zero_add = shape[i] - data_shape[i]
+        tmp = list(data.shape)
+        tmp[i] = zero_add
+        data = np.append(data, np.zeros(tmp), axis=i)
   return data
 
 

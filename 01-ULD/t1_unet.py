@@ -38,7 +38,7 @@ def main(_):
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
-  th.data_shape = [1, 608, 440, 440, 1]
+  th.data_shape = [1, 656, 440, 440, 1]
 
 
   # th.use_suv = False
@@ -77,7 +77,8 @@ def main(_):
   th.patience = 15
   th.probe_cycle = th.updates_per_round
 
-  th.batch_size = 4
+  th.batch_size = 1
+  # th.batchlet_size = 2
   th.val_batch_size = 1
 
   th.buffer_size = 18
@@ -113,7 +114,7 @@ def main(_):
     th.suffix += f'_tanh{th.use_tanh}'
   if th.max_clip != None:
     th.suffix += f'_clip(0,{th.use_clip})'
-  th.suffix += f'_lr{th.learning_rate}_loss({th.loss_string})'
+  th.suffix += f'_lr{th.learning_rate:3e}_loss({th.loss_string})_BS{th.batch_size}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()
