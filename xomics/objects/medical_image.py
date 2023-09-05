@@ -21,6 +21,7 @@ class MedicalImage(Nomear):
     self.images = images
     self.labels = labels
 
+    self._init_data()
     self._check_data()
 
   # region: Properties
@@ -52,12 +53,17 @@ class MedicalImage(Nomear):
 
 
   @classmethod
-  def load(self, path):
+  def load(cls, path):
     assert isinstance(path, str)
 
     with open(path, 'rb') as input:
       # console.show_status('Loading `{}` ...'.format(path))
-      return pickle.load(input)
+      loaded_data = pickle.load(input)
+
+    loaded_data._init_data()
+    loaded_data._check_data()
+
+    return loaded_data
 
 
   def get_bottom_top(self, center: list, crop_size: list):
@@ -88,12 +94,22 @@ class MedicalImage(Nomear):
 
   # region: Private Methods
 
+  def _init_data(self):
+    for key in self.images.keys():
+      self.images[key] = np.float32(self.images[key])
+
+    for key in self.labels.keys():
+      self.labels[key] = np.int8(self.labels[key])
+
+
   def _check_data(self):
     for image in self.images.values():
       assert self.representative.shape == image.shape
+      assert image.dtype == np.float32
 
     for label in self.labels.values():
       assert self.representative.shape == label.shape
+      assert label.dtype == np.int8
 
 
   def window(self, layer: str, bottom, top):
@@ -106,8 +122,8 @@ class MedicalImage(Nomear):
     for layer in layers:
       assert layer in self.images.keys()
       mean = np.mean(self.images[layer])
-      std = np.mean(self.images[layer])
-      self.images[layer] = (self.images[layer] - mean) / std
+      std = np.std(self.images[layer])
+      self.images[layer] = ((self.images[layer] - mean) / std)
 
 
   def crop(self, crop_size: list):
