@@ -132,8 +132,8 @@ class ULDSet(DataSet):
         "feature": self.dose,
         "target": "Full"
       }
-      self.features, self.targets = self.reader.load_data(subjects,
-                                                          doses, **kwargs)
+      self.features, self.targets = self.reader.load_data(subjects, doses,
+                                                          concat=False, **kwargs)
     elif th.train_self:
       self.features = self.reader.load_data(subjects, self.dose, **kwargs)
       self.targets = self.reader.data

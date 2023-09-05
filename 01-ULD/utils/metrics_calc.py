@@ -32,6 +32,13 @@ def calc_metric(arr1, arr2, metric='mse', data_range=1.0):
 
 
 def get_metrics(arr1, arr2, metrics: list, data_range=1.0):
+  """
+  :param arr1: truth
+  :param arr2: predict
+  :param metrics:
+  :param data_range:
+  :return:
+  """
   result = {}
   for metric in metrics:
     result[metric] = calc_metric(arr1, arr2, metric, data_range)

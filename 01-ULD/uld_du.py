@@ -1,6 +1,6 @@
 from uld.uld_agent import ULDAgent, ULDSet
 from roma import console
-
+from xomics.data_io.uld_reader import UldReader
 
 
 def load_data():
@@ -19,10 +19,11 @@ def load_data():
   for ds in datasets:
     assert isinstance(ds, ULDSet)
     if ds.name != 'Train-Set':
-      ds.fetch_data(ds)
-      console.supplement(f'{ds.name}: {ds.features.shape})', level=2)
+      if th.train or ds.name != 'Val-Set':
+        ds.fetch_data(ds)
+        console.supplement(f'{ds.name}: {ds.features.shape}', level=2)
     else:
-      console.supplement(f'{ds.name}: Buffer Size: {ds.buffer_size} \
-                         Num: {len(ds.subjects)}', level=2)
+      console.supplement(f'{ds.name}: Buffer Size: {ds.buffer_size}', level=2)
+      console.supplement(f'Real Size: {len(ds.subjects)}', level=2)
 
   return datasets

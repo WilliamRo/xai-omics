@@ -1,5 +1,4 @@
 from typing import Union
-from tframe import console
 from xomics.data_io.npy_reader import NpyReader
 from xomics.data_io.utils.preprocess import calc_SUV, get_color_data
 
@@ -10,7 +9,7 @@ import numpy as np
 
 class UldReader(NpyReader):
 
-  def __init__(self, datadir: str):
+  def __init__(self, datadir: str = None):
     super().__init__(datadir)
     self.tags = None
     self.conditions_dict[(list, dict)] = self.load_data_pair
@@ -36,7 +35,7 @@ class UldReader(NpyReader):
     return self._load_data(subjects, doses, **kwargs)
 
   def load_tags(self):
-    tmp = self.current_filepath
+    tmp = self._current_filepath
     tagpath = os.path.join(tmp[0], f'tags_{tmp[1][:-3]}txt')
     tags = {}
     with open(tagpath, 'r') as f:
@@ -62,7 +61,9 @@ class UldReader(NpyReader):
       features.append(feature)
       targets.append(target)
 
-    return np.concatenate(features), np.concatenate(targets)
+    self.raw_data = features, targets
+    self.data = np.concatenate(features), np.concatenate(targets)
+    return self.data
 
 
 

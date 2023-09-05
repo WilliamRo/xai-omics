@@ -3,6 +3,7 @@ from typing import Union
 
 from xomics import MedicalImage
 from xomics.data_io.utils.preprocess import norm_size, normalize
+from xomics.data_io.utils.raw_rw import rd_file
 
 import os
 import numpy as np
@@ -12,20 +13,23 @@ import numpy as np
 
 class NpyReader:
 
-  def __init__(self, datadir: str):
+  def __init__(self, datadir: str = None):
     self.SUBJECT_NAME = 'subject'
     self.datadir = datadir
-    self.current_filepath = None
+    self._current_filepath = None
     self.data = None
     self._data = None
+    self.raw_data = None
     self.conditions_dict = {
       (int, list): self.load_data_by_subject,
       (list, str): self.load_data_by_dose,
       (int, str): self.load_one_data,
     }
 
-  def _load_data(self, subjects, doses, **kwargs):
-    self.data = self.load_numpy_data(subjects, doses, **kwargs)
+  def _load_data(self, subjects, doses, concat=True, **kwargs):
+    self.load_numpy_data(subjects, doses, **kwargs)
+    if concat:
+      self.data = np.concatenate(self.raw_data)
     return self.data
 
   def _npy_load(self, **kwargs):
@@ -33,6 +37,20 @@ class NpyReader:
 
   def _pre_process(self, **kwargs):
     pass
+
+  @classmethod
+  def load_as_npy_data(cls, dirpath, file_list: list,
+                       name_mask: (str, str), **kwargs):
+    reader = cls()
+    arr = []
+    for file in file_list:
+      filename = name_mask[0] + str(file) + name_mask[1]
+      filepath = os.path.join(dirpath, filename)
+      data = rd_file(filepath)
+      reader._data = data
+      arr.append(reader.pre_process(**kwargs))
+    reader.raw_data = arr
+    return reader
 
   def load_numpy_data(self, subjects, doses, **kwargs):
     if type(subjects) is str:
@@ -56,7 +74,8 @@ class NpyReader:
                               f'{self.SUBJECT_NAME}{subject}_{dose}.npy')
       self.npy_load(filepath, **kwargs)
       arr.append(self._data)
-    return np.concatenate(arr)
+    self.raw_data = arr
+    return arr
 
   def load_data_by_subject(self, subject: int, doses: list[str], **kwargs):
     arr = []
@@ -65,7 +84,8 @@ class NpyReader:
                               f'{self.SUBJECT_NAME}{subject}_{dose}.npy')
       self.npy_load(filepath, **kwargs)
       arr.append(self._data)
-    return np.concatenate(arr)
+    self.raw_data = arr
+    return arr
 
   def load_data(self, subjects: Union[int, str, list],
                 doses: Union[str, list],
@@ -88,7 +108,7 @@ class NpyReader:
     return mis
 
   def npy_load(self, filepath, **kwargs):
-    self.current_filepath = filepath
+    self._current_filepath = filepath
     self._data = np.load(filepath)
     console.supplement(f'Loaded `{os.path.split(filepath)[-1]}`', level=2)
     return self._npy_load(**kwargs)
@@ -104,6 +124,7 @@ class NpyReader:
     self._pre_process(**kwargs)
     if not raw:
       self._data = normalize(self._data, norm, ret_norm=ret_norm)
+    return self._data
 
 
 
@@ -111,7 +132,7 @@ if __name__ == '__main__':
   filePath = '../../data/01-ULD/'
   # img = load_numpy_data(filePath, 8, ['Full'])
   reader = NpyReader(filePath)
-  img = reader.load_data(2, ['Full', '1-2'], shape=[1, 608, 440, 440, 1])
+  img = reader.load_data(2, ['Full', '1-2'], shape=[1, 672, 440, 440, 1])
 
   print(img.shape)
   # keys = ['Full_dose',

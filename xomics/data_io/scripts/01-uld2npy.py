@@ -32,6 +32,10 @@ def gen_uld_npy(path, n_path):
         num += 1
 
 
+def test_uld2npy():
+  pass
+
+
 
 
 if __name__ == '__main__':
@@ -44,6 +48,6 @@ if __name__ == '__main__':
     '1-50 dose',
     '1-100 dose',
   ]
-  path = "../../data/01-ULD-RAW/"
+  path = "../../data/01-ULD-RAW/testdata"
   n_path = "../../data/01-ULD/"
   # gen_uld_npy(path, n_path)

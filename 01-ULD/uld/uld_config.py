@@ -9,6 +9,7 @@ class ULDConfig(SmartTrainerHub):
 
   window_size = Flag.integer(128, 'Window size during training', is_key=None)
   eval_window_size = Flag.integer(128, 'Window size for validation', is_key=None)
+  dose = Flag.string("1-2", 'the dtf of the train set', is_key=None)
 
   learn_delta = Flag.boolean(False, 'Whether to add shortcut at the end',
                              is_key=None)
@@ -32,6 +33,7 @@ class ULDConfig(SmartTrainerHub):
   data_shape = Flag.list(None, "the dataset shape for model")
   rand_batch = Flag.boolean(True, "whether generate batch with true random",
                             is_key=None)
+  opt_str = Flag.string('adam', "the string of optimizer", is_key=None)
 
   @property
   def data_arg(self) -> Arguments:

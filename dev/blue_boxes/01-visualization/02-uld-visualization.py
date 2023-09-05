@@ -33,7 +33,7 @@ if mode == 'uld-pair':
     mis.append(mi)
 
 if mode == 'uld-test':
-  imgs = rd_uld_test(data_dir + "testset", 3)
+  imgs = rd_uld_test(data_dir + "testset", subjects)
   for i in range(len(imgs)):
     mi = MedicalImage(f"test-{i}", {'low-test': imgs[i]})
     mis.append(mi)
