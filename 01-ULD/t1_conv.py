@@ -16,20 +16,13 @@ id = 2
 def model():
   mu = m.mu
   th = core.th
-  c = 4
 
   model = m.get_initial_model()
-  model.add(mu.HyperConv3D(filters=8, kernel_size=th.kernel_size,
-                           activation=th.activation))
-  # x = model.layers[0]
-  #
-  # for i in range(50):
-  #   model.add(mu.HyperConv3D(filters=4, kernel_size=1, activation=th.activation))
-  #   model.add(mu.HyperConv3D(c, th.kernel_size, activation=th.activation))
-  #   model.add(mu.HyperConv3D(filters=1, kernel_size=1))
-  #
-  #   model.add(mu.ShortCut(x, mode=mu.ShortCut.Mode.SUM))
-  #   x = model.add(mu.Activation(th.activation), output_name=f"block{i}")
+
+  for str_c in th.archi_string.split('-'):
+    c = int(str_c)
+    model.add(mu.HyperConv3D(c, th.kernel_size, activation=th.activation))
+
   return m.finalize(model)
 
 
@@ -37,11 +30,11 @@ def main(_):
   console.start('{} on Ultra Low Dose task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 1
+  th.rehearse = 0
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.data_config = r'delta dataset=01-ULD dose=1-4'
+  th.data_config = r'explore dataset=01-ULD dose=1-20'
 
   th.val_size = 30
   th.test_size = 1
@@ -50,12 +43,8 @@ def main(_):
   th.slice_size = 128
   # th.eval_window_size = 128
 
-  th.slice_num = 608
-  th.use_tanh = 0
-  th.use_color = False
-  th.use_suv = False
-  th.norm_by_feature = False
-  th.train_self = not th.norm_by_feature
+  th.data_shape = [1, 608, 440, 440, 1]
+  th.norm_by_feature = True
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
@@ -63,7 +52,8 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = '_self'
+  th.suffix = ''
+  th.suffix += f'_{th.data_kwargs["dose"]}_w{th.window_size}_s{th.slice_size}'
 
   th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------
@@ -71,11 +61,11 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '4'
+  th.archi_string = '8-8'
   th.kernel_size = 5
   th.activation = 'lrelu'
 
-  th.learn_delta = 1
+  th.learn_delta = 0
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -90,8 +80,8 @@ def main(_):
   th.buffer_size = 18
 
   th.loss_string = 'rmse'
-  th.optimizer = 'adam'
-  # th.optimizer = 'sgd'
+  th.opt_str = 'adam'
+  th.optimizer = th.opt_str
   th.learning_rate = 0.0003
   th.val_decimals = 7
 

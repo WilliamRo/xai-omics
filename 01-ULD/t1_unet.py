@@ -29,7 +29,8 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.data_config = r'epsilon dataset=01-ULD dose=1-4'
+  th.dose = '1-4'
+  th.data_config = fr'epsilon dataset=01-ULD dose={th.dose}'
 
   th.val_size = 30
   th.test_size = 1
@@ -82,12 +83,14 @@ def main(_):
   th.buffer_size = 18
 
   th.loss_string = 'rmse'
-  th.developer_code = 'adam'
+  th.opt_str = 'adam'
 
-  th.optimizer = th.developer_code
-  # th.optimizer = 'sgd'
+  th.optimizer = th.opt_str
   th.learning_rate = 0.0003
   th.val_decimals = 7
+
+  th.clip_threshold = 5
+  th.clip_method = 'value'
 
   th.train = True
   th.overwrite = True
@@ -110,6 +113,7 @@ def main(_):
     th.suffix += f'_tanh{th.use_tanh}'
   if th.max_clip != None:
     th.suffix += f'_clip(0,{th.use_clip})'
+  th.suffix += f'_lr{th.learning_rate}_loss({th.loss_string})'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()

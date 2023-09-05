@@ -1,22 +1,25 @@
-from xomics.data_io.utils.raw_rw import npy_save, wr_tags, rd_file, rd_series, \
-  get_tags
+from xomics.data_io.utils.raw_rw import rd_file, rd_series, get_tags
 
 import os
 import numpy as np
 
 
-def rd_uld_test(dirpath, datanum=1):
+def rd_uld_test(dirpath, name_list):
   """
   read uld test raw data
+  :param name_list: number id of data
   :param dirpath:
-  :param datanum: how many data to read
   :return: data
   """
-  files = os.listdir(dirpath)[:datanum]
+  file_list = os.listdir(dirpath)
+  file_list.remove('seg')
+  files = file_list
   arr = []
   for file in files:
-    filepath = os.path.join(dirpath, file)
-    arr.append(rd_file(filepath))
+    tmp = int(file.split('_')[-1].split('.')[0])
+    if tmp in name_list:
+      filepath = os.path.join(dirpath, file)
+      arr.append(rd_file(filepath))
   results = np.stack(arr)
   return results
 
