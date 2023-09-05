@@ -57,8 +57,8 @@ def main(_):
   th.patience = 10
 
   th.batch_size = 4
-  th.val_batch_size = 4
-  th.eval_batch_size = 4
+  th.val_batch_size = 2
+  th.eval_batch_size = 2
 
   th.optimizer = 'adam'
   # th.optimizer = 'sgd'
