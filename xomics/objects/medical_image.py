@@ -21,6 +21,7 @@ class MedicalImage(Nomear):
     self.images = images
     self.labels = labels
 
+    self._init_data()
     self._check_data()
 
   # region: Properties
@@ -42,7 +43,7 @@ class MedicalImage(Nomear):
 
   # endregion: Properties
 
-  # region: Public Mehtods
+  # region: Public Methods
 
   def save(self, filepath):
     if filepath.split('.')[-1] != self.EXTENSION:
@@ -52,12 +53,17 @@ class MedicalImage(Nomear):
 
 
   @classmethod
-  def load(self, path):
+  def load(cls, path):
     assert isinstance(path, str)
 
     with open(path, 'rb') as input:
       # console.show_status('Loading `{}` ...'.format(path))
-      return pickle.load(input)
+      loaded_data = pickle.load(input)
+
+    loaded_data._init_data()
+    loaded_data._check_data()
+
+    return loaded_data
 
 
   def get_bottom_top(self, center: list, crop_size: list):
@@ -84,16 +90,26 @@ class MedicalImage(Nomear):
     return [bottom_z, bottom_x, bottom_y], [top_z, top_x, top_y]
 
 
-  # endregion: Public Mehtods
+  # endregion: Public Methods
 
-  # region: Private Mehtods
+  # region: Private Methods
+
+  def _init_data(self):
+    for key in self.images.keys():
+      self.images[key] = np.float32(self.images[key])
+
+    for key in self.labels.keys():
+      self.labels[key] = np.int8(self.labels[key])
+
 
   def _check_data(self):
     for image in self.images.values():
       assert self.representative.shape == image.shape
+      assert image.dtype == np.float32
 
     for label in self.labels.values():
       assert self.representative.shape == label.shape
+      assert label.dtype == np.int8
 
 
   def window(self, layer: str, bottom, top):
@@ -106,8 +122,8 @@ class MedicalImage(Nomear):
     for layer in layers:
       assert layer in self.images.keys()
       mean = np.mean(self.images[layer])
-      std = np.mean(self.images[layer])
-      self.images[layer] = (self.images[layer] - mean) / std
+      std = np.std(self.images[layer])
+      self.images[layer] = ((self.images[layer] - mean) / std)
 
 
   def crop(self, crop_size: list):
@@ -136,6 +152,6 @@ class MedicalImage(Nomear):
                          bottom[0]:top[0], bottom[1]:top[1], bottom[2]:top[2]]
 
 
-# endregion: Private Mehtods
+# endregion: Private Methods
 
 
