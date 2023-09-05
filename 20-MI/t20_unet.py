@@ -46,8 +46,9 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '2-3-2-2-lrelu'
-  # th.archi_string = '16-5-2-3-relu-mp'
+  # th.archi_string = '2-3-2-2-lrelu'
+  th.archi_string = '8-5-2-3-relu-mp'
+  # th.archi_string = '8-3-2-3-relu-mp'
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -56,7 +57,10 @@ def main(_):
   th.probe_cycle = th.updates_per_round // 2
   th.patience = 10
 
-  th.batch_size = 4
+  th.batch_size = 8
+  th.batchlet_size = 4
+  # th.gradlet_in_device = 1
+
   th.val_batch_size = 2
   th.eval_batch_size = 2
 

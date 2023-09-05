@@ -61,7 +61,7 @@ class MISet(DataSet):
           targets.append(np.expand_dims(mi.labels['label-0'], axis=-1))
 
         name = 'batch_train_' + str(i)
-        data_batch = MISet(
+        data_batch = DataSet(
           features=np.array(features), targets=np.array(targets), name=name)
         yield data_batch
     else:
@@ -89,7 +89,7 @@ class MISet(DataSet):
           targets.append(np.expand_dims(mi.labels['label-0'], axis=-1))
 
         name = 'batch_val'
-        data_batch = MISet(
+        data_batch = DataSet(
           features=np.array(features), targets=np.array(targets), name=name)
         yield data_batch
 

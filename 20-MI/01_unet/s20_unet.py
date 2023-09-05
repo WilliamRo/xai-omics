@@ -31,11 +31,14 @@ s.register('epoch', 2000)
 s.register('patience', 10)
 
 s.register('lr', 0.01, 0.001, 0.0001)
-s.register('batch_size', 4, 8)
-s.register('archi_string', '2-3-1-2-lrelu', '2-3-2-2-lrelu')
+s.register('batch_size', 4, 16)
+s.register('archi_string',
+           '8-3-2-3-relu-mp', '8-5-2-3-relu-mp', '4-3-2-2-lrelu')
 s.register('random_flip', s.true_and_false)
 s.register('random_rotation', s.true_and_false)
 s.register('random_noise', s.true_and_false)
 
-s.configure_engine(times=5)
+# s.configure_engine(times=5)
+s.configure_engine(strategy='skopt', criterion='Best dice_accuracy',
+                   greater_is_better=True)
 s.run(rehearsal=False)
