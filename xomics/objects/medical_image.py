@@ -1,7 +1,5 @@
 from collections import OrderedDict
 from roma import Nomear
-from tframe import local
-from tframe import console
 
 import numpy as np
 import pickle
