@@ -113,7 +113,7 @@ def get_segmentation_data(input_data: np.ndarray, type=None):
 
 
 def mi_add_gaussian_noise(mi: MedicalImage, mean=0, std=1):
-  noise = np.random.normal(mean, std, mi.size)
+  noise = np.random.normal(mean, std, mi.shape)
   for key in mi.images.keys():
     image = mi.images[key]
     mi.images[key] = image + noise
