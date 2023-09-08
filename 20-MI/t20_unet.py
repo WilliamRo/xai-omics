@@ -57,7 +57,7 @@ def main(_):
   th.probe_cycle = th.updates_per_round // 2
   th.patience = 10
 
-  th.batch_size = 8
+  th.batch_size = 4
   th.batchlet_size = 4
   # th.gradlet_in_device = 1
 
@@ -70,7 +70,6 @@ def main(_):
 
   th.train = True
   th.overwrite = True
-
 
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate

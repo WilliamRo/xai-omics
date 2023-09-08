@@ -5,6 +5,7 @@ from tframe import console
 
 import numpy as np
 import pickle
+import random
 
 
 
@@ -35,7 +36,7 @@ class MedicalImage(Nomear):
     return self.representative.shape[0]
 
   @property
-  def size(self):
+  def shape(self):
     return self.representative.shape
 
   @property
@@ -66,28 +67,23 @@ class MedicalImage(Nomear):
     return loaded_data
 
 
-  def get_bottom_top(self, center: list, crop_size: list):
-    bottom_z = center[0] - crop_size[0] // 2
-    bottom_x = center[1] - crop_size[1] // 2
-    bottom_y = center[2] - crop_size[2] // 2
+  def get_bottom_top(self, max_indices, min_indices,
+                     raw_shape, new_shape, random_crop):
 
-    bottom_z = 0 if bottom_z < 0 else bottom_z
-    bottom_x = 0 if bottom_x < 0 else bottom_x
-    bottom_y = 0 if bottom_y < 0 else bottom_y
+    center = [(maxi + mini) // 2
+              for maxi, mini in zip(max_indices, min_indices)]
 
-    top_z = bottom_z + crop_size[0]
-    top_x = bottom_x + crop_size[1]
-    top_y = bottom_y + crop_size[2]
+    if random_crop:
+      bottom = [random.randint(max(0, maxi - n), min(mini, r - n))
+                for maxi, mini, r, n in
+                zip(max_indices, min_indices, raw_shape, new_shape)]
+      top = [b + n for b, n in zip(bottom, new_shape)]
+    else:
+      bottom = [max(0, c - n // 2) for c, n in zip(center, new_shape)]
+      top = [min(b + n, r) for b, n, r in zip(bottom, new_shape, raw_shape)]
+      bottom = [t - n for t, n in zip(top, new_shape)]
 
-    top_z = self.size[0] if top_z > self.size[0] else top_z
-    top_x = self.size[1] if top_x > self.size[1] else top_x
-    top_y = self.size[2] if top_y > self.size[2] else top_y
-
-    bottom_z = top_z - crop_size[0]
-    bottom_x = top_x - crop_size[1]
-    bottom_y = top_y - crop_size[2]
-
-    return [bottom_z, bottom_x, bottom_y], [top_z, top_x, top_y]
+    return bottom, top
 
 
   # endregion: Public Methods
@@ -126,21 +122,25 @@ class MedicalImage(Nomear):
       self.images[layer] = ((self.images[layer] - mean) / std)
 
 
-  def crop(self, crop_size: list):
+  def crop(self, crop_size: list, random_crop: bool):
     '''
 
     '''
     assert len(crop_size) == 3
 
     # Find the coordinates of the region with value 1
-    indice = np.argwhere(self.labels['label-0'] == 1)
-    max, min = np.max(indice, axis=0), np.min(indice, axis=0)
+    indices = np.argwhere(self.labels['label-0'] == 1)
+    max_indices = np.max(indices, axis=0)
+    min_indices = np.min(indices, axis=0)
 
-    # Calculate the center coordinates of the region
-    center = [(max[i] + min[i]) // 2 for i in range(len(max))]
+    delta_indices = [
+      maxi - mini for maxi, mini in zip(max_indices, min_indices)]
+
+    assert all(d <= c for d, c in zip(delta_indices, crop_size))
 
     # Calculate the bottom and the top
-    bottom, top = self.get_bottom_top(center, crop_size)
+    bottom, top = self.get_bottom_top(
+      max_indices, min_indices, self.shape, crop_size, random_crop)
 
     # Crop
     for key in self.images.keys():

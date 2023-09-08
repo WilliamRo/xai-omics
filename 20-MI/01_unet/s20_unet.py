@@ -40,5 +40,5 @@ s.register('random_noise', s.true_and_false)
 
 # s.configure_engine(times=5)
 s.configure_engine(strategy='skopt', criterion='Best dice_accuracy',
-                   greater_is_better=True)
+                   greater_is_better=True, add_script_suffix=True)
 s.run(rehearsal=False)

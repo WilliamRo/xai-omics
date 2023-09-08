@@ -1,4 +1,3 @@
-import Script.script_get_data_from_nii
 from xomics.gui.dr_gordon import DrGordon
 from xomics import MedicalImage
 from tqdm import tqdm

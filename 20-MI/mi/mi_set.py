@@ -9,7 +9,7 @@ from tqdm import tqdm
 from xomics import MedicalImage
 from xomics.gui.dr_gordon import DrGordon
 from xomics.objects import MedicalImage
-
+from copy import copy
 
 
 class MISet(DataSet):
@@ -23,7 +23,13 @@ class MISet(DataSet):
     data_num = 10
     # if is_training and callable(self.data_fetcher):
     #   self.data_fetcher(self)
-    mi_list = self.fetch_data(data_num=data_num, is_training=is_training)
+    mi_list = self.fetch_data(data_num=data_num)
+
+    # preprocessing
+    for mi in mi_list:
+      mi.window('ct', th.window[0], th.window[1])
+      mi.normalization(['ct', 'pet'])
+      mi.crop(th.crop_size, random_crop=False)
 
     round_len = self.get_round_length(batch_size, training=is_training)
 
@@ -32,12 +38,7 @@ class MISet(DataSet):
         features, targets = [], []
         for j in range(batch_size):
           num = random.randint(0, data_num - 1)
-          mi = mi_list[num]
-
-          # Preprocessing
-          mi.window('ct', th.window[0], th.window[1])
-          mi.normalization(['ct', 'pet'])
-          mi.crop(th.crop_size)
+          mi = copy(mi_list[num])
 
           # Data Augmentation
           if th.random_flip:
@@ -65,7 +66,6 @@ class MISet(DataSet):
           features=np.array(features), targets=np.array(targets), name=name)
         yield data_batch
     else:
-      # number = list(range(self.size))
       number = list(range(len(mi_list)))
       number_list = [number[i:i+th.val_batch_size]
                      for i in range(0, len(number), th.val_batch_size)]
@@ -73,13 +73,7 @@ class MISet(DataSet):
       for num in number_list:
         features, targets = [], []
         for i in num:
-          # mi: MedicalImage = MedicalImage.load(mi_file_list[i])
-          mi = mi_list[i]
-
-          # Preprocessing
-          mi.window('ct', th.window[0], th.window[1])
-          mi.normalization(['ct', 'pet'])
-          mi.crop(th.crop_size)
+          mi = copy(mi_list[i])
 
           if th.use_pet:
             features.append(
@@ -96,19 +90,16 @@ class MISet(DataSet):
     if is_training: self._clear_dynamic_round_len()
 
 
-  def fetch_data(self, data_num, is_training: bool):
+  def fetch_data(self, data_num):
     mi_list = []
     mi_file_list = self.data_dict['mi_file_list'].tolist()
-    if is_training or 'Train' in self.name or 'train' in self.name:
-      for file in random.sample(mi_file_list, data_num):
-        console.show_status(
-          'Loading `{}` ... from {}'.format(file, self.name))
-        mi_list.append(MedicalImage.load(file))
-    else:
-      for file in mi_file_list:
-        console.show_status(
-          'Loading `{}` ... from {}'.format(file, self.name))
-        mi_list.append(MedicalImage.load(file))
+
+    data_num = min(data_num, self.size)
+
+    for file in random.sample(mi_file_list, data_num):
+      console.show_status(
+        'Loading `{}` ... from {}'.format(file, self.name))
+      mi_list.append(MedicalImage.load(file))
 
     return mi_list
 
@@ -168,7 +159,7 @@ class MISet(DataSet):
       # Preprocessing
       mi.window('ct', th.window[0], th.window[1])
       mi.normalization(['ct', 'pet'])
-      mi.crop(th.crop_size)
+      mi.crop(th.crop_size, random_crop=False)
 
       mi.labels['prediction'] = np.squeeze(results[i])
       mi_list.append(mi)
