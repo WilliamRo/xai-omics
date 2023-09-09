@@ -20,6 +20,8 @@ class MIConfig(SmartTrainerHub):
   random_noise = Flag.boolean(
     False, 'whether to add noise to image', is_key=None)
 
+  if_predict = Flag.boolean(False, '', is_key=None)
+
 
 
 # New hub class inherited from SmartTrainerHub must be registered

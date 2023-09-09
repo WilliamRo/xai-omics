@@ -134,6 +134,8 @@ class SliceView(Plotter):
     im = ax.imshow(image, cmap=self.get('cmap'), vmin=self.get('vmin'),
                    vmax=self.get('vmax'))
 
+    ax.set_title(f'{self.selected_medical_image.key}')
+
     # Show annotations
     for i, anno_key in enumerate(self.annotations_to_show):
       mask = mi.labels[anno_key][x]

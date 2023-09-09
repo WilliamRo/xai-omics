@@ -1,6 +1,9 @@
 from collections import OrderedDict
-from roma import Nomear
+from roma import Nomear, console
 
+import os
+import nibabel as nib
+import SimpleITK as sltk
 import numpy as np
 import pickle
 import random
@@ -49,6 +52,33 @@ class MedicalImage(Nomear):
       filepath += '.{}'.format(self.EXTENSION)
     with open(filepath, 'wb') as output:
       pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
+
+
+  def save_as_nii(self, dir_path):
+    dir_path = os.path.join(dir_path, self.key)
+    if not os.path.exists(dir_path): os.mkdir(dir_path)
+
+    # for key in self.images.keys():
+    #   nifti_image = nib.Nifti1Image(self.images[key], affine=np.eye(4))
+    #   file_path = os.path.join(dir_path, key + '.nii')
+    #   nib.save(nifti_image, file_path)
+    #   console.show_status(f'Saveing {file_path}')
+    #
+    # for key in self.labels.keys():
+    #   nifti_label = nib.Nifti1Image(self.labels[key], affine=np.eye(4))
+    #   file_path = os.path.join(dir_path, key + '.nii')
+    #   nib.save(nifti_label, file_path)
+    #   console.show_status(f'Saveing {file_path}')
+
+    for key in self.images.keys():
+      file_path = os.path.join(dir_path, key + '.nii')
+      sltk.WriteImage(sltk.GetImageFromArray(self.images[key]), file_path)
+      console.show_status(f'Saveing {file_path}')
+
+    for key in self.labels.keys():
+      file_path = os.path.join(dir_path, key + '.nii')
+      sltk.WriteImage(sltk.GetImageFromArray(self.labels[key]), file_path)
+      console.show_status(f'Saveing {file_path}')
 
 
   @classmethod

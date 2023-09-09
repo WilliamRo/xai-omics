@@ -20,9 +20,7 @@ class MISet(DataSet):
 
   def gen_batches(self, batch_size, shuffle=False, is_training=False):
     from mi_core import th
-    data_num = 10
-    # if is_training and callable(self.data_fetcher):
-    #   self.data_fetcher(self)
+    data_num = 10 if not th.if_predict else self.size
     mi_list = self.fetch_data(data_num=data_num)
 
     # preprocessing
@@ -96,9 +94,12 @@ class MISet(DataSet):
 
     data_num = min(data_num, self.size)
 
-    for file in random.sample(mi_file_list, data_num):
+    file_list = (mi_file_list if data_num == self.size
+                 else random.sample(mi_file_list, data_num))
+
+    for file in file_list:
       console.show_status(
-        'Loading `{}` ... from {}'.format(file, self.name))
+        'Loading `{}` from {}'.format(file, self.name))
       mi_list.append(MedicalImage.load(file))
 
     return mi_list
@@ -144,6 +145,8 @@ class MISet(DataSet):
 
   def test_model(self, model):
     from mi_core import th
+
+    th.if_predict = True
     results = model.predict(self)
     results[results <= 0.5] = 0
     results[results > 0.5] = 1
@@ -153,6 +156,7 @@ class MISet(DataSet):
     assert len(mi_file_list) == results.shape[0]
 
     mi_list = []
+    dir_path = r'E:\xai-omics\data\02-PET-CT-Y1\results'
     for i, file in enumerate(mi_file_list):
       mi: MedicalImage = MedicalImage.load(file)
 
@@ -162,11 +166,27 @@ class MISet(DataSet):
       mi.crop(th.crop_size, random_crop=False)
 
       mi.labels['prediction'] = np.squeeze(results[i])
+
+      acc = self.dice_accuarcy(mi.labels['label-0'], mi.labels['prediction'])
+      print('Patient ID:', mi.key, '--------', 'Dice Accuracy:', acc)
+
+      mi.save_as_nii(dir_path)
       mi_list.append(mi)
 
     self.visulization(mi_list)
 
     print()
+
+
+  def dice_accuarcy(self, ground_truth, prediction):
+    assert ground_truth.shape == prediction.shape
+    smooth = 1.0
+
+    intersection = np.sum(ground_truth * prediction)
+    acc = ((2.0 * intersection + smooth) /
+           (np.sum(ground_truth) + np.sum(prediction) + smooth))
+
+    return acc
 
 
 
