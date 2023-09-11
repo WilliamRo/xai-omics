@@ -1,5 +1,5 @@
-import mi_core as core
-import mi_mu as m
+import mic_core as core
+import mic_mu as m
 
 from tframe import console
 from tframe import tf
@@ -11,20 +11,25 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'unet'
-id = 1
+model_name = 'fcn'
+id = 2
 def model():
   th = core.th
+  model_type, model_num = th.archi_string.split('-')
 
-  # return m.get_cnn()
-  return m.get_unet(th.archi_string)
+  if model_type == 'fcn' and model_num == '3':
+    return m.get_fcn_3d_03()
+  elif model_type == 'fcn' and model_num == '4':
+    return m.get_fcn_3d_04()
+  else:
+    assert TypeError('No model!!!')
 
 
 def main(_):
-  console.start('{} on 3D Medical Image Segmentation'.format(model_name.upper()))
+  console.start('{} on Medical Image Classification task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = False
+  th.rehearse = 0
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -32,6 +37,10 @@ def main(_):
   th.random_flip = 1
   th.random_rotation = 1
   th.random_noise = 1
+  th.random_translation = 1
+
+  th.cross_validation = False
+  th.num_fold = 5
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
@@ -46,9 +55,8 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  # th.archi_string = '2-3-2-2-lrelu'
-  th.archi_string = '8-5-2-3-relu-mp'
-  # th.archi_string = '8-3-2-3-relu-mp'
+  th.archi_string = 'fcn-4'
+
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -57,19 +65,16 @@ def main(_):
   th.probe_cycle = th.updates_per_round // 2
   th.patience = 10
 
-  th.batch_size = 4
-  th.batchlet_size = 4
-  # th.gradlet_in_device = 1
-
-  th.val_batch_size = 2
-  th.eval_batch_size = 2
+  th.batch_size = 128
+  th.val_batch_size = 16
+  th.batchlet_size = 32
 
   th.optimizer = 'adam'
-  # th.optimizer = 'sgd'
-  th.learning_rate = 0.003
+  th.learning_rate = 0.005
 
   th.train = True
   th.overwrite = True
+
 
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate

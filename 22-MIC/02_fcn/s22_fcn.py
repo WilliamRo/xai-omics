@@ -7,7 +7,7 @@ for _ in range(3):
 from tframe.utils.script_helper import Helper
 s = Helper()
 
-from mi_core import th
+from mic_core import th
 s.register_flags(type(th))
 # -----------------------------------------------------------------------------
 # Configure datas set here
@@ -30,15 +30,16 @@ s.register('train', True)
 s.register('epoch', 2000)
 s.register('patience', 10)
 
-s.register('lr', 0.01, 0.001, 0.0001)
-s.register('batch_size', 4, 16)
-s.register('archi_string',
-           '8-3-2-3-relu-mp', '8-5-2-3-relu-mp', '4-3-2-2-lrelu')
+s.register('lr', 0.0001, 0.001, 0.01)
+s.register('batch_size', 32, 128, 256)
+s.register('archi_string', 'fcn-3', 'fcn-4')
+
+s.register('random_translation', s.true_and_false)
 s.register('random_flip', s.true_and_false)
 s.register('random_rotation', s.true_and_false)
 s.register('random_noise', s.true_and_false)
 
-# s.configure_engine(times=5)
-s.configure_engine(strategy='skopt', criterion='Best dice_accuracy',
+# s.configure_engine(times=2)
+s.configure_engine(strategy='skopt', criterion='Test Accuracy',
                    greater_is_better=True, add_script_suffix=True)
 s.run(rehearsal=False)
