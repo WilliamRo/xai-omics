@@ -11,15 +11,22 @@ def dicom_time(t):
   return h_t * 3600 + m_t * 60 + s_t
 
 
-def calc_SUV(data, tags, norm=False):
-  decay_time = dicom_time(tags['ST']) - dicom_time(tags['RST'])
-  decay_dose = float(tags['RTD']) * pow(2, -float(decay_time) / float(tags['RHL']))
-  SUVbwScaleFactor = (1000 * float(tags['PW'])) / decay_dose
+def calc_SUV(data, tags=None, norm=False, **kwargs):
+  if tags is not None:
+    decay_time = dicom_time(tags['ST']) - dicom_time(tags['RST'])
+    decay_dose = float(tags['RTD']) * pow(2, -float(decay_time) / float(tags['RHL']))
+    SUVbwScaleFactor = (1000 * float(tags['PW'])) / decay_dose
+  else:
+    SUVbwScaleFactor = get_suv_factor(**kwargs)
   if norm:
     PET_SUV = (data * float(tags['RS']) + float(tags['RI'])) * SUVbwScaleFactor
   else:
     PET_SUV = data * SUVbwScaleFactor
   return PET_SUV
+
+
+def get_suv_factor(decay_dose: float, weight):
+  return 1000 * weight / decay_dose
 
 
 def normalize(arr, norm=None, ret_norm=False):
@@ -47,16 +54,21 @@ def norm_size(data, shape):
   shape = tuple(shape)
   assert len(data_shape) == len(shape)
   num = len(shape)
-  assert np.all(data_shape <= shape)
-  if np.any(data_shape < shape):
-    for i in range(num):
-      if data_shape[i] == shape[i]:
-        continue
-      else:
-        zero_add = shape[i] - data_shape[i]
-        tmp = list(data.shape)
-        tmp[i] = zero_add
-        data = np.append(data, np.zeros(tmp), axis=i)
+  for i in range(num):
+    if data_shape[i] == shape[i]:
+      continue
+    elif data_shape[i] < shape[i]:
+      zero_add = shape[i] - data_shape[i]
+      tmp = list(data.shape)
+      tmp[i] = zero_add
+      data = np.append(data, np.zeros(tmp), axis=i)
+    elif data_shape[i] > shape[i]:
+      if data_shape[i] % 2 != 0:
+        data = np.delete(data, 0, axis=i)
+      cut = (data.shape[i] - shape[i]) // 2
+      data = np.delete(data, np.s_[0:cut], axis=i)
+      data = np.delete(data, np.s_[data.shape[i] - cut:data.shape[i]], axis=i)
+
   return data
 
 

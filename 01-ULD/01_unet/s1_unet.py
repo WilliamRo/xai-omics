@@ -6,9 +6,9 @@ sys.path.append('../../')
 from uld.uld_config import ULDConfig
 from tframe.utils.script_helper import Helper
 
+
 Helper.register_flags(ULDConfig)
 s = Helper()
-
 # -----------------------------------------------------------------------------
 # Configure data set here
 # -----------------------------------------------------------------------------
@@ -17,9 +17,9 @@ pass
 # -----------------------------------------------------------------------------
 # Specify summary file name and GPU ID here
 # -----------------------------------------------------------------------------
-dose = '1-4'
-gpu_id = 1
-summ_name = s.default_summ_name + '_' +dose
+dose = s.common_parameters['dose']
+gpu_id = 0
+summ_name = s.default_summ_name + '_' + dose
 
 s.register('gpu_id', gpu_id)
 s.register('gather_summ_name', summ_name + '.sum')
@@ -29,7 +29,7 @@ s.register('probe_cycle', 0)
 # Set up your models and run
 # -----------------------------------------------------------------------------
 s.register('train', True)
-s.register('epoch', 1)
+s.register('epoch', 1000)
 s.register('patience', 15)
 
 # s.register('window_size', 64, 128)

@@ -4,16 +4,16 @@ from xomics.gui.dr_gordon import DrGordon
 from xomics import MedicalImage
 
 data_dir = r'../../../data/01-ULD/'
-subjects = [1, 12]
+subjects = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 mode = "uld-train"
 
 
 keys = ['Full',
         # '1-2',
-        '1-4',
+        # '1-4',
         # '1-10',
         # '1-20',
-        # '1-50',
+        '1-50',
         # '1-100',
         ]
 mis = []

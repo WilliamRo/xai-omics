@@ -55,16 +55,21 @@ def get_random_window(arr: np.ndarray, window_size=128, slice_size=16,
   return index, s, h, w
 
 
+def get_sample(arr: np.ndarray, index, s, h, w,
+               windows_size=128, slice_size=16):
+
+  return arr[index:index+1, s:s+slice_size,
+             h:h+windows_size, w:w+windows_size, :]
+
+
 def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
                 windows_size=128, slice_size=16, true_rand=True):
   features = []
   targets = []
   for _ in range(batch_size):
     index, s, h, w = get_random_window(arr1, windows_size, slice_size, true_rand)
-    features.append(arr1[index:index+1, s:s+slice_size,
-                    h:h+windows_size, w:w+windows_size, :])
-    targets.append(arr2[index:index+1, s:s+slice_size,
-                   h:h+windows_size, w:w+windows_size, :])
+    features.append(get_sample(arr1, index, s, h, w, windows_size, slice_size))
+    targets.append(get_sample(arr2, index, s, h, w, windows_size, slice_size))
   features = np.concatenate(features)
   targets = np.concatenate(targets)
 

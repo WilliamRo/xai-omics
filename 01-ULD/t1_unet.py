@@ -115,6 +115,7 @@ def main(_):
   if th.max_clip != None:
     th.suffix += f'_clip(0,{th.use_clip})'
   th.suffix += f'_lr{th.learning_rate:3e}_loss({th.loss_string})_BS{th.batch_size}'
+  th.suffix += f'_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()
