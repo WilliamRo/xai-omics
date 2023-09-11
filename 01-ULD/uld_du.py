@@ -18,10 +18,9 @@ def load_data():
   console.show_info('Data details')
   for ds in datasets:
     assert isinstance(ds, ULDSet)
-    if ds.name != 'Train-Set':
-      if th.train or ds.name != 'Val-Set':
-        ds.fetch_data(ds)
-        console.supplement(f'{ds.name}: {ds.features.shape}', level=2)
+    if (not th.rehearse and ds.name == 'Val-Set') or (not th.train and ds.name == 'Test-Set'):
+      ds.fetch_data(ds)
+      console.supplement(f'{ds.name}: {ds.features.shape}', level=2)
     else:
       console.supplement(f'{ds.name}: Buffer Size: {ds.buffer_size}', level=2)
       console.supplement(f'Real Size: {len(ds.subjects)}', level=2)

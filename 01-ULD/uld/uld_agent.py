@@ -30,6 +30,8 @@ class ULDAgent(DataAgent):
       return cls.early_exp(th, th.exp_name, features, targets)
     else:
       data_root = os.path.join(data_dir, th.data_kwargs['dataset'])
+      if th.classify:
+        return ULDSet.load_as_uldset(data_root)
       dose = th.data_kwargs['dose']
       return ULDSet.load_as_uldset(data_root, dose)
 

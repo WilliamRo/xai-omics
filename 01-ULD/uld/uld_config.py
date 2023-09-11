@@ -35,6 +35,8 @@ class ULDConfig(SmartTrainerHub):
                             is_key=None)
   opt_str = Flag.string('adam', "the string of optimizer", is_key=None)
 
+  classify = Flag.boolean(False, "whether train for dose classification", is_key=None)
+
   @property
   def data_arg(self) -> Arguments:
     return Arguments.parse(self.data_config)

@@ -15,7 +15,10 @@ custom_loss = {
 def get_initial_model():
   from uld_core import th
 
-  model = mu.Predictor(th.mark)
+  if th.classify:
+    model = mu.Classifier(th.mark)
+  else:
+    model = mu.Predictor(th.mark)
   model.add(mu.Input(sample_shape=th.input_shape))
   if th.use_tanh != 0:
     model.add(Tanh_k(k=th.use_tanh))
@@ -25,6 +28,13 @@ def get_initial_model():
 def finalize(model):
   from uld_core import th
   from tframe import tf
+
+  if th.classify:
+    model.add(mu.Dense(7, use_bias=False, activation='softmax'))
+
+    # Build model
+    model.build(batch_metric=['accuracy'])
+    return model
 
   assert isinstance(model, mu.Predictor)
   model.add(mu.HyperConv3D(filters=1, kernel_size=1))

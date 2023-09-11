@@ -34,13 +34,25 @@ class ULDSet(DataSet):
 
   def gen_random_window(self, batch_size):
     from uld_core import th
-    from utils.data_processing import gen_windows
+    from utils.data_processing import gen_windows, get_random_window, get_sample
     # Randomly sample [S, S, S] pair from features and targets
 
     # self.features/targets.shape = [N, S, H, W, 1]
-    s = th.window_size
-    features, targets = gen_windows(self.features, self.targets, batch_size,
-                                    s, th.slice_size, th.rand_batch)
+    if th.classify:
+      features = []
+      targets = []
+      # for _ in range(batch_size):
+      #   index, s, h, w = get_random_window(self.features, th.window_size,
+      #                                      th.slice_size, th.rand_batch)
+      #   features.append(get_sample(self.features, index, s, h, w,
+      #                              th.windows_size, th.slice_size))
+      #   targets.append(self.targets[index])
+      # features = np.concatenate(features)
+      index = np.random.randint(self.features.shape[0], size=batch_size)
+      features, targets = self.features[index], self.targets[index]
+    else:
+      features, targets = gen_windows(self.features, self.targets, batch_size,
+                                      th.window_size, th.slice_size, th.rand_batch)
 
     data_batch = DataSet(features, targets)
 
@@ -72,7 +84,8 @@ class ULDSet(DataSet):
 
 
   def evaluate_model(self, model: Predictor, report_metric=True):
-    from dev.explorers.uld_explorer.uld_explorer import ULDExplorer, DeltaViewer
+    from dev.explorers.uld_explorer.uld_explorer_v3 import ULDExplorer
+    # from dev.explorers.uld_explorer.uld_explorer import ULDExplorer, DeltaViewer
     from xomics import MedicalImage
 
     if report_metric: model.evaluate_model(self, batch_size=1)
@@ -87,7 +100,7 @@ class ULDSet(DataSet):
     medical_images = [
       MedicalImage(f'Sample-{i}', images={
         'Input': data.features[i],
-        'Targets': data.targets[i],
+        'Full': data.targets[i],
         'Model-Output': pred[i],
         # 'Delta': np.square(pred[i] - data.targets[i])
       }) for i in range(self.size)]
@@ -101,9 +114,9 @@ class ULDSet(DataSet):
     ue.dv.set('vmin', auto_refresh=False)
     ue.dv.set('vmax', auto_refresh=False)
 
-    delta_viewer = DeltaViewer(target_key='Targets')
-    delta_viewer.set('vmax', auto_refresh=False)
-    ue.add_plotter(delta_viewer)
+    # delta_viewer = DeltaViewer(target_key='Targets')
+    # delta_viewer.set('vmax', auto_refresh=False)
+    # ue.add_plotter(delta_viewer)
     ue.show()
 
 
@@ -127,7 +140,10 @@ class ULDSet(DataSet):
       'shape': th.data_shape,
     }
 
-    if th.norm_by_feature:
+    if th.classify:
+      kwargs['raw'] = True
+      self._fetch_data_for_classify(subjects, **kwargs)
+    elif th.norm_by_feature:
       doses = {
         "feature": self.dose,
         "target": "Full"
@@ -141,9 +157,33 @@ class ULDSet(DataSet):
       self.features = self.reader.load_data(subjects, self.dose, **kwargs)
       self.targets = self.reader.load_data(subjects, "Full", **kwargs)
 
+  def _fetch_data_for_classify(self, subjects, **kwargs):
+    from tframe import pedia
+    from tframe.utils import misc
+    doses = [
+      'Full', '1-2', '1-4',
+      '1-10', '1-20', '1-50', '1-100',
+    ]
+    pedia.classe = doses
+    self.NUM_CLASSES = 7
+
+    arr = []
+    label = []
+
+    for subject in subjects:
+      # randnum = np.random.randint(len(doses))
+      data = self.reader.load_data(subject, doses, **kwargs)
+      vmax = np.max(data[0])
+      arr.append(data / vmax)
+      label += [[0], [1], [2], [3], [4], [5], [6]]
+    self.features = np.concatenate(arr)
+    self.targets = np.array(label)
+
+    self.targets = misc.convert_to_one_hot(self.targets, self.NUM_CLASSES)
+
 
   @classmethod
-  def load_as_uldset(cls, data_dir, dose):
+  def load_as_uldset(cls, data_dir, dose=None):
     from tframe import hub as th
     return ULDSet(data_dir=data_dir, dose=dose,
                   buffer_size=th.buffer_size)
@@ -184,8 +224,9 @@ class ULDSet(DataSet):
     import os
     import matplotlib.pyplot as plt
     from utils.metrics_calc import get_metrics
-
+    from uld_core import th
     assert isinstance(model, Predictor)
+
 
     slice_num = 320
     if model.counter == 50:
@@ -211,7 +252,7 @@ class ULDSet(DataSet):
     # (2) Get metrics
     val_dict = model.validate_model(self)
 
-    # (3) Save image
+  # (3) Save image
     metric_str = '-'.join([f'{k}{v:.5f}' for k, v in val_dict.items()])
     fn = f'Iter{model.counter}-{metric_str}.png'
     img = images[0, slice_num, ..., 0]

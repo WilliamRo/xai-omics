@@ -1,4 +1,5 @@
 from tframe import tf
+from tframe.layers import Reshape
 from tframe.layers.layer import Layer
 from tframe.layers.layer import single_input
 
@@ -50,6 +51,14 @@ class Clip(Layer):
   def _link(self, x: tf.Tensor, **kwargs):
     y = tf.clip_by_value(x, self.min, self.max)
     return y
+
+
+class Flatten(Reshape):
+# todo: it doesnt work
+  @single_input
+  def _link(self, input_, **kwargs):
+    output_shape = [-1, tf.dimension_value(None)]
+    return tf.reshape(input_, output_shape)
 
 
 
