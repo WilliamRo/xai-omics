@@ -48,6 +48,6 @@ if __name__ == '__main__':
     '1-50 dose',
     '1-100 dose',
   ]
-  path = "../../data/01-ULD-RAW/testdata"
-  n_path = "../../data/01-ULD/"
-  # gen_uld_npy(path, n_path)
+  path = "../../../data/01-ULD-RAW/"
+  n_path = "../../../data/01-ULD/"
+  gen_uld_npy(path, n_path)

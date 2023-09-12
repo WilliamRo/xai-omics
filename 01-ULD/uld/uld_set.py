@@ -20,7 +20,7 @@ class ULDSet(DataSet):
     if subjects is None:
       for i in listdir(data_dir):
         if 'subject' in i:
-          self.subjects.append(i)
+          self.subjects.append(int(i[7:]))
     else:
       self.subjects = subjects
     self.data_fetcher = self.fetch_data
@@ -144,18 +144,19 @@ class ULDSet(DataSet):
       kwargs['raw'] = True
       self._fetch_data_for_classify(subjects, **kwargs)
     elif th.norm_by_feature:
-      doses = {
-        "feature": self.dose,
-        "target": "Full"
-      }
-      self.features, self.targets = self.reader.load_data(subjects, doses,
-                                                          concat=False, **kwargs)
+      doses = [[self.dose], ['Full']]
+      data = self.reader.load_data(subjects, doses, methods='pair', **kwargs)
+      self.features = np.concatenate(data['features'])
+      self.targets = np.concatenate(data['targets'])
     elif th.train_self:
-      self.features = self.reader.load_data(subjects, self.dose, **kwargs)
-      self.targets = self.reader.data
+      data = self.reader.load_data(subjects, [[self.dose]], methods='sub', **kwargs)
+      data = np.concatenate(data.values())
+      self.targets = self.targets = data
     else:
-      self.features = self.reader.load_data(subjects, self.dose, **kwargs)
-      self.targets = self.reader.load_data(subjects, "Full", **kwargs)
+      data = self.reader.load_data(subjects, [[self.dose], ['Full']],
+                                   methods='type', **kwargs)
+      self.features = np.concatenate(data[self.dose].values())
+      self.targets = np.concatenate(data['Full'].values())
 
   def _fetch_data_for_classify(self, subjects, **kwargs):
     from tframe import pedia
@@ -166,14 +167,14 @@ class ULDSet(DataSet):
     ]
     pedia.classe = doses
     self.NUM_CLASSES = 7
+    doses = [[i] for i in doses]
 
     arr = []
     label = []
 
     for subject in subjects:
-      # randnum = np.random.randint(len(doses))
       data = self.reader.load_data(subject, doses, **kwargs)
-      vmax = np.max(data[0])
+      vmax = np.max(data[6])
       arr.append(data / vmax)
       label += [[0], [1], [2], [3], [4], [5], [6]]
     self.features = np.concatenate(arr)

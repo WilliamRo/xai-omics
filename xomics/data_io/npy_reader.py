@@ -19,18 +19,15 @@ class NpyReader:
     self._current_filepath = None
     self.data = None
     self._data = None
-    self.raw_data = None
-    self.conditions_dict = {
-      (int, list): self.load_data_by_subject,
-      (list, str): self.load_data_by_dose,
-      (int, str): self.load_one_data,
+    self.methods_dict = {
+      'sub': self.load_data_by_subject,
+      'type': self.load_data_by_types,
+      'mi': self.load_mi_data,
+      'pair': self.load_data_in_pair,
     }
 
-  def _load_data(self, subjects, doses, concat=True, **kwargs):
-    self.load_numpy_data(subjects, doses, **kwargs)
-    if concat:
-      self.data = np.concatenate(self.raw_data)
-    return self.data
+  def _load_data(self, subjects, types, methods, **kwargs):
+    return self.load_numpy_data(subjects, types, methods, **kwargs)
 
   def _npy_load(self, **kwargs):
     return self.pre_process(**kwargs)
@@ -38,6 +35,7 @@ class NpyReader:
   def _pre_process(self, **kwargs):
     pass
 
+  # todo: rubbish code to be improved
   @classmethod
   def load_as_npy_data(cls, dirpath, file_list: list,
                        name_mask: (str, str), **kwargs):
@@ -52,58 +50,88 @@ class NpyReader:
     reader.raw_data = arr
     return reader
 
-  def load_numpy_data(self, subjects, doses, **kwargs):
-    if type(subjects) is str:
-      subjects = int(subjects[len(self.SUBJECT_NAME):])
-    if type(subjects) is list and type(subjects[0]) is not int:
-      subjects = [int(subject[len(self.SUBJECT_NAME):]) for subject in subjects]
+  def load_numpy_data(self, subjects, types, methods, **kwargs):
+    assert methods in self.methods_dict.keys()
 
-    condition = (type(subjects), type(doses))
+    return self.methods_dict[methods](subjects, types, **kwargs)
 
-    if condition not in self.conditions_dict.keys():
-      raise TypeError(f"Unsupported Type combination {condition}!")
-    return self.conditions_dict[condition](subjects, doses, **kwargs)
-
-  def load_one_data(self, subject: int, dose: str, **kwargs):
-    return self.load_data_by_subject(subject, [dose], **kwargs)
-
-  def load_data_by_dose(self, subjects: list[int], dose: str, **kwargs):
-    arr = []
+  def load_data_by_subject(self, subjects: list[int],
+                           types_list: list[list[str]], **kwargs):
+    arr_dict = {}
     for subject in subjects:
-      filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
-                              f'{self.SUBJECT_NAME}{subject}_{dose}.npy')
-      self.npy_load(filepath, **kwargs)
-      arr.append(self._data)
-    self.raw_data = arr
-    return arr
+      arr = []
+      for types in types_list:
+        types_str = '_'.join(types)
+        filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
+                                f'{self.SUBJECT_NAME}{subject}_{types_str}.npy')
+        self.npy_load(filepath, **kwargs)
+        arr.append(self._data)
+      arr_dict[subject] = arr
+    self.data = arr_dict
+    return arr_dict
 
-  def load_data_by_subject(self, subject: int, doses: list[str], **kwargs):
-    arr = []
-    for dose in doses:
-      filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
-                              f'{self.SUBJECT_NAME}{subject}_{dose}.npy')
-      self.npy_load(filepath, **kwargs)
-      arr.append(self._data)
-    self.raw_data = arr
-    return arr
+  def load_data_by_types(self, subjects: list[int],
+                         types_list: list[list[str]], **kwargs):
+    arr_dict = {}
+    for types in types_list:
+      arr = []
+      types_str = '_'.join(types)
+      for subject in subjects:
+        filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
+                                f'{self.SUBJECT_NAME}{subject}_{types_str}.npy')
+        self.npy_load(filepath, **kwargs)
+        arr.append(self._data)
+      arr_dict[types_str] = arr
+    self.data = arr_dict
+    return arr_dict
 
-  def load_data(self, subjects: Union[int, str, list],
-                doses: Union[str, list],
-                **kwargs):
+  def load_data_in_pair(self, subjects: list[int],
+                        types_list: list[list[str]], **kwargs):
+    assert len(types_list) == 2
+    features = []
+    targets = []
+    for subject in subjects:
+      type_str1 = '_'.join(types_list[0])
+      type_str2 = '_'.join(types_list[1])
+      f_filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
+                                f'{self.SUBJECT_NAME}{subject}_{type_str1}.npy')
+      t_filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
+                                f'{self.SUBJECT_NAME}{subject}_{type_str2}.npy')
+
+      self.npy_load(f_filepath, ret_norm=True, **kwargs)
+      feature, norm = self._data
+      self.npy_load(t_filepath, norm=norm, **kwargs)
+      target = self._data
+
+      features.append(feature)
+      targets.append(target)
+
+    self.data = {
+      'features': features,
+      'targets': targets,
+    }
+    return self.data
+
+  def load_data(self, subjects: list[int],
+                types: list[list[str]],
+                methods: str,
+                **kwargs) -> dict:
     """
-    support 3 ways to load data
+    :param types: type in order
     :param subjects:
-    :param doses:
+    :param methods: load methods
     :return: data
     """
-    return self._load_data(subjects, doses, **kwargs)
+    return self._load_data(subjects, types, methods, **kwargs)
 
-  def load_mi_data(self, subjects: list, doses: list, **kwargs):
+  def load_mi_data(self, subjects: list[int],
+                   types_list: list[list[str]], **kwargs):
     mis = []
+    imgs = self.load_data(subjects, types_list, 'sub', **kwargs)
+    type_strs = ['_'.join(types) for types in types_list]
     for subject in subjects:
-      img_doses = self.load_data(subject, doses, **kwargs)
-      data_dict = dict(zip(doses, img_doses))
-      mi = MedicalImage(f'{self.SUBJECT_NAME}-{subject}', data_dict)
+      data = dict(zip(type_strs, imgs[subject]))
+      mi = MedicalImage(f'{self.SUBJECT_NAME}-{subject}', data)
       mis.append(mi)
     return mis
 

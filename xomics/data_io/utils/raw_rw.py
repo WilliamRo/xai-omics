@@ -35,7 +35,23 @@ def wr_file(arr, pathname):
   sitk.WriteImage(arr, pathname)
 
 
-def get_tags(dirpath, isSeries=False):
+def get_tags(dirpath, suv=True, **kwargs):
+  if suv:
+    return get_suv_tags(dirpath, **kwargs)
+  else:
+    return get_all_tags(dirpath, **kwargs)
+
+# todo: get all tags from CT
+def get_all_tags(dirpath, isSeries=False):
+  if isSeries:
+    dirpath = os.path.join(dirpath, os.listdir(dirpath)[0])
+  data = dcmread(dirpath)
+  elements = data.elements()
+  tags = list(elements)
+  return tags
+
+
+def get_suv_tags(dirpath, isSeries=False):
   if isSeries:
     dirpath = os.path.join(dirpath, os.listdir(dirpath)[0])
   data = dcmread(dirpath)
