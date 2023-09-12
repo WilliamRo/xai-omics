@@ -175,8 +175,9 @@ if __name__ == '__main__':
     # '1-50',
     # '1-100',
   ]
+  doses = [[i] for i in doses]
   reader = UldReader(data_dir)
-  mi_list = reader.load_mi_data(subjects, doses, raw=True)
+  mi_list = reader.load_data(subjects, doses, methods='mi', raw=True)
 
   ue = ULDExplorer(mi_list)
   ue.dv.set('vmin', auto_refresh=False)

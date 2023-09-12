@@ -1,9 +1,8 @@
-from typing import Union
 from xomics.data_io.npy_reader import NpyReader
 from xomics.data_io.utils.preprocess import calc_SUV, get_color_data
+from xomics.data_io.utils.raw_rw import rd_file
 
 import os
-import numpy as np
 
 
 
@@ -29,7 +28,20 @@ class UldReader(NpyReader):
         tags[data[0]] = float(data[1])
     return tags
 
-
+  # todo: rubbish code to be improved (maybe)
+  @classmethod
+  def load_as_npy_data(cls, dirpath, file_list: list,
+                       name_mask: (str, str), **kwargs):
+    reader = cls()
+    arr = []
+    for file in file_list:
+      filename = name_mask[0] + str(file) + name_mask[1]
+      filepath = os.path.join(dirpath, filename)
+      data = rd_file(filepath)
+      reader._data = data
+      arr.append(reader.pre_process(**kwargs))
+    reader.raw_data = arr
+    return reader
 
 
 

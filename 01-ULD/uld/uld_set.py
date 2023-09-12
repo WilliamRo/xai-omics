@@ -173,7 +173,8 @@ class ULDSet(DataSet):
     label = []
 
     for subject in subjects:
-      data = self.reader.load_data(subject, doses, **kwargs)
+      data = self.reader.load_data([subject], doses, methods='type', **kwargs)
+      data = list(data.values())
       vmax = np.max(data[6])
       arr.append(data / vmax)
       label += [[0], [1], [2], [3], [4], [5], [6]]

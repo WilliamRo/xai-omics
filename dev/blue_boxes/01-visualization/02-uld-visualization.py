@@ -4,33 +4,23 @@ from xomics.gui.dr_gordon import DrGordon
 from xomics import MedicalImage
 
 data_dir = r'../../../data/01-ULD/'
-subjects = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+subjects = [1, 6]
 mode = "uld-train"
 
 
-keys = ['Full',
+keys = [['Full'],
         # '1-2',
         # '1-4',
         # '1-10',
         # '1-20',
-        '1-50',
+        ['1-50'],
         # '1-100',
         ]
 mis = []
 reader = UldReader(data_dir)
 
 if mode == 'uld-train':
-  mis = reader.load_mi_data(subjects, keys)
-
-if mode == 'uld-pair':
-  doses = {
-    "feature": keys[1],
-    "target": keys[0]
-  }
-  img_f, img_l = reader.load_data(subjects, doses)
-  for i in range(img_f.shape[0]):
-    mi = MedicalImage(f'Subject-i', {'Full': img_f[i], 'Low': img_l[i]})
-    mis.append(mi)
+  mis = reader.load_data(subjects, keys, methods='mi')
 
 if mode == 'uld-test':
   imgs = rd_uld_test(data_dir + "testset", subjects)
