@@ -45,9 +45,10 @@ th.gpu_memory_fraction = 0.8
 # -----------------------------------------------------------------------------
 # Data configuration
 # -----------------------------------------------------------------------------
+th.use_mask = False
 th.window = [-1200, 0]
 th.crop_size = [32, 64, 64]
-th.input_shape = th.crop_size + [1]
+th.input_shape = th.crop_size + [2] if th.use_mask else th.crop_size + [1]
 # -----------------------------------------------------------------------------
 # Set common trainer configs
 # -----------------------------------------------------------------------------
@@ -73,6 +74,8 @@ def activate():
 
   # Load datas
   train_set, val_set, test_set = du.load_data()
+  val_set = val_set.dataset_for_eval
+  test_set = test_set.dataset_for_eval
 
   # Build model
   assert callable(th.model)
@@ -96,15 +99,11 @@ def activate():
     # test_set.test_model(model)
     pass
 
-  model.agent.load()
-  for ds in (train_set, val_set, test_set):
-    a = model.evaluate_pro(
-      ds, batch_size=1, show_class_detail=True, export_false=True)
+  # model.agent.load()
+  # for ds in (train_set, val_set, test_set):
+  #   model.evaluate_pro(
+  #     ds, batch_size=1, show_class_detail=True, export_false=True)
 
-    if ds == test_set:
-      print(len(a[1].features))
-      for i in range(len(a[1].features)):
-        print(a[1].features[i][0, 0, 0])
 
 
   # End

@@ -31,7 +31,7 @@ s.register('epoch', 2000)
 s.register('patience', 10)
 
 s.register('lr', 0.01, 0.001, 0.0001)
-s.register('batch_size', 4, 16)
+s.register('batch_size', 4, 32)
 s.register('archi_string',
            '8-3-2-3-relu-mp', '8-5-2-3-relu-mp', '4-3-2-2-lrelu')
 s.register('random_flip', s.true_and_false)

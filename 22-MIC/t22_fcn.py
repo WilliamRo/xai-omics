@@ -21,6 +21,8 @@ def model():
     return m.get_fcn_3d_03()
   elif model_type == 'fcn' and model_num == '4':
     return m.get_fcn_3d_04()
+  elif model_type == 'fcn' and model_num == '5':
+    return m.get_fcn_3d_05()
   else:
     assert TypeError('No model!!!')
 
@@ -55,7 +57,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = 'fcn-4'
+  th.archi_string = 'fcn-5'
 
   # ---------------------------------------------------------------------------
   # 3. trainer setup

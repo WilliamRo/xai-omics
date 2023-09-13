@@ -15,6 +15,31 @@ from copy import copy
 
 class MICSet(DataSet):
 
+  @property
+  def dataset_for_eval(self):
+    from mic_core import th
+    features = []
+    mi_file_list = self.data_dict['features'].tolist()
+    for file in mi_file_list:
+      console.show_status(
+        'Loading `{}`  from {}'.format(file, self.name))
+      mi = MedicalImage.load(file)
+
+      # Data Preprocessing
+      mi.window('ct', th.window[0], th.window[1])
+      mi.normalization(['ct'])
+      mi.crop(th.crop_size, False)
+
+      if th.use_mask:
+        features.append(
+          np.stack([mi.images['ct'], mi.labels['label-0']], axis=-1))
+      else:
+        features.append(np.expand_dims(mi.images['ct'], axis=-1))
+
+    return DataSet(features=np.array(features),
+                   targets=self.targets, name=self.name)
+
+
   def report(self):
     pass
 
@@ -25,12 +50,12 @@ class MICSet(DataSet):
     '''
     from mic_core import th
 
-    data_num = 30 if is_training else 10
-    mi_list, labels = self.fetch_data(data_num=data_num)
-
     round_len = self.get_round_length(batch_size, training=is_training)
 
     if is_training:
+      data_num = 30
+      mi_list, labels = self.fetch_data(data_num=data_num)
+
       for i in range(round_len):
         features, targets = [], []
         for j in range(batch_size):
@@ -39,32 +64,36 @@ class MICSet(DataSet):
           # Data Preprocessing
           mi: MedicalImage = copy(mi_list[num])
           mi.window('ct', th.window[0], th.window[1])
-          mi.normalization(['ct'])
           mi.crop(th.crop_size, th.random_translation)
-
-          feature = mi.images['ct']
+          mi.normalization(['ct'])
 
           # Data Augmentation
           if th.random_flip:
-            for axe in range(3):
-              feature = (data_processing.image_flip(feature, axes=axe)
-                    if random.choice([True, False]) else feature)
+            if random.choice([True, False]):
+              data_processing.mi_flip(mi, axes=random.choice([0, 1, 2]))
 
           if th.random_rotation:
-            feature = data_processing.image_rotation(
-              feature, angle=random.choice([0, 90, 180, 270]))
+            data_processing.mi_rotation(
+              mi, angle=random.choice([0, 90, 180, 270]))
 
           if th.random_noise:
-            feature = data_processing.add_gaussian_noise(feature)
+            data_processing.mi_add_gaussian_noise(mi)
 
-          features.append(np.expand_dims(feature, axis=-1))
+          if th.use_mask:
+            features.append(
+              np.stack([mi.images['ct'], mi.labels['label-0']], axis=-1))
+          else:
+            features.append(np.expand_dims(mi.images['ct'], axis=-1))
           targets.append(copy(labels[num]))
 
         name = 'batch_train_' + str(i)
         data_batch = DataSet(features=np.array(features),
                              targets=np.array(targets), name=name)
         yield data_batch
-    else:
+    elif 'Train' in self.name or 'train' in self.name:
+      data_num = 10
+      mi_list, labels = self.fetch_data(data_num=data_num)
+
       number = list(range(len(mi_list)))
       number_list = [number[i:i+th.val_batch_size]
                      for i in range(0, len(number), th.val_batch_size)]
@@ -79,13 +108,19 @@ class MICSet(DataSet):
           mi.normalization(['ct'])
           mi.crop(th.crop_size, False)
 
-          features.append(np.expand_dims(mi.images['ct'], axis=-1))
+          if th.use_mask:
+            features.append(
+              np.stack([mi.images['ct'], mi.labels['label-0']], axis=-1))
+          else:
+            features.append(np.expand_dims(mi.images['ct'], axis=-1))
           targets.append(copy(labels[i]))
 
         name = 'batch_val'
         data_batch = DataSet(features=np.array(features),
                              targets=np.array(targets), name=name)
         yield data_batch
+    else:
+      yield self
 
     # Clear dynamic_round_len if necessary
     if is_training: self._clear_dynamic_round_len()
@@ -122,7 +157,7 @@ class MICSet(DataSet):
     from mi_core import th
 
     example_num = self.size if example_num > self.size else example_num
-    mi_file_list = self.data_dict['mi_file_list']
+    mi_file_list = self.data_dict['features']
     mi_list = []
 
     for i in range(example_num):
@@ -130,6 +165,7 @@ class MICSet(DataSet):
 
       mi.window('ct', th.window[0], th.window[1])
       mi.normalization(['ct'])
+      mi.crop([32, 64, 64], False)
 
       mi_list.append(mi)
 

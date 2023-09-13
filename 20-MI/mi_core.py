@@ -46,7 +46,7 @@ th.gpu_memory_fraction = 0.8
 # Data configuration
 # -----------------------------------------------------------------------------
 # th.input_shape = [None, None, None, 1]
-th.use_pet = True
+th.use_pet = False
 th.window = [-300, 400]
 th.crop_size = [64, 256, 256]
 th.input_shape = th.crop_size + [2] if th.use_pet else th.crop_size + [1]
@@ -99,6 +99,8 @@ def activate():
                 test_set=test_set, trainer_hub=th)
   else:
     test_set.test_model(model)
+    # val_set.test_model(model)
+    # train_set.test_model(model)
 
   # model.agent.load()
   # for ds in (train_set, val_set, test_set):

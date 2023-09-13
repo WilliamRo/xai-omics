@@ -19,6 +19,9 @@ class MICConfig(SmartTrainerHub):
   random_noise = Flag.boolean(
     False, 'whether to add noise to image', is_key=None)
 
+  use_mask = Flag.boolean(
+    False, 'whether to use mask as the second channel', is_key=None)
+
   cross_validation = Flag.boolean(
     False, 'whether to use cross validation', is_key=None)
   num_fold = Flag.integer(5, 'the number of the fold', is_key=None)

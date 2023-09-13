@@ -141,6 +141,25 @@ def get_fcn_3d_04():
   return finalize(model)
 
 
+def get_fcn_3d_05():
+  model = get_initial_model()
+
+  fm = mu.ForkMergeDAG([
+    mu.HyperConv3D(filters=16, kernel_size=3, activation='relu'),      #1
+    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #2
+    mu.HyperConv3D(filters=32, kernel_size=3, activation='relu'),      #3
+    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #4
+    mu.HyperConv3D(filters=64, kernel_size=3, activation='relu'),      #5
+    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #6
+    mu.HyperConv3D(filters=128, kernel_size=3, activation='relu'),     #7
+    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #8
+    mu.HyperConv3D(filters=2, kernel_size=1, activation='relu')],      #9
+    edges='1;01;001;0001;00001;000001;0000001;00000001;000000001',
+    name='fcn_3d_05')
+  model.add(fm)
+
+  return finalize(model)
+
 
 class GlobalAveragePooling3D(Layer):
 

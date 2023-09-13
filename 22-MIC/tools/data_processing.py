@@ -1,8 +1,9 @@
 import random
-
 import SimpleITK as sitk
 import numpy as np
+
 from PIL import Image
+from xomics import MedicalImage
 
 
 
@@ -30,6 +31,51 @@ def image_flip(image, axes):
   return np.flip(image, axis=axes)
 
 
+def mi_add_gaussian_noise(mi: MedicalImage, mean=0, std=1):
+  noise = np.random.normal(mean, std, mi.shape)
+  for key in mi.images.keys():
+    image = mi.images[key]
+    mi.images[key] = image + noise
+
+
+def mi_rotation(mi: MedicalImage, angle):
+  assert angle in [0, 90, 180, 270]
+
+  # images
+  for key in mi.images.keys():
+    ang = angle
+    image = mi.images[key]
+    for _ in range(3):
+      if ang <= 0: break
+      image = [np.rot90(img) for img in image]
+      ang = ang - 90
+
+    mi.images[key] = np.array(image)
+
+  # labels
+  for key in mi.labels.keys():
+    ang = angle
+    label = mi.labels[key]
+    for _ in range(3):
+      label = [np.rot90(lab) for lab in label]
+      ang = ang - 90
+      if ang <= 0: break
+
+    mi.labels[key] = np.array(label)
+
+
+def mi_flip(mi: MedicalImage, axes):
+  assert axes in [0, 1, 2]
+
+  # images
+  for key in mi.images.keys():
+    image = mi.images[key]
+    mi.images[key] = np.flip(image, axis=axes)
+
+  # labels
+  for key in mi.labels.keys():
+    label = mi.labels[key]
+    mi.labels[key] = np.flip(label, axis=axes)
 # Data Preprocessing
 def find_max_dimensions(features):
   max_shape = [0, 0, 0]
