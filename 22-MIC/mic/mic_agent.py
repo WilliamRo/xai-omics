@@ -177,7 +177,7 @@ if __name__ == '__main__':
   a = MICAgent()
   train_set, val_set, test_set = a.load()
 
-  train_set.visualize_self(10)
+  test_set.visualize_self(50)
 
 
 

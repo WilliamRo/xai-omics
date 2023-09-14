@@ -36,8 +36,8 @@ class MICSet(DataSet):
       else:
         features.append(np.expand_dims(mi.images['ct'], axis=-1))
 
-    return DataSet(features=np.array(features),
-                   targets=self.targets, name=self.name)
+    return MICSet(
+      features=np.array(features), targets=self.targets, name=self.name)
 
 
   def report(self):
@@ -120,7 +120,8 @@ class MICSet(DataSet):
                              targets=np.array(targets), name=name)
         yield data_batch
     else:
-      yield self
+      yield DataSet(
+        features=self.features, targets=self.targets, name=self.name)
 
     # Clear dynamic_round_len if necessary
     if is_training: self._clear_dynamic_round_len()
@@ -166,6 +167,8 @@ class MICSet(DataSet):
       mi.window('ct', th.window[0], th.window[1])
       mi.normalization(['ct'])
       mi.crop([32, 64, 64], False)
+      mi.key = mi.key + ' --- {}'.format(
+        self.properties['classes'][self.dense_labels[i]])
 
       mi_list.append(mi)
 
@@ -191,7 +194,26 @@ class MICSet(DataSet):
     results[results < 0.5] = 0
     results[results >= 0.5] = 1
 
-    self.visulization(results)
+    indices_target = np.argmax(self.targets, axis=1)
+    indices_prediction = np.argmax(results, axis=1)
+
+    accuracy = (np.sum(indices_target == indices_prediction) /
+                indices_target.shape[0])
+    print('Accuarcy:', round(accuracy * 100, 2), '%')
+
+    cancer_type = ['BA', 'MIA']
+
+    mi_list = []
+    for feature, target, prediction in zip(
+        self.features, indices_target, indices_prediction):
+      mi: MedicalImage = MedicalImage(
+        images={'ct': np.squeeze(feature)},
+        key=f'Ground Truth: {cancer_type[target]} --- '
+            f'Prediction: {cancer_type[prediction]}')
+      mi_list.append(mi)
+
+    self.visulization(mi_list)
+
 
     print()
 

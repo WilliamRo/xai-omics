@@ -26,8 +26,8 @@ class MISet(DataSet):
     # preprocessing
     for mi in mi_list:
       mi.window('ct', th.window[0], th.window[1])
-      mi.crop(th.crop_size, random_crop=False)
       mi.normalization(['ct', 'pet'])
+      mi.crop(th.crop_size, random_crop=False)
 
     round_len = self.get_round_length(batch_size, training=is_training)
 
@@ -167,8 +167,10 @@ class MISet(DataSet):
 
       mi.labels['prediction'] = np.squeeze(results[i])
 
-      acc = self.dice_accuarcy(mi.labels['label-0'], mi.labels['prediction'])
-      print('Patient ID:', mi.key, '--------', 'Dice Accuracy:', acc)
+      acc = self.dice_accuarcy(
+        mi.labels['label-0'], mi.labels['prediction'])
+      print('Patient ID:', mi.key, '--------',
+            'Dice Accuracy:', round(acc, 2))
 
       # mi.save_as_nii(dir_path)
       mi_list.append(mi)
