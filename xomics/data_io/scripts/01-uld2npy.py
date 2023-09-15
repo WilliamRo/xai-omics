@@ -1,14 +1,18 @@
+from roma import finder
 from xomics.data_io.utils.raw_rw import npy_save, wr_tags
 from xomics.data_io.utils.uld_raw_rd import rd_uld_train
 
 import os
 
+
+
 def gen_uld_npy(path, n_path):
-  subjects = os.listdir(path)
-  count = 0
-  for subject in subjects:
-    count += 1
-    print(f"({count}/{len(subjects)}) Reading {subject}...")
+  subjects = finder.walk(path, type_filter='folder', pattern='Subject_*',
+                         return_basename=True)
+
+  for count, subject in enumerate(subjects):
+    print(f"({count + 1}/{len(subjects)}) Reading {subject}...")
+
     c1 = 0
     for dose in doses:
       c1 += 1

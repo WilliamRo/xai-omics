@@ -1,7 +1,9 @@
-import os
-import numpy as np
 from pydicom import dcmread
-import SimpleITK as sitk
+from roma import finder
+
+import numpy as np
+import os
+import pydicom
 
 
 
@@ -12,6 +14,8 @@ def rd_file(filepath):
   :param filepath:
   :return: data array
   """
+  import SimpleITK as sitk
+
   itk_img = sitk.ReadImage(filepath)
   img = sitk.GetArrayFromImage(itk_img)
   return img
@@ -23,15 +27,16 @@ def rd_series(dirpath):
   :param dirpath: directory path name
   :return:
   """
-  series_reader = sitk.ImageSeriesReader()
-  filenames = series_reader.GetGDCMSeriesFileNames(dirpath)
-  series_reader.SetFileNames(filenames)
-  data = series_reader.Execute()
-  images = sitk.GetArrayFromImage(data)
-  return images
+  file_paths = finder.walk(dirpath)
+  dcms = [pydicom.dcmread(path)
+          for path in file_paths]
+  dcms = sorted(dcms, key=lambda d: d.InstanceNumber, reverse=True)
+  data = [d.pixel_array for d in dcms]
+  return np.stack(data, axis=0)
 
 
 def wr_file(arr, pathname):
+  import SimpleITK as sitk
   sitk.WriteImage(arr, pathname)
 
 
