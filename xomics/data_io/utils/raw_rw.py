@@ -4,7 +4,7 @@ import joblib
 import numpy as np
 import os
 import pydicom
-import SimpleITK as sitk
+
 
 
 
@@ -15,6 +15,8 @@ def rd_file(filepath):
   :param filepath:
   :return: data array
   """
+  import SimpleITK as sitk
+
   itk_img = sitk.ReadImage(filepath)
   img = sitk.GetArrayFromImage(itk_img)
   return img
@@ -34,8 +36,8 @@ def rd_series(dirpath):
   return np.stack(data, axis=0)
 
 
-
 def wr_file(arr, pathname):
+  import SimpleITK as sitk
   sitk.WriteImage(arr, pathname)
 
 
