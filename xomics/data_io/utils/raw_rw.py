@@ -1,6 +1,9 @@
-import os
+from roma import finder
+
+import joblib
 import numpy as np
-from pydicom import dcmread
+import os
+import pydicom
 import SimpleITK as sitk
 
 
@@ -23,12 +26,13 @@ def rd_series(dirpath):
   :param dirpath: directory path name
   :return:
   """
-  series_reader = sitk.ImageSeriesReader()
-  filenames = series_reader.GetGDCMSeriesFileNames(dirpath)
-  series_reader.SetFileNames(filenames)
-  data = series_reader.Execute()
-  images = sitk.GetArrayFromImage(data)
-  return images
+  file_paths = finder.walk(dirpath)
+  dcms = [pydicom.dcmread(path)
+          for path in file_paths]
+  dcms = sorted(dcms, key=lambda d: d.InstanceNumber, reverse=True)
+  data = [d.pixel_array for d in dcms]
+  return np.stack(data, axis=0)
+
 
 
 def wr_file(arr, pathname):
@@ -41,11 +45,11 @@ def get_tags(dirpath, suv=True, **kwargs):
   else:
     return get_all_tags(dirpath, **kwargs)
 
-# todo: get all tags from CT
+
 def get_all_tags(dirpath, isSeries=False):
   if isSeries:
     dirpath = os.path.join(dirpath, os.listdir(dirpath)[0])
-  data = dcmread(dirpath)
+  data = pydicom.dcmread(dirpath)
   elements = data.elements()
   tags = list(elements)
   return tags
@@ -54,7 +58,7 @@ def get_all_tags(dirpath, isSeries=False):
 def get_suv_tags(dirpath, isSeries=False):
   if isSeries:
     dirpath = os.path.join(dirpath, os.listdir(dirpath)[0])
-  data = dcmread(dirpath)
+  data = pydicom.dcmread(dirpath)
   ST = data.SeriesTime
   AT = data.AcquisitionTime
   PW = data.PatientWeight
@@ -79,10 +83,21 @@ def get_suv_tags(dirpath, isSeries=False):
   return dcm_tag
 
 
-def wr_tags(tags, path):
+def wr_tags(tags, path, suv=False):
+  if suv:
+    wr_suv_tags(tags, path)
+  else:
+    joblib.dump(tags, path)
+
+
+def wr_suv_tags(tags, path):
   with open(path, 'w+') as f:
     for name, val in tags.items():
       f.write(f'{name},{val}\n')
+
+
+def rd_tags(path):
+  return joblib.load(path)
 
 
 def npy_save(data, filepath):

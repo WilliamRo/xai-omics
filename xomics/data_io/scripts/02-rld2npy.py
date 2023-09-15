@@ -1,25 +1,27 @@
-import joblib
 from xomics.data_io.utils.raw_rw import *
 
 import os
 
 
-
+sub_ids = [18, 23, 33, 43, 45]
 
 def rld2npy(datadir, new_dir):
   l1_dirs = os.listdir(datadir)
   num = len(l1_dirs)
-
+  ids = 0
+  id_180 = 0
   for sub, l1 in enumerate(l1_dirs):
     l1_path = os.path.join(datadir, l1)
     l2_dir = os.listdir(l1_path)[0]
     l2_path = os.path.join(l1_path, l2_dir)
     image_dirs = os.listdir(l2_path)
-    # print(f'Reading data from {l1} ({sub}/{num}):')
+    print(f'Reading data from {l1} ({sub}/{num}):')
+    flag = False
     for file in image_dirs:
-      # print(f'...Reading images from {file}')
+      print(f'...Reading images from {file}')
       image_path = os.path.join(l2_path, file)
       image = rd_series(image_path)
+      image = image.reshape((1,) + image.shape + (1,))
       tag = get_tags(image_path, suv=False, isSeries=True)
 
       name_list = file.split('_')
@@ -34,8 +36,6 @@ def rld2npy(datadir, new_dir):
         if f'{sec}S' in name_list:
           stime = f'_{sec}S'
           break
-      if stime == '_180S':
-        print(sub)
       control = ''
       ctrl_type = ['GATED', 'STATIC']
       for ctrl in ctrl_type:
@@ -50,16 +50,26 @@ def rld2npy(datadir, new_dir):
           param = '_' + par
           break
 
-      name = f'sub{sub}_{img_type}_{pos}{stime}{control}{param}'
+      if sub in sub_ids:
+        index = f'180S_sub{id_180}'
+        flag = True
+      else:
+        index = f'sub{ids}'
+
+      name = f'{index}_{img_type}_{pos}{stime}{control}{param}'
       # print(f'<{name}>')
-      sub_path = os.path.join(new_dir, f'sub{sub}')
+      sub_path = os.path.join(new_dir, f'{index}')
       img_path = os.path.join(sub_path, f'{name}.npy')
       tag_path = os.path.join(sub_path, f'{name}.pkl')
 
       # return
       npy_save(image, img_path)
-      joblib.dump(tag, tag_path)
-      # print(f'Saved image and tag to {sub_path}')
+      wr_tags(tag, tag_path)
+      print(f'...Saved image and tag to {sub_path}/{name}')
+    if flag:
+      id_180 += 1
+    else:
+      ids += 1
 
 
 if __name__ == '__main__':

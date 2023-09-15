@@ -42,14 +42,14 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.data_config = fr'explore dataset=01-ULD'
 
-  th.val_size = 3
+  th.val_size = 64
   th.test_size = 1
 
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
 
-  th.data_shape = [1, 4, 160, 160, 1]
+  th.data_shape = [1, 32, 160, 160, 1]
   th.norm_by_feature = True
   th.classify = True
   if th.classify:
@@ -69,7 +69,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '32-p-32'
+  th.archi_string = '16-p-32-p-32-p-64-p-64'
   th.kernel_size = 5
   th.activation = 'lrelu'
 
@@ -82,8 +82,8 @@ def main(_):
   th.probe_cycle = 0
   # th.updates_per_round
 
-  th.batch_size = 16
-  th.val_batch_size = 8
+  th.batch_size = 64
+  th.val_batch_size = 32
 
   th.buffer_size = 18
 
