@@ -74,7 +74,7 @@ def rld2npy(datadir, new_dir):
 
 if __name__ == '__main__':
   datadir = 'D:\\projects\\xai-omics\\data\\02-RLD-RAW\\'
-  new_dir = 'D:\\projects\\xai-omics\\data\\02-RLD\\'
+  new_dir = '/data/02-RLD\\'
   # rd_series('D:\\projects\\xai-omics\\data\\02-RLD-RAW\\CHEN_HE_PING_YHP00011233\\PET_13_DL_WB_GATED_(ADULT)_20230906_111759_623000\\CT_BH_15S_3_0_B30F_0013')
   rld2npy(datadir, new_dir)
 
