@@ -96,7 +96,8 @@ def activate():
                 test_set=test_set, trainer_hub=th)
   else:
     # data_set.evaluate_denoiser(model)
-    test_set.test_model(model)
+    # test_set.test_model(model)
+    val_set.test_model(model)
 
   # model.agent.load()
   # for ds in (train_set, val_set, test_set):

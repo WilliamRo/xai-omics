@@ -6,6 +6,7 @@ from xomics import MedicalImage
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import re
 
 
 
@@ -53,6 +54,29 @@ class DrGordon(Pictor):
   # endregion: Properties
 
   # region: Private Methods
+  def export_patients(self, fps: float = 10, cursor_range=None):
+    from tkinter import filedialog
+    dir = filedialog.askdirectory()
+
+    # Find cursor range
+    if cursor_range is None:
+      begin, end = 1, len(self.axes[self.Keys.PATIENTS])
+    else:
+      if re.match('^\d+:\d+$', cursor_range) is None:
+        raise ValueError(
+          '!! Illegal cursor range `{}`'.format(cursor_range))
+      begin, end = [int(n) for n in cursor_range.split(':')]
+    begin, end = max(1, begin), min(len(self.axes[self.Keys.PATIENTS]), end)
+
+    self.cursors[self.Keys.PATIENTS] = begin - 1
+    for i in range(begin, end + 1):
+      match = re.search(r'PID: (\S+)', self.axes[self.Keys.PATIENTS][i - 1].key)
+      filename = f'{i}-' + match.group(1) if match else f'{i}'
+      path = os.path.join(dir, filename + '.gif')
+
+      self.animate(fps=fps, path=path)
+      self._set_patient_cursor(1)
+
 
   def _set_patient_cursor(self, step):
     prev_mi: MedicalImage = self.get_element(self.Keys.PATIENTS)
@@ -88,6 +112,7 @@ class DrGordon(Pictor):
     self.title_suffix = f' - {self.slice_view.displayed_layer_key}'
     super().refresh(wait_for_idle)
 
+  ep = export_patients
   # endregion: Overwritting
 
 

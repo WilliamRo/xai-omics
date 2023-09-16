@@ -26,8 +26,8 @@ class MISet(DataSet):
     # preprocessing
     for mi in mi_list:
       mi.window('ct', th.window[0], th.window[1])
-      mi.normalization(['ct', 'pet'])
       mi.crop(th.crop_size, random_crop=False)
+      mi.normalization(['ct', 'pet'])
 
     round_len = self.get_round_length(batch_size, training=is_training)
 

@@ -18,8 +18,10 @@ class MICSet(DataSet):
   @property
   def dataset_for_eval(self):
     from mic_core import th
-    features = []
+
+    features, labels, patient_ids = [], [], []
     mi_file_list = self.data_dict['features'].tolist()
+
     for file in mi_file_list:
       console.show_status(
         'Loading `{}`  from {}'.format(file, self.name))
@@ -30,14 +32,21 @@ class MICSet(DataSet):
       mi.normalization(['ct'])
       mi.crop(th.crop_size, False)
 
+      labels.append(mi.labels['label-0'])
+      patient_ids.append(mi.key)
+
       if th.use_mask:
         features.append(
           np.stack([mi.images['ct'], mi.labels['label-0']], axis=-1))
       else:
         features.append(np.expand_dims(mi.images['ct'], axis=-1))
 
-    return MICSet(
-      features=np.array(features), targets=self.targets, name=self.name)
+    data_dict = {'features': np.array(features),
+                 'targets': self.targets,
+                 'labels': np.array(labels),
+                 'patient_ids': patient_ids}
+
+    return MICSet(data_dict=data_dict, name=self.name)
 
 
   def report(self):
@@ -202,14 +211,16 @@ class MICSet(DataSet):
     print('Accuarcy:', round(accuracy * 100, 2), '%')
 
     cancer_type = ['BA', 'MIA']
+    patient_ids = self.data_dict['patient_ids']
 
     mi_list = []
-    for feature, target, prediction in zip(
-        self.features, indices_target, indices_prediction):
+    for i in range(self.size):
       mi: MedicalImage = MedicalImage(
-        images={'ct': np.squeeze(feature)},
-        key=f'Ground Truth: {cancer_type[target]} --- '
-            f'Prediction: {cancer_type[prediction]}')
+        images={'ct': np.squeeze(self.features[i])},
+        labels={'label-0': np.squeeze(self.data_dict['labels'][i])},
+        key=f'PID: {patient_ids[i]} -- '
+            f'Ground Truth: {cancer_type[indices_target[i]]} -- '
+            f'Prediction: {cancer_type[indices_prediction[i]]}')
       mi_list.append(mi)
 
     self.visulization(mi_list)
