@@ -43,6 +43,7 @@ def main(_):
 
   # th.use_suv = False
   th.norm_by_feature = True
+  # th.output_result = True
   # th.train_self = not th.norm_by_feature
   # th.max_clip = 1.0
 
@@ -77,9 +78,9 @@ def main(_):
   th.patience = 15
   th.probe_cycle = th.updates_per_round
 
-  th.batch_size = 1
+  th.batch_size = 4
   # th.batchlet_size = 2
-  th.val_batch_size = 1
+  th.val_batch_size = 4
 
   th.buffer_size = 18
 

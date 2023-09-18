@@ -4,19 +4,27 @@ import os
 import numpy as np
 
 
-def rd_uld_test(dirpath, name_list):
+def rd_uld_test(dirpath, name_list, outputs=False):
   """
   read uld test raw data
   :param name_list: number id of data
   :param dirpath:
   :return: data
   """
+  if outputs:
+    dirpath = os.path.join(dirpath, 'outputs')
   file_list = os.listdir(dirpath)
-  file_list.remove('seg')
+  if not outputs:
+    file_list.remove('seg')
+    file_list.remove('outputs')
+    file_list.remove('tags.txt')
   files = file_list
   arr = []
   for file in files:
-    tmp = int(file.split('_')[-1].split('.')[0])
+    if outputs:
+      tmp = int(file.split('.')[0][3:])
+    else:
+      tmp = int(file.split('_')[-1].split('.')[0])
     if tmp in name_list:
       filepath = os.path.join(dirpath, file)
       arr.append(rd_file(filepath))

@@ -37,9 +37,8 @@ if __name__ == '__main__':
   testpath = '../../data/01-ULD/testset/'
   seg_path = os.path.join(testpath, 'seg')
   reader = UldReader.load_as_npy_data(testpath, [1, 50],
-                                      ('Anonymous_', '.nii.gz'),
-                                      shape=(688, 440, 440))
-  img = reader.raw_data
+                                      ('Anonymous_', '.nii.gz'))
+  img = reader.data
   seg1 = load_seg(seg_path, 1)
   seg2 = load_seg(seg_path, 50)
   print(seg1.shape, seg2.shape)

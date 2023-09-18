@@ -1,3 +1,5 @@
+import numpy as np
+
 from xomics.data_io.npy_reader import NpyReader
 from xomics.data_io.utils.preprocess import calc_SUV, get_color_data
 from xomics.data_io.utils.raw_rw import rd_file
@@ -10,6 +12,7 @@ class UldReader(NpyReader):
 
   def __init__(self, datadir: str = None):
     super().__init__(datadir)
+    self.size_list = []
 
   def _pre_process(self, use_suv=False, cmap=None):
     if use_suv:
@@ -19,8 +22,9 @@ class UldReader(NpyReader):
       self._data = get_color_data(self._data, cmap)
 
   def load_tags(self):
-    tmp = self._current_filepath
-    tagpath = os.path.join(tmp[0], f'tags_{tmp[1][:-3]}txt')
+    tmp = os.path.dirname(self._current_filepath)
+    file = os.path.basename(self._current_filepath)
+    tagpath = os.path.join(tmp, f'tags_{file[:-3]}txt')
     tags = {}
     with open(tagpath, 'r') as f:
       for data in f.readlines():
@@ -38,9 +42,10 @@ class UldReader(NpyReader):
       filename = name_mask[0] + str(file) + name_mask[1]
       filepath = os.path.join(dirpath, filename)
       data = rd_file(filepath)
+      reader.size_list.append(data.shape[0])
       reader._data = data
       arr.append(reader.pre_process(**kwargs))
-    reader.raw_data = arr
+    reader.data = arr
     return reader
 
 

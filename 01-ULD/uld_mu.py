@@ -30,7 +30,8 @@ def finalize(model):
   from tframe import tf
 
   if th.classify:
-    model.add(mu.Dense(7, use_bias=False, activation='softmax'))
+    model.add(mu.Dense(7, use_bias=False))
+    model.add(mu.Activation('softmax'))
 
     # Build model
     model.build(batch_metric=['accuracy'])

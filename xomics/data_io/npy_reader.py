@@ -81,8 +81,7 @@ class NpyReader:
       t_filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
                                 f'{self.SUBJECT_NAME}{subject}_{type_str2}.npy')
 
-      self.npy_load(f_filepath, ret_norm=True, **kwargs)
-      feature, norm = self._data
+      feature, norm = self.npy_load(f_filepath, ret_norm=True, **kwargs)
       self.npy_load(t_filepath, norm=norm, **kwargs)
       target = self._data
 
@@ -130,16 +129,22 @@ class NpyReader:
                   raw=False, clip=None,
                   ret_norm=False, mi=False,
                   **kwargs):
+    if not raw:
+      if ret_norm:
+        self._data, norm = normalize(self._data, norm, ret_norm=ret_norm)
+      else:
+        self._data = normalize(self._data, norm)
     if shape is not None:
       self._data = norm_size(self._data, shape)
     if clip is not None:
       self._data = np.clip(self._data, clip[0], clip[1])
     self._pre_process(**kwargs)
-    if not raw:
-      self._data = normalize(self._data, norm, ret_norm=ret_norm)
     if mi:
       self._data = self._data.reshape(self._data.shape[1:])
-    return self._data
+    if ret_norm:
+      return self._data, norm
+    else:
+      return self._data
 
 
 

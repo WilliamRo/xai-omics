@@ -38,7 +38,8 @@ def rd_series(dirpath):
 
 def wr_file(arr, pathname):
   import SimpleITK as sitk
-  sitk.WriteImage(arr, pathname)
+  img = sitk.GetImageFromArray(arr)
+  sitk.WriteImage(img, pathname)
 
 
 def get_tags(dirpath, suv=True, **kwargs):

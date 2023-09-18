@@ -15,10 +15,13 @@ def load_data():
   # datasets[2].name = 'Test-Set'
   #
   # Report data shape
+  if th.output_result:
+    return  datasets
   console.show_info('Data details')
   for ds in datasets:
     assert isinstance(ds, ULDSet)
-    if (not th.rehearse and ds.name == 'Val-Set') or (not th.train and ds.name == 'Test-Set'):
+    if (th.train and ds.name == 'Val-Set') or (
+        not th.train and ds.name == 'Test-Set'):
       ds.fetch_data(ds)
       console.supplement(f'{ds.name}: {ds.features.shape}', level=2)
     else:

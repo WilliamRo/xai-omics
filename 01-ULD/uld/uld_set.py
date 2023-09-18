@@ -82,8 +82,75 @@ class ULDSet(DataSet):
     # Clear dynamic_round_len if necessary
     if is_training: self._clear_dynamic_round_len()
 
+  def classify_eval(self, model: Predictor):
+    from xomics.data_io.utils.preprocess import get_suv_factor
+    testpath = '../../../../data/01-ULD/testset/'
+    doses = [
+      'Full', '1-2', '1-4',
+      '1-10', '1-20', '1-50', '1-100',
+    ]
+    reader = self.reader.load_as_npy_data(testpath, list(range(1, 51)),
+                                          ('Anonymous_', '.nii.gz'),
+                                          shape=(32, 160, 160))
+    # with open(testpath+'tags.txt', 'rb') as f:
+    #   tags = f.readlines()
+    # tags = [i.split(b' ') for i in tags]
+
+    raw_data = np.stack(reader.data)
+    # suv_data = []
+    #
+    # for i in range(50):
+    #   suv_data.append(raw_data[i] *
+    #                   get_suv_factor(float(tags[i][1]), float(tags[i][0])))
+    # suv_data = np.stack(suv_data)
+    raw_data = raw_data.reshape(raw_data.shape + (1,))
+
+    data = DataSet(raw_data, np.zeros((50, 7)))
+    pred = model.predict(data)
+    dose_pred = [doses[np.where(i == np.max(i))[0][0]] for i in pred]
+
+    for i, j in enumerate(dose_pred):
+      print(i+1, j)
+    return
+
+  def output_results(self, model: Predictor):
+    from xomics.data_io.utils.raw_rw import wr_file
+    from uld_core import th
+
+    classification = {
+      '1-4': [1],
+      '1-20': [11, 12, 13, 16, 21, 26, 31, 41, 46],
+      '1-50': [2, 3, 7, 8, 17, 22, 27, 28, 32, 36, 37, 38, 42],
+      '1-100': [4, 5, 6, 9, 10, 14, 15, 18, 19, 20, 23, 24, 25, 29, 30,
+                33, 34, 35, 39, 40, 43, 44, 45, 47, 48, 49, 50],
+    }
+    testpath = '../../../../data/01-ULD/testset/'
+    subs = classification[th.dose]
+    reader = self.reader.load_as_npy_data(testpath, subs,
+                                          ('Anonymous_', '.nii.gz'), raw=True,
+                                          shape=[688, 440, 440])
+    raw_data = reader.data
+    sizes = reader.size_list
+    for i, img in enumerate(raw_data):
+      img = img.reshape((1, 688, 440, 440, 1))
+      img_i = img / np.max(img)
+      data_i = DataSet(img_i, img_i)
+      pred = model.predict(data_i)
+      pred_o = pred * np.max(img)
+      pred_o = pred_o[0, :sizes[i], ..., 0]
+      pred_o.reshape((sizes[i], 440, 440))
+      filename = f'/outputs/sub{subs[i]}.nii.gz'
+      wr_file(pred_o, testpath + filename)
+      print(f'({i+1}/{len(subs)}) saved the {filename}')
+
+    return
 
   def evaluate_model(self, model: Predictor, report_metric=True):
+    from uld_core import th
+    if th.classify:
+      return self.classify_eval(model)
+    if th.output_result:
+      return self.output_results(model)
     from dev.explorers.uld_explorer.uld_explorer_v3 import ULDExplorer
     # from dev.explorers.uld_explorer.uld_explorer import ULDExplorer, DeltaViewer
     from xomics import MedicalImage
@@ -119,7 +186,6 @@ class ULDSet(DataSet):
     # ue.add_plotter(delta_viewer)
     ue.show()
 
-
   @staticmethod
   def fetch_data(self):
     return self._fetch_data()
@@ -141,7 +207,9 @@ class ULDSet(DataSet):
     }
 
     if th.classify:
-      kwargs['raw'] = True
+      # kwargs['raw'] = True
+      kwargs['show_log'] = False
+      # kwargs['use_suv'] = True
       self._fetch_data_for_classify(subjects, **kwargs)
     elif th.norm_by_feature:
       doses = [[self.dose], ['Full']]
@@ -175,8 +243,11 @@ class ULDSet(DataSet):
     for subject in subjects:
       data = self.reader.load_data([subject], doses, methods='type', **kwargs)
       data = list(data.values())
-      vmax = np.max(data[6])
-      arr.append(data / vmax)
+      data = [i[0] for i in data]
+      # vmax = np.max(data[6])
+      data = np.concatenate(data)
+      arr.append(data)
+      # arr.append(data / vmax)
       label += [[0], [1], [2], [3], [4], [5], [6]]
     self.features = np.concatenate(arr)
     self.targets = np.array(label)
@@ -204,7 +275,8 @@ class ULDSet(DataSet):
       sizes = [-1, 1, 1]
 
     index = sizes.index(-1)
-    results = random.sample(self.subjects, num)
+    # results = random.sample(self.subjects, num)
+    results = list(range(1, num+1))
     sub_list = []
     for k in range(len(sizes)):
       if k != index:
