@@ -24,7 +24,7 @@ def rd_file(filepath):
 
 def rd_series(dirpath):
   """
-  use SimpleITK to read image series
+  use pydicom to read image series
   :param dirpath: directory path name
   :return:
   """
