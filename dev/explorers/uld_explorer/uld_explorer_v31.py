@@ -77,8 +77,12 @@ class DoseViewer(SliceView):
 
     # Show slice
     m = self.get('axial_margin')
-    full_dose_slice = full_dose_vol[x][m:-m, m:-m]
-    image: np.ndarray = selected_vol[x][m:-m, m:-m]
+    if m > 0:
+      full_dose_slice = full_dose_vol[x][m:-m, m:-m]
+      image: np.ndarray = selected_vol[x][m:-m, m:-m]
+    else:
+      full_dose_slice = full_dose_vol[x]
+      image: np.ndarray = selected_vol[x]
 
     # Enhance image if required
     if self.get('dev_mode') and not all(
@@ -117,14 +121,15 @@ class DoseViewer(SliceView):
           arr1, arr2, metrics, data_range=max_val).items()])
 
       # Find key
+      alpha = np.sum(arr1) / np.sum(arr2)
       if show_slice_metric:
         title = _get_title()
-        alpha = np.sum(arr1) / np.sum(arr2)
-        title += r', $\alpha=$' + f'{alpha:.3f}'
       else:
         tt_key = self.displayed_layer_key + '_metrics'
         title = self.get_from_pocket(tt_key, initializer=_get_title)
         title = '[Global] ' + title
+
+      title += r', $\alpha=$' + f'{alpha:.3f}'
 
       if self.get('dev_mode'): title = f'[Dev] {title}'
 

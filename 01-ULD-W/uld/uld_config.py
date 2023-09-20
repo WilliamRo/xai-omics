@@ -37,6 +37,15 @@ class ULDConfig(SmartTrainerHub):
 
   classify = Flag.boolean(False, "whether train for dose classification", is_key=None)
 
+  uld_batch_size = Flag.integer(1, '...', is_key=None)
+  thickness = Flag.integer(20, '...', is_key=None)
+
+  normalize_energy = Flag.boolean(False, '...', is_key=None)
+  ne_gamma = Flag.float(0, '...', is_key=None)
+
+  include_input = Flag.boolean(False, '...', is_key=None)
+
+
   @property
   def data_arg(self) -> Arguments:
     return Arguments.parse(self.data_config)
