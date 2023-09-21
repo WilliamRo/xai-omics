@@ -53,7 +53,7 @@ class ULDSet(DataSet):
 
 
   def evaluate_model(self, model: Predictor, report_metric=True):
-    from dev.explorers.uld_explorer.uld_explorer_v3 import ULDExplorer
+    from dev.explorers.uld_explorer.uld_explorer_v31 import ULDExplorer
     # from dev.explorers.uld_explorer.uld_explorer import ULDExplorer, DeltaViewer
     from xomics import MedicalImage
 
@@ -82,6 +82,7 @@ class ULDSet(DataSet):
     ue = ULDExplorer(medical_images)
     ue.dv.set('vmin', auto_refresh=False)
     ue.dv.set('vmax', auto_refresh=False)
+    ue.dv.set('axial_margin', 0, auto_refresh=False)
 
     # delta_viewer = DeltaViewer(target_key='Targets')
     # delta_viewer.set('vmax', auto_refresh=False)

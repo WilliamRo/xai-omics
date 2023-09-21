@@ -11,18 +11,22 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'adc'
-id = 2
+model_name = 'ecc'
+id = 3
 def model():
   th = core.th
 
   model = m.get_initial_model()
 
-  for str_c in th.archi_string.split('-'):
-    c = int(str_c)
-    model.add(m.mu.HyperConv3D(c, th.kernel_size, activation='relu'))
+  # for str_c in th.archi_string.split('-'):
+  #   c = int(str_c)
+  #   model.add(m.mu.HyperConv3D(c, th.kernel_size, activation='relu'))
 
-  model.add(m.mu.HyperConv3D(1, kernel_size=1))
+  fg = None
+  if 'ecc' in th.developer_code: fg = m.gen_ecc_filter
+  model.add(m.mu.HyperConv3D(1, th.kernel_size, filter_generator=fg))
+
+  # model.add(m.mu.HyperConv3D(1, kernel_size=1))
 
   return m.finalize(model)
 
@@ -61,13 +65,12 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '2-2'
+  th.archi_string = 'null'
   th.kernel_size = 3
-  th.normalize_energy = True
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
-  th.epoch = 200
+  th.epoch = 100
   th.early_stop = True
   th.patience = 5
   th.probe_cycle = th.updates_per_round
@@ -85,6 +88,7 @@ def main(_):
   th.train = 1
 
   th.developer_code += 'chip'
+  # th.developer_code += 'ecc'
   th.uld_batch_size = 10
   th.thickness = 20
   th.updates_per_round = 20

@@ -40,8 +40,8 @@ th.data_dir = os.path.join(ROOT, 'data')
 # -----------------------------------------------------------------------------
 # Device configuration
 # -----------------------------------------------------------------------------
-th.allow_growth = True
-th.gpu_memory_fraction = 0.7
+th.allow_growth = False
+th.gpu_memory_fraction = 0.8
 
 # -----------------------------------------------------------------------------
 # Data configuration
@@ -54,12 +54,18 @@ th.input_shape = [None, None, None, 1]
 th.early_stop = True
 th.patience = 5
 
-th.print_cycle = 2
+th.print_cycle = 1
 th.updates_per_round = 50
 th.validation_per_round = 2
+
 th.val_batch_size = 1
+th.eval_batch_size = 1
+th.val_progress_bar = True
 
 th.export_tensors_upon_validation = True
+
+th.evaluate_train_set = True
+th.evaluate_val_set = True
 
 
 def activate():
@@ -71,7 +77,7 @@ def activate():
   assert isinstance(model, Predictor)
 
   # Load data
-  train_set, val_set, test_set = du.load_data()
+  train_set, val_set = du.load_data()
 
   # Rehearse if required
   if th.rehearse:
@@ -85,9 +91,10 @@ def activate():
   # th.additional_datasets_for_validation.append(some_data_set)
   if th.train:
     model.train(training_set=train_set, validation_set=val_set,
-                test_set=test_set, trainer_hub=th, probe=tu.probe)
+                trainer_hub=th)
   else:
-    test_set.evaluate_model(model)
+    # train_set.evaluate_model(model)
+    val_set.evaluate_model(model)
 
   # End
   model.shutdown()

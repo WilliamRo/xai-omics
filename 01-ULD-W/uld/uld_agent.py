@@ -12,18 +12,19 @@ class ULDAgent(DataAgent):
   @classmethod
   def load(cls, data_dir, validate_size, test_size):
     from uld_core import th
+
     ds: ULDSet = cls.load_as_tframe_data(data_dir)
 
+    ds.subjects = ds.subjects[:th.int_para_1]
+    ds.fetch_data(ds)
+    ds.data_fetcher = None
+    ds.name = 'ULDSet'
 
+    if 'self2self' in th.developer_code:
+      ds.targets = ds.features
 
+    return ds.split(-1, validate_size, names=('TrainSet', 'ValSet'))
 
-
-    if th.exp_name in ['alpha', 'beta', 'gamma']:
-      return ds.split(-1, validate_size, test_size,
-                      names=['Train-Set', 'Val-Set', 'Test-Set'])
-    else:
-      return ds.get_subsets(-1, validate_size, test_size,
-                            names=['Train-Set', 'Val-Set', 'Test-Set'])
 
   @classmethod
   def load_as_tframe_data(cls, data_dir):
@@ -40,6 +41,7 @@ class ULDAgent(DataAgent):
       dose = th.data_kwargs['dose']
       return ULDSet.load_as_uldset(data_root, dose)
 
+
   # Keep this function to run alpha beta gamma exp
   @classmethod
   def load_as_numpy_arrays(cls, data_dir):
@@ -54,6 +56,7 @@ class ULDAgent(DataAgent):
     targets = reader.load_data(subjects, "Full")
 
     return features, targets
+
 
   @classmethod
   def early_exp(cls, th, expname, features, targets):
