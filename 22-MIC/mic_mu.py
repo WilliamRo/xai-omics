@@ -57,25 +57,19 @@ def get_cnn_3d():
 
   return finalize(model)
 
-
 def get_fcn_3d_01():
   model = get_initial_model()
 
   fm = mu.ForkMergeDAG([
-    mu.HyperConv3D(filters=3, kernel_size=3, activation='relu'),       #1
-    mu.MaxPool3D(pool_size=2, strides=2, padding='valid'),                   #2
-    mu.HyperConv3D(filters=16, kernel_size=3, activation='relu'),      #3
-    mu.MaxPool3D(pool_size=2, strides=2, padding='valid'),                   #4
-    mu.HyperConv3D(filters=32, kernel_size=3, activation='relu'),      #5
-    mu.MaxPool3D(pool_size=2, strides=2, padding='valid'),                   #6
-    mu.HyperConv3D(filters=64, kernel_size=3, activation='relu'),      #7
-    mu.MaxPool3D(pool_size=2, strides=2, padding='valid'),                   #8
-    mu.HyperDeconv3D(filters=32, kernel_size=3, strides=2, activation='relu'),    #9
-    mu.Merge.Sum(),                                                                    #10
-    mu.HyperDeconv3D(filters=2, kernel_size=3,  strides=8, activation='relu')],#11
-    edges=
-    '1;01;001;0001;00001;000001;0000001;00000001;000000001;0000001001;00000000001',
-    name='fcn_3d')
+    mu.HyperConv3D(filters=32, kernel_size=3, activation='relu'),      #1
+    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #2
+    mu.HyperConv3D(filters=64, kernel_size=3, activation='relu'),      #3
+    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #4
+    mu.HyperConv3D(filters=128, kernel_size=3, activation='relu'),     #5
+    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #6
+    mu.HyperConv3D(filters=2, kernel_size=1, activation='relu')],      #7
+    edges='1;01;001;0001;00001;000001;0000001',
+    name='fcn_3d_01')
   model.add(fm)
 
   return finalize(model)
@@ -83,45 +77,18 @@ def get_fcn_3d_01():
 
 def get_fcn_3d_02():
   model = get_initial_model()
-  stride = (1, 2, 2)
 
   fm = mu.ForkMergeDAG([
-    mu.HyperConv3D(filters=3, kernel_size=3, activation='relu'),       #1
-    mu.MaxPool3D(pool_size=stride, strides=stride, padding='valid'),                   #2
-    mu.HyperConv3D(filters=16, kernel_size=3, activation='relu'),      #3
-    mu.MaxPool3D(pool_size=stride, strides=stride, padding='valid'),                   #4
-    mu.HyperConv3D(filters=32, kernel_size=3, activation='relu'),      #5
-    mu.MaxPool3D(pool_size=stride, strides=stride, padding='valid'),                   #6
-    mu.HyperConv3D(filters=64, kernel_size=3, activation='relu'),      #7
-    mu.MaxPool3D(pool_size=stride, strides=stride, padding='valid'),                   #8
-    mu.HyperDeconv3D(filters=32, kernel_size=3, strides=stride, activation='relu'),    #9
-    mu.Merge.Sum(),                                                                    #10
-    mu.HyperDeconv3D(filters=2, kernel_size=3,  strides=(1, 8, 8), activation='relu')],#11
-    edges=
-    '1;01;001;0001;00001;000001;0000001;00000001;000000001;0000001001;00000000001',
-    name='fcn_3d')
+    mu.HyperConv3D(filters=32, kernel_size=3, activation='relu'),      #1
+    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #2
+    mu.HyperConv3D(filters=64, kernel_size=3, activation='relu'),      #3
+    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #4
+    mu.HyperConv3D(filters=2, kernel_size=1, activation='relu')],      #5
+    edges='1;01;001;0001;00001',
+    name='fcn_3d_02')
   model.add(fm)
 
   return finalize(model)
-
-
-def get_fcn_3d_03():
-  model = get_initial_model()
-  stride = (1, 2, 2)
-
-  fm = mu.ForkMergeDAG([
-    mu.HyperConv3D(filters=3, kernel_size=3, strides=stride, activation='relu'),       #1
-    mu.HyperConv3D(filters=16, kernel_size=3, strides=stride, activation='relu'),      #3
-    mu.HyperConv3D(filters=32, kernel_size=3, strides=stride, activation='relu'),      #5
-    mu.HyperConv3D(filters=64, kernel_size=3, strides=stride, activation='relu'),      #7
-    mu.HyperDeconv3D(filters=32, kernel_size=3, strides=stride, activation='relu'),    #9
-    mu.Merge.Sum(),                                                                    #10
-    mu.HyperDeconv3D(filters=2, kernel_size=3,  strides=(1, 8, 8), activation='relu')],#11
-    edges='1;01;001;0001;00001;000101;0000001', name='fcn_3d')
-  model.add(fm)
-
-  return finalize(model)
-
 
 def get_fcn_3d_04():
   model = get_initial_model()
@@ -139,27 +106,6 @@ def get_fcn_3d_04():
   model.add(fm)
 
   return finalize(model)
-
-
-def get_fcn_3d_05():
-  model = get_initial_model()
-
-  fm = mu.ForkMergeDAG([
-    mu.HyperConv3D(filters=16, kernel_size=3, activation='relu'),      #1
-    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #2
-    mu.HyperConv3D(filters=32, kernel_size=3, activation='relu'),      #3
-    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #4
-    mu.HyperConv3D(filters=64, kernel_size=3, activation='relu'),      #5
-    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #6
-    mu.HyperConv3D(filters=128, kernel_size=3, activation='relu'),     #7
-    mu.MaxPool3D(pool_size=2, strides=2, padding='same'),              #8
-    mu.HyperConv3D(filters=2, kernel_size=1, activation='relu')],      #9
-    edges='1;01;001;0001;00001;000001;0000001;00000001;000000001',
-    name='fcn_3d_05')
-  model.add(fm)
-
-  return finalize(model)
-
 
 class GlobalAveragePooling3D(Layer):
 
