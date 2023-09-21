@@ -13,8 +13,9 @@ class UldReader(NpyReader):
   def __init__(self, datadir: str = None):
     super().__init__(datadir)
     self.size_list = []
+    self.process_func = self.process
 
-  def _pre_process(self, use_suv=False, cmap=None):
+  def process(self, use_suv=False, cmap=None):
     if use_suv:
       tags = self.load_tags()
       self._data = calc_SUV(self._data, tags)

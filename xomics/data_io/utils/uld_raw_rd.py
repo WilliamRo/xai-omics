@@ -28,6 +28,7 @@ def rd_uld_test(dirpath, name_list, outputs=False):
     if tmp in name_list:
       filepath = os.path.join(dirpath, file)
       arr.append(rd_file(filepath))
+      print(f'...loaded {file}')
   results = np.stack(arr)
   return results
 
@@ -41,6 +42,7 @@ def rd_uld_train(datapath: str, subject, dose="Full_dose"):
   :return:
   """
   patients = os.listdir(os.path.join(datapath, subject))
+  patients.sort()
   images = []
   tags = []
 

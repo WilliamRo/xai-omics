@@ -30,7 +30,7 @@ def gen_uld_npy(path, n_path):
                                f'subject{num}', f'tags_subject{num}_{dose}.txt')
         npy_save(arr, npypath)
         print(f"....({c2}/{len(data) * 2}) Save numpy data subject{num} {dose}")
-        wr_tags(tag, tagpath)
+        wr_tags(tag, tagpath, suv=True)
         c2 += 1
         print(f"....({c2}/{len(data) * 2}) Save tags data subject{num} {dose}")
         num += 1

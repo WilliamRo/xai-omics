@@ -13,10 +13,11 @@ class NpyReader:
 
   def __init__(self, datadir: str = None):
     self.SUBJECT_NAME = 'subject'
-    self.datadir = datadir
+    self._data = None
     self._current_filepath = None
     self.data = None
-    self._data = None
+    self.datadir = datadir
+    self.process_func = None
     self.methods_dict = {
       'sub': self.load_data_by_subject,
       'type': self.load_data_by_types,
@@ -29,9 +30,6 @@ class NpyReader:
 
   def _npy_load(self, **kwargs):
     return self.pre_process(**kwargs)
-
-  def _pre_process(self, **kwargs):
-    pass
 
   def load_numpy_data(self, subjects, types, methods, **kwargs):
     assert methods in self.methods_dict.keys()
@@ -129,6 +127,7 @@ class NpyReader:
                   raw=False, clip=None,
                   ret_norm=False, mi=False,
                   **kwargs):
+    self.process_func(**kwargs)
     if not raw:
       if ret_norm:
         self._data, norm = normalize(self._data, norm, ret_norm=ret_norm)
@@ -138,7 +137,6 @@ class NpyReader:
       self._data = norm_size(self._data, shape)
     if clip is not None:
       self._data = np.clip(self._data, clip[0], clip[1])
-    self._pre_process(**kwargs)
     if mi:
       self._data = self._data.reshape(self._data.shape[1:])
     if ret_norm:

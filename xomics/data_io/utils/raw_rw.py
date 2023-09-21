@@ -4,7 +4,7 @@ import joblib
 import numpy as np
 import os
 import pydicom
-
+import SimpleITK as sitk
 
 
 
@@ -15,7 +15,6 @@ def rd_file(filepath):
   :param filepath:
   :return: data array
   """
-  import SimpleITK as sitk
 
   itk_img = sitk.ReadImage(filepath)
   img = sitk.GetArrayFromImage(itk_img)
@@ -28,8 +27,15 @@ def rd_series(dirpath):
   :param dirpath: directory path name
   :return:
   """
+  # series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(dirpath)
+  # series_reader = sitk.ImageSeriesReader()
+  # series_reader.SetFileNames(series_file_names)
+  # image3D = series_reader.Execute()
+  # data = sitk.GetArrayFromImage(image3D)
+  # return data
+
   file_paths = finder.walk(dirpath)
-  dcms = [pydicom.dcmread(path)
+  dcms = [pydicom.read_file(path)
           for path in file_paths]
   dcms = sorted(dcms, key=lambda d: d.InstanceNumber, reverse=True)
   data = [d.pixel_array for d in dcms]
@@ -37,7 +43,6 @@ def rd_series(dirpath):
 
 
 def wr_file(arr, pathname):
-  import SimpleITK as sitk
   img = sitk.GetImageFromArray(arr)
   sitk.WriteImage(img, pathname)
 
