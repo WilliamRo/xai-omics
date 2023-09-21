@@ -9,7 +9,7 @@ from tqdm import tqdm
 from xomics import MedicalImage
 from xomics.gui.dr_gordon import DrGordon
 from tools import data_processing
-from copy import copy
+from copy import deepcopy, copy
 
 
 

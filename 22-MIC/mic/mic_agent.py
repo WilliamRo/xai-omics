@@ -102,7 +102,7 @@ class MICAgent(DataAgent):
     print(data_dir)
     image_dict = OrderedDict()
 
-    mi_dir =  os.path.abspath(r'../../data/BA & MIA/mi')
+    mi_dir =  os.path.abspath(r'../../data/03-BA & MIA/mi')
     BA_dir = os.path.join(mi_dir, 'BA')
     MIA_dir = os.path.join(mi_dir, 'MIA')
     BA_file_names = os.listdir(BA_dir)

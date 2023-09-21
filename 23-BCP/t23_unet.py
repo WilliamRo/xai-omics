@@ -1,5 +1,5 @@
-import mic_core as core
-import mic_mu as m
+import bcp_core as core
+import bcp_mu as m
 
 from tframe import console
 from tframe import tf
@@ -11,27 +11,19 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'fcn'
-id = 2
+model_name = 'unet'
+id = 1
 def model():
   th = core.th
-  model_type, model_num = th.archi_string.split('-')
 
-  if model_type == 'fcn' and model_num == '1':
-    return m.get_fcn_3d_01()
-  elif model_type == 'fcn' and model_num == '2':
-    return m.get_fcn_3d_02()
-  elif model_type == 'fcn' and model_num == '4':
-    return m.get_fcn_3d_04()
-  else:
-    assert TypeError('No model!!!')
+  return m.get_unet(th.archi_string)
 
 
 def main(_):
-  console.start('{} on Medical Image Classification task'.format(model_name.upper()))
+  console.start('{} on Brain Analysis'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = False
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -39,10 +31,6 @@ def main(_):
   th.random_flip = 1
   th.random_rotation = 1
   th.random_noise = 1
-  th.random_translation = 1
-
-  th.cross_validation = False
-  th.num_fold = 5
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
@@ -57,32 +45,31 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = 'fcn-2'
-
+  th.archi_string = '8-5-2-3-relu-mp'
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
   th.epoch = 2000
-  th.early_stop = True
+  th.early_stop = False
   th.probe_cycle = th.updates_per_round // 2
   th.patience = 10
 
-  th.batch_size = 128
-  th.val_batch_size = 16
-  th.batchlet_size = 32
+  th.batch_size = 4
+  th.batchlet_size = 4
+  # th.gradlet_in_device = 1
+
+  th.val_batch_size = 4
+  th.eval_batch_size = 4
 
   th.optimizer = 'adam'
-  th.learning_rate = 0.005
+  th.learning_rate = 0.003
 
   th.train = True
   th.overwrite = True
 
-
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
-  # th.mark = '{}({})'.format(
-  #   model_name, th.archi_string + '-' + th.link_indices_str)
   th.mark = '{}({})'.format(
     model_name, th.archi_string)
   # th.mark += th.data_config.replace('>', '-')

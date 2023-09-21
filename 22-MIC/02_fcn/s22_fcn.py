@@ -31,8 +31,8 @@ s.register('epoch', 2000)
 s.register('patience', 10)
 
 s.register('lr', 0.0001, 0.001, 0.01)
-s.register('batch_size', 32, 128, 256)
-s.register('archi_string', 'fcn-3', 'fcn-4', 'fcn-5')
+s.register('batch_size', 64, 128, 256)
+s.register('archi_string', 'fcn-1', 'fcn-2')
 
 s.register('random_translation', s.true_and_false)
 s.register('random_flip', s.true_and_false)
