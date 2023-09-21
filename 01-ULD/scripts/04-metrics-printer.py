@@ -28,10 +28,11 @@ if __name__ == '__main__':
   subjects = [2]
 
   reader = UldReader(dirpath)
-  imgs = reader.load_data(subjects, dose_tags, methods='type', shape=shape, raw=True)
+  imgs = reader.load_data(subjects, dose_tags, methods='type',
+                          shape=shape, raw=True)
   full = imgs['Full'][0][0, ..., 0]
 
-  metr = ['nrmse', 'SSIM', 'psnr'] # , 'pw_rmse']
+  metr = ['nrmse', 'SSIM', 'psnr']
   for k, v in imgs.items():
     if k == 'Full': continue
     print(f'{k} dose:')

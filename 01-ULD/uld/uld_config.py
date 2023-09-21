@@ -37,6 +37,12 @@ class ULDConfig(SmartTrainerHub):
 
   classify = Flag.boolean(False, "whether train for dose classification", is_key=None)
   output_result = Flag.boolean(False, 'output the real predict data', is_key=None)
+
+  normalize_energy = Flag.boolean(False, '...', is_key=None)
+  ne_gamma = Flag.float(0, '...', is_key=None)
+
+  include_input = Flag.boolean(False, '...', is_key=None)
+
   @property
   def data_arg(self) -> Arguments:
     return Arguments.parse(self.data_config)

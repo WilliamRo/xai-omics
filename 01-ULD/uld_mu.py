@@ -1,7 +1,11 @@
-from tframe import mu
-from uld.operators.custom_layers import Tanh_k, Atanh_k, Clip
+from tframe import mu, tf
+from tframe.layers.hyper.conv import ConvBase
+from uld.operators.custom_layers import Tanh_k, Atanh_k, Clip, AdaptiveMerge, \
+  NormalizeEnergy
 from uld.operators.custom_loss import get_ssim_3D, get_nrmse, get_psnr, \
   get_pw_rmse
+
+
 
 EPSILON = 0.001
 
@@ -9,7 +13,7 @@ custom_loss = {
   'ssim': get_ssim_3D(),
   'nrmse': get_nrmse(),
   'psnr': get_psnr(),
-  'pw_rmse': get_pw_rmse(EPSILON),
+  # 'pw_rmse': get_pw_rmse(EPSILON),
 }
 
 def get_initial_model():
@@ -45,7 +49,7 @@ def finalize(model):
 
   if th.use_sigmoid:
     model.add(mu.Activation('sigmoid'))
-  else:
+  elif not th.normalize_energy:
     model.add(Clip(0, 1.2))
 
   if th.learn_delta:
@@ -69,3 +73,17 @@ def get_unet(arc_string='8-3-4-2-relu-mp', **kwargs):
 
 
 
+def gen_ecc_filter(self: ConvBase, filter_shape):
+  from uld_core import th
+
+  # filter_shape = [ks, ks, ks, in_c, out_c]
+  k = tf.get_variable(
+    'kernel', shape=filter_shape, dtype=th.dtype,
+    initializer=self._weight_initializer)
+  k = tf.abs(k)
+
+  k_sum = tf.reduce_sum(k, axis=[0, 1, 2])
+  eck = k / k_sum
+  # eck = tf.nn.softmax(k, axis=[0, 1, 2])
+
+  return eck

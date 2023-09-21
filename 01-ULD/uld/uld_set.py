@@ -118,12 +118,13 @@ class ULDSet(DataSet):
     from uld_core import th
 
     classification = {
-      '1-4': [1],
-      '1-20': [11, 12, 13, 16, 21, 26, 31, 41, 46],
-      '1-50': [2, 3, 7, 8, 17, 22, 27, 28, 32, 36, 37, 38, 42],
-      '1-100': [4, 5, 6, 9, 10, 14, 15, 18, 19, 20, 23, 24, 25, 29, 30,
-                33, 34, 35, 39, 40, 43, 44, 45, 47, 48, 49, 50],
+      '1-4': [1, 6, 11, 16, 21, 26, 31, 36, 41, 46],
+      '1-10': [2, 7, 12, 17, 22, 27, 32, 37, 42, 47],
+      '1-20': [3, 8, 13, 18, 23, 28, 33, 38, 43, 48],
+      '1-50': [4, 9, 14, 19, 24, 29, 34, 39, 44, 49],
+      '1-100': [5, 10, 15, 20, 25, 30, 37, 40, 45, 50]
     }
+
     testpath = '../../../../data/01-ULD/testset/'
     subs = classification[th.dose]
     reader = self.reader.load_as_npy_data(testpath, subs,
@@ -139,7 +140,7 @@ class ULDSet(DataSet):
       pred_o = pred * np.max(img)
       pred_o = pred_o[0, :sizes[i], ..., 0]
       pred_o.reshape((sizes[i], 440, 440))
-      filename = f'/outputs/sub{subs[i]}.nii.gz'
+      filename = f'/outputs/Anonymous{subs[i]}.nii.gz'
       wr_file(pred_o, testpath + filename)
       print(f'({i+1}/{len(subs)}) saved the {filename}')
 
@@ -147,6 +148,7 @@ class ULDSet(DataSet):
 
   def evaluate_model(self, model: Predictor, report_metric=True):
     from uld_core import th
+    from utils.metrics_calc import get_metrics
     if th.classify:
       return self.classify_eval(model)
     if th.output_result:
@@ -162,7 +164,20 @@ class ULDSet(DataSet):
     # data = self.gen_random_window(128)
     pred = model.predict(data)
     print(self.size, pred.shape, self.targets.shape)
+    metrics = ['SSIM', 'NRMSE', 'PSNR']
+    fmetric = get_metrics(self.targets[0, ..., 0],
+                          pred[0, ..., 0],
+                          metrics, data_range=1)
+    print('...predict')
+    for k, v in fmetric.items():
+      print(f'{k}:{v: .5f}')
 
+    fmetric = get_metrics(self.targets[0, ..., 0],
+                          self.features[0, ..., 0],
+                          metrics, data_range=1)
+    print('...low')
+    for k, v in fmetric.items():
+      print(f'{k}:{v: .5f}')
     # Compare results using DrGordon
     medical_images = [
       MedicalImage(f'Sample-{i}', images={

@@ -2,7 +2,8 @@ from tframe import tf
 from tframe.layers import Reshape
 from tframe.layers.layer import Layer
 from tframe.layers.layer import single_input
-
+from .adaptive_merge import AdaptiveMerge
+from .energy_norm import NormalizeEnergy
 import numpy as np
 
 
