@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 
 
@@ -29,9 +31,18 @@ def get_suv_factor(decay_dose: float, weight):
   return 1000 * weight / decay_dose
 
 
-def normalize(arr, norm=None, ret_norm=False):
+def normalize(arr: np.ndarray, norm=None, ret_norm=False, margin: Union[tuple, list]=None):
+  if margin is not None:
+    assert len(margin) == len(arr.shape)
+    norm_arr = arr
+    for i in range(len(margin)):
+      if margin[i] == 0: continue
+      norm_arr = np.delete(norm_arr, np.s_[0:margin[i]], axis=i, )
+      norm_arr = np.delete(norm_arr, np.s_[-margin[i]:], axis=i)
+  else:
+    norm_arr = arr
   if norm is None:
-    norm = np.max(arr)
+    norm = np.max(norm_arr)
     if ret_norm:
       return arr / norm, norm
   return arr / norm

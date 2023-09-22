@@ -126,13 +126,15 @@ class NpyReader:
                   norm=None, shape=None,
                   raw=False, clip=None,
                   ret_norm=False, mi=False,
+                  norm_margin=None,
                   **kwargs):
     self.process_func(**kwargs)
     if not raw:
       if ret_norm:
-        self._data, norm = normalize(self._data, norm, ret_norm=ret_norm)
+        self._data, norm = normalize(self._data, norm,
+                                     margin=norm_margin, ret_norm=ret_norm)
       else:
-        self._data = normalize(self._data, norm)
+        self._data = normalize(self._data, norm, margin=norm_margin)
     if shape is not None:
       self._data = norm_size(self._data, shape)
     if clip is not None:
