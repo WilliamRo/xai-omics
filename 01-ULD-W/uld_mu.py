@@ -6,7 +6,7 @@ from uld.operators.custom_loss import get_ssim_3D, get_nrmse, get_psnr, \
 
 from tframe.layers.hyper.conv import ConvBase
 from archi.energy_norm import NormalizeEnergy
-from archi.adaptive_merge import AdaptiveMerge, WeightedSum
+from archi.adaptive_merge import AdaptiveMerge, WeightedSum, Highlighter
 from archi.guass_pyramid import GaussianPyramid3D
 
 EPSILON = 0.001

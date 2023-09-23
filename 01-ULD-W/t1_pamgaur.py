@@ -11,19 +11,21 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'pamgau'
-id = 7
+model_name = 'pamgaur'
+id = 8
 def model():
   th = core.th
   model = m.get_initial_model()
 
-  sigmas = [int(s) for s in th.sigmas.split(',')]
+  sigmas = [int(s) for s in th.sigmas.split('-')]
   N = len(sigmas) + 1
   # Construct DAG
-  weights = [m.mu.HyperConv3D(N, kernel_size=int(ks), activation=th.activation)
-       for ks in th.archi_string.split('-')]
-  weights.append(m.mu.HyperConv3D(N, kernel_size=1, use_bias=th.use_bias,
-                                  activation='softmax'))
+  weights = [
+    m.mu.HyperConv3D(N, kernel_size=int(ks), activation=th.activation)
+    for ks in th.archi_string.split('-')]
+  if th.beta > 0: weights.insert(0, m.Highlighter(th.beta))
+  weights.append(m.mu.HyperConv3D(
+    N, kernel_size=1, use_bias=th.use_bias, activation='softmax'))
 
   vertices = [
     m.GaussianPyramid3D(kernel_size=th.kernel_size, sigmas=sigmas),
@@ -52,7 +54,7 @@ def main(_):
 
   th.val_size = 1
   th.test_size = 1
-  th.data_shape = [1, 700, 256, 256, 1]
+  th.data_shape = [1, 644, 256, 256, 1]
   # th.data_shape = [1, 400, 400, 400, 1]
 
   th.norm_by_feature = True
@@ -63,8 +65,8 @@ def main(_):
   # th.sub_indices = [0, 1]
   th.sub_indices = [1]
   # th.slice_range = [60, 100]
-  # th.slice_range = [40, 120]
-  th.suffix = f'_{len(th.sub_indices)}sub'
+  th.slice_range = [40, 120]
+  # th.suffix = f'_{len(th.sub_indices)}sub'
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
   # ---------------------------------------------------------------------------
@@ -80,8 +82,9 @@ def main(_):
   th.model = model
 
   th.archi_string = '3-3-3'
-  th.sigmas = '1,3'
+  th.sigmas = '1-3'
   th.activation = 'relu'
+  th.beta = 0.02
 
   th.kernel_size = 11
   th.use_bias = True
@@ -116,13 +119,13 @@ def main(_):
     th.visible_gpu_id = -1
     th.show_weight_map = True
     # th.sub_indices = [1]
-    th.data_shape = [1, 600, 400, 400, 1]
+    # th.data_shape = [1, 600, 400, 400, 1]
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
   th.mark = '{}({})'.format(
-    model_name, f'({th.archi_string}-ks{th.kernel_size})-{th.developer_code}' +
-    f'dose{th.dose}')
+    model_name, f'({th.archi_string}-s{th.sigmas}-b{th.beta})'
+                f'-{th.developer_code}-dose{th.dose}')
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()
 
