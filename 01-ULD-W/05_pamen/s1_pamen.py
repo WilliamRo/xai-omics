@@ -33,18 +33,18 @@ s.register('train', True)
 s.register('epoch', 1000)
 s.register('patience', 10)
 
-s.register('dose', '1-20')
-# s.register('kernel_size', 3, 5)
-# s.register('window_size', 64, 128)
-# s.register('slice_size', 64, 128)
-# s.register('dose', dose)
+s.register('dose', '1-50')
 
 # s.register('data_shape', [1, 608, 440, 440, 1])
-s.register('archi_string', '3-3-3', '2-2-2', '2-2')
+s.register('archi_string', '1-1-1', '3-1-1', '3-1', '1-1', '3-3')
+s.register('developer_code', 'chip', 'chipecc')
+s.register('normalize_energy', s.true_and_false)
+
+s.register('kernel_size', 3, 5)
 
 s.register('lr', 0.0001, 0.01)
 s.register('uld_batch_size', 8, 16)
-s.register('thickness', 10, 30)
+s.register('thickness', 8, 16)
 s.register('ne_gamma', 0)
 
 

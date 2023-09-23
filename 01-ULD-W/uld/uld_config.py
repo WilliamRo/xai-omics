@@ -45,6 +45,12 @@ class ULDConfig(SmartTrainerHub):
 
   include_input = Flag.boolean(False, '...', is_key=None)
 
+  sub_indices = Flag.whatever(None, '...')
+  slice_range = Flag.whatever(None, '...')
+
+  show_weight_map = Flag.boolean(False, '...')
+  sigmas = Flag.string(None, '...', is_key=None)
+
 
   @property
   def data_arg(self) -> Arguments:

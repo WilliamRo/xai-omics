@@ -52,44 +52,6 @@ class ULDSet(DataSet):
 
 
 
-  def evaluate_model(self, model: Predictor, report_metric=True):
-    from dev.explorers.uld_explorer.uld_explorer_v31 import ULDExplorer
-    # from dev.explorers.uld_explorer.uld_explorer import ULDExplorer, DeltaViewer
-    from xomics import MedicalImage
-
-    if report_metric: model.evaluate_model(self, batch_size=1)
-
-    # pred.shape = [N, s, s, s, 1]
-    data = DataSet(self.features, self.targets)
-    # data = self.gen_random_window(128)
-    pred = model.predict(data)
-    print(self.size, pred.shape, self.targets.shape)
-
-    # Compare results using DrGordon
-    medical_images = [
-      MedicalImage(f'Sample-{i}', images={
-        'Input': data.features[i],
-        'Full': data.targets[i],
-        'Model-Output': pred[i],
-        # 'Delta': np.square(pred[i] - data.targets[i])
-      }) for i in range(self.size)]
-
-    # dg = DrGordon(medical_images)
-    # dg.slice_view.set('vmin', auto_refresh=False)
-    # dg.slice_view.set('vmax', auto_refresh=False)
-    # dg.show()
-
-    ue = ULDExplorer(medical_images)
-    ue.dv.set('vmin', auto_refresh=False)
-    ue.dv.set('vmax', auto_refresh=False)
-    ue.dv.set('axial_margin', 0, auto_refresh=False)
-
-    # delta_viewer = DeltaViewer(target_key='Targets')
-    # delta_viewer.set('vmax', auto_refresh=False)
-    # ue.add_plotter(delta_viewer)
-    ue.show()
-
-
   @staticmethod
   def fetch_data(self):
     return self._fetch_data()
@@ -108,6 +70,7 @@ class ULDSet(DataSet):
       'clip': (0, th.max_clip),
       'cmap': th.color_map,
       'shape': th.data_shape,
+      'norm_margin': [0, 10, 0, 0, 0],
     }
 
     if th.classify:
@@ -191,42 +154,48 @@ class ULDSet(DataSet):
     return sub_list
 
 
-  def snapshot(self, model):
-    from tframe import Predictor
-    import os
-    import matplotlib.pyplot as plt
-    from utils.metrics_calc import get_metrics
+
+  def evaluate_model(self, model: Predictor, report_metric=True):
+    from dev.explorers.uld_explorer.uld_explorer_v31 import ULDExplorer
     from uld_core import th
-    assert isinstance(model, Predictor)
+    from xomics import MedicalImage
 
+    if report_metric: model.evaluate_model(self, batch_size=1)
 
-    slice_num = 320
-    if model.counter == 50:
-      metrics = ['SSIM', 'NRMSE', 'PSNR', 'PW_RMSE', 'RMSE']
-      fmetric = get_metrics(self.targets[0, ..., 0],
-                            self.features[0, ..., 0],
-                            metrics, data_range=1)
-      fm_str = '-'.join([f'{k}{v:.5f}' for k, v in fmetric.items()])
-      ffn = f'Feature-Slice{slice_num}-{fm_str}.png'
-      tfn = f'Target-Slice{slice_num}.png'
-      feature = self.features[0, slice_num, ..., 0]
-      target = self.targets[0, slice_num, ..., 0]
-      vmax = np.max(target)
-      self.vmax = vmax
-      plt.imsave(os.path.join(model.agent.ckpt_dir, ffn),
-                 feature, cmap='gray', vmin=0., vmax=vmax)
-      plt.imsave(os.path.join(model.agent.ckpt_dir, tfn),
-                 target, cmap='gray', vmin=0., vmax=vmax)
-    # (1) Get image (shape=[1, S, H, W, 1])
-    # data = DataSet(self.features[:1, 314:330], self.targets[:1, 314:330])
-    images = model.predict(self)
+    # pred.shape = [N, s, s, s, 1]
+    data = DataSet(self.features, self.targets)
+    # data = self.gen_random_window(128)
+    pred = model.predict(data)
+    print(self.size, pred.shape, self.targets.shape)
 
-    # (2) Get metrics
-    val_dict = model.validate_model(self)
+    # Compare results using DrGordon
+    medical_images = [
+      MedicalImage(f'Sample-{i}', images={
+        'Input': data.features[i],
+        'Full': data.targets[i],
+        'Model-Output': pred[i],
+        # 'Delta': np.square(pred[i] - data.targets[i])
+      }) for i in range(self.size)]
 
-  # (3) Save image
-    metric_str = '-'.join([f'{k}{v:.5f}' for k, v in val_dict.items()])
-    fn = f'Iter{model.counter}-{metric_str}.png'
-    img = images[0, slice_num, ..., 0]
-    plt.imsave(os.path.join(model.agent.ckpt_dir, fn),
-               img, cmap='gray', vmin=0., vmax=self.vmax)
+    if th.show_weight_map:
+      fetchers = [th.depot['weight_map']]
+      if 'candidate1' in th.depot: fetchers.append(th.depot['candidate1'])
+
+      values = model.evaluate(fetchers, data)
+      wms = values[0]
+
+      # wm.shape = [?, S, H, W, C]
+      for wm, mi in zip(wms, medical_images):
+        mi.put_into_pocket('weight_map', wm)
+
+      if len(values) > 1:
+        for ca, mi in zip(values[1], medical_images):
+          for c in range(1, ca.shape[-1]):
+            mi.images[f'Candidate-{c}'] = ca[:, :, :, c:c+1]
+
+    ue = ULDExplorer(medical_images)
+    ue.dv.set('vmin', auto_refresh=False)
+    ue.dv.set('vmax', auto_refresh=False)
+    ue.dv.set('axial_margin', 0, auto_refresh=False)
+
+    ue.show()

@@ -11,23 +11,29 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'ecc'
-id = 3
+model_name = 'pamen'
+id = 5
 def model():
   th = core.th
-
   model = m.get_initial_model()
-
-  # for str_c in th.archi_string.split('-'):
-  #   c = int(str_c)
-  #   model.add(m.mu.HyperConv3D(c, th.kernel_size, activation='relu'))
 
   fg = None
   if 'ecc' in th.developer_code: fg = m.gen_ecc_filter
-  model.add(m.mu.HyperConv3D(1, th.kernel_size, filter_generator=fg))
 
-  # model.add(m.mu.HyperConv3D(1, kernel_size=1))
+  v = [m.mu.HyperConv3D(2, kernel_size=int(ks), activation=th.activation)
+       for ks in th.archi_string.split('-')]
+  v.append(m.mu.HyperConv3D(2, kernel_size=1, activation='softmax'))
 
+  vertices = [
+    m.mu.HyperConv3D(1, kernel_size=th.kernel_size, filter_generator=fg),
+    m.mu.Merge.Concat(),
+    v,
+    m.WeightedSum(),
+  ]
+
+  edges = '1;11;100;0011'
+
+  model.add(m.mu.ForkMergeDAG(vertices, edges))
   return m.finalize(model)
 
 
@@ -42,7 +48,7 @@ def main(_):
   # 0. date set setup
   # ---------------------------------------------------------------------------
   th.dose = ['1-2', '1-4', '1-10', '1-20', '1-50', '1-100'][4]
-  th.data_config = fr'epsilon dataset=01-ULD dose={th.dose}'
+  th.data_config = f'epsilon dataset=01-ULD dose={th.dose}'
 
   th.val_size = 1
   th.test_size = 1
@@ -50,7 +56,8 @@ def main(_):
   # th.data_shape = [1, 400, 400, 400, 1]
 
   th.norm_by_feature = True
-  th.int_para_1 = 2
+  th.sub_indices = [2, 3]
+  # th.suffix = '_01'
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
   # ---------------------------------------------------------------------------
@@ -65,16 +72,18 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = 'null'
+  th.archi_string = '2-2-2'
   th.kernel_size = 5
-  th.normalize_energy = 0
+  th.activation = 'relu'
+
+  th.normalize_energy = False
   th.developer_code += 'ecc'
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
-  th.epoch = 100
+  th.epoch = 1000
   th.early_stop = True
-  th.patience = 5
+  th.patience = 10
   th.probe_cycle = th.updates_per_round
 
   th.batch_size = 1
@@ -87,7 +96,7 @@ def main(_):
   th.learning_rate = 0.001
   th.val_decimals = 7
 
-  th.train = 1
+  th.train = 0
 
   th.developer_code += 'chip'
   # th.developer_code += 'ecc'
@@ -97,13 +106,14 @@ def main(_):
 
   if not th.train:
     th.visible_gpu_id = -1
-    th.data_shape = [1, 600, 440, 440, 1]
+    th.data_shape = [1, 600, 400, 400, 1]
   th.overwrite = True
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
   th.mark = '{}({})'.format(
-    model_name, f'({th.archi_string})ks{th.kernel_size}-{th.developer_code}')
+    model_name, f'({th.archi_string}ks{th.kernel_size})-{th.developer_code}' +
+    f'dose{th.dose}')
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()
 

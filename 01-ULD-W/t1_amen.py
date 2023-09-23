@@ -54,12 +54,12 @@ def main(_):
 
   th.val_size = 1
   th.test_size = 1
-  th.data_shape = [1, 500, 256, 256, 1]
+  th.data_shape = [1, 600, 256, 256, 1]
   # th.data_shape = [1, 400, 400, 400, 1]
 
   th.norm_by_feature = True
   th.int_para_1 = 2
-  th.suffix = '_03'
+  # th.suffix = '_03'
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
   # ---------------------------------------------------------------------------
@@ -83,7 +83,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
-  th.epoch = 100
+  th.epoch = 10
   th.early_stop = True
   th.patience = 10
   th.probe_cycle = th.updates_per_round
@@ -98,7 +98,7 @@ def main(_):
   th.learning_rate = 0.001
   th.val_decimals = 7
 
-  th.train = 0
+  th.train = 1
 
   th.developer_code += 'chip'
   # th.developer_code += 'ecc'
@@ -114,7 +114,8 @@ def main(_):
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
   th.mark = '{}({})'.format(
-    model_name, f'({th.archi_string}ks{th.kernel_size})-{th.developer_code}')
+    model_name, f'({th.archi_string}ks{th.kernel_size})-{th.developer_code}' +
+    f'dose{th.dose}')
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()
 

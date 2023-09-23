@@ -15,14 +15,20 @@ class ULDAgent(DataAgent):
 
     ds: ULDSet = cls.load_as_tframe_data(data_dir)
 
-    ds.subjects = ds.subjects[:th.int_para_1]
+    ds.subjects = [ds.subjects[i] for i in th.sub_indices]
     ds.fetch_data(ds)
     ds.data_fetcher = None
     ds.name = 'ULDSet'
 
+    if th.slice_range is not None:
+      s1, s2 = th.slice_range
+      ds.features = ds.features[:, s1:s2]
+      ds.targets = ds.targets[:, s1:s2]
+
     if 'self2self' in th.developer_code:
       ds.targets = ds.features
 
+    if len(th.sub_indices) == 1: return ds, ds
     return ds.split(-1, validate_size, names=('TrainSet', 'ValSet'))
 
 

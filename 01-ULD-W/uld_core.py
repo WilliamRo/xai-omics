@@ -99,7 +99,3 @@ def activate():
   # End
   model.shutdown()
   console.end()
-
-
-if __name__ == "__main__":
-  print(ROOT)

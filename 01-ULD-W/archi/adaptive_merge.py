@@ -30,8 +30,8 @@ class AdaptiveMerge(Merge, NeuroBase):
     # h[12].shape = [?, S]
     h = tf.stack([h1, h2], axis=-1)
     # h.shape = [?, S, 2]
-    h = self.dense(2, h, 'h1', activation='relu')
-    h = self.dense(2, h, 'h2', activation='relu')
+    h = self.dense(N, h, 'h1', activation='relu')
+    h = self.dense(N, h, 'h2', activation='relu')
 
     # ws.shape = [?, S, N]
     ws = self.dense(N, h, 'ws', activation='softmax')
@@ -43,3 +43,26 @@ class AdaptiveMerge(Merge, NeuroBase):
     # each w.shape = [?, S, 1, 1, 1]
 
     return tf.add_n([w * x for w, x in zip(ws, xs)])
+
+
+
+class WeightedSum(Merge):
+
+  abbreviation = 'ws'
+  full_name = 'weighted_sum'
+
+  def __init__(self): pass
+
+
+  def _link(self, xs):
+    assert len(xs) == 2
+
+    # xs[1] should be weights
+    th.depot['weight_map'] = xs[1]
+    th.depot['candidate1'] = xs[0]
+
+    # x.shape = [?, S, H, W, C]
+    y = xs[0] * xs[1]
+    y = tf.reduce_sum(y, axis=-1, keep_dims=True)
+    # y.shape = [?, S, H, W, 1]
+    return y

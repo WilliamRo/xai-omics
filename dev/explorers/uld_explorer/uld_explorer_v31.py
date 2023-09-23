@@ -64,10 +64,15 @@ class DoseViewer(SliceView):
                            'Option to show slice metric')
     self.new_settable_attr('axial_margin', 70, int,
                            'Margin to cut in axial view')
+    self.new_settable_attr('show_weight_map', False, bool,
+                           'Option to show weight map')
 
     self.new_settable_attr(
       'alpha', 1.0, float,
       'Coefficient before low dose image while calculating delta')
+
+    self.new_settable_attr('slicomic', False, bool,
+                           'Option to toggle slice-omics')
 
 
   def view_slice(self, fig: plt.Figure, ax: plt.Axes, x: int):
@@ -89,7 +94,18 @@ class DoseViewer(SliceView):
         [self.displayed_layer_key == 'Full' and self.get('lock_full')]):
       image = self.enhance(image)
 
-    if self.get('view_delta'):
+    # Show weight map if required
+    if self.get('show_weight_map') and mi.in_pocket('weight_map'):
+      wm = mi.get_from_pocket('weight_map')[x]
+      h, w, c = wm.shape
+      # wm.shape = [H, W, C]
+      if c < 3:
+        zeros = np.zeros_like(image)
+        # zeros = image / np.max(image)
+        wm = np.concatenate([wm, zeros], axis=-1)
+      else: wm = wm[:, :, :3]
+      im = ax.imshow(wm)
+    elif self.get('view_delta'):
       delta = full_dose_slice - self.get('alpha') * image
       abs_vmax = (np.max(abs(delta)) if self.get('delta_vmax') is None
                   else self.get('delta_vmax'))
@@ -101,6 +117,7 @@ class DoseViewer(SliceView):
                      vmax=self.get('vmax'))
 
     # Set title
+    title = ''
     if self.get('show_metric'):
       show_slice_metric = self.get('show_slice_metric')
       metrics = ['NRMSE', 'SSIM', 'PSNR']
@@ -133,7 +150,12 @@ class DoseViewer(SliceView):
 
       if self.get('dev_mode'): title = f'[Dev] {title}'
 
-      ax.set_title(title)
+    if self.get('slicomic') and self.displayed_layer_key == 'Full':
+      title += ', '.join(
+        [f'{k}: {v:.4f}' for k, v in self.get_slice_omics(image).items()])
+
+    # Show title if necessary
+    if title != '': ax.set_title(title, fontsize=10)
 
     # Set style
     ax.set_axis_off()
@@ -145,17 +167,92 @@ class DoseViewer(SliceView):
       fig.colorbar(im, cax=cax)
 
 
+  # region: Developer Area
+
+  def profile_slice(self):
+    mi = self.selected_medical_image
+
+    fig = plt.figure()
+    ax: plt.Axes = fig.add_subplot()
+    if self.get('show_weight_map') and mi.in_pocket('weight_map'):
+      wm = mi.get_from_pocket('weight_map')
+
+      for c in range(wm.shape[-1]):
+        h = np.max(wm[:, :, :, c], axis=(1, 2))
+        ax.plot(h)
+
+      ax.set_title('Weight Map Profile')
+      ax.legend([f'Channel-{c}' for c in range(wm.shape[-1])])
+    else:
+      image = mi.images[self.displayed_layer_key]
+      image = image[:, :, :, 0]
+
+      h1 = np.max(image, axis=(1, 2))
+      h2 = np.mean(image, axis=(1, 2))
+
+      h1 = h1 / np.max(h1)
+      h2 = h2 / np.max(h2)
+
+      ax.plot(h1)
+      ax.plot(h2)
+
+      ax.set_title(f'{self.displayed_layer_key}')
+      ax.legend(['Max', 'Avg'])
+
+    fig.show()
+  ps = profile_slice
+
+  def show_slice_metrics(self):
+    from roma import console
+
+    mi: MedicalImage = self.selected_medical_image
+    full = mi.images['Full']
+
+    image_keys = [k for k in mi.images.keys() if k != 'Full']
+    max_vals = {k: np.max(mi.images[k]) for k in image_keys}
+
+    metric_keys = ['NRMSE', 'SSIM', 'PSNR']
+    metrics = {k: {ik: [] for ik in image_keys} for k in metric_keys}
+    for i in range(full.shape[0]):
+      console.print_progress(i, full.shape[0])
+
+      for ik in image_keys:
+        md = get_metrics(full[i][..., 0], mi.images[ik][i][..., 0],
+                         metric_keys, max_vals[ik])
+        for k, v in md.items(): metrics[k][ik].append(v)
+
+    console.show_status('Metrics calculated successfully!')
+
+    fig = plt.figure()
+
+    for i, k in enumerate(metric_keys):
+      ax: plt.Axes = fig.add_subplot(len(metric_keys), 1, i + 1)
+      for ik in image_keys:
+        highlight = ik == 'Model-Output'
+        ax.plot(metrics[k][ik],
+                linewidth=2 if highlight else 1.2,
+                alpha=1 if highlight else 0.7)
+      ax.legend(image_keys)
+      ax.set_ylabel(k)
+
+    fig.show()
+  ssm = show_slice_metrics
+
+  def get_slice_omics(self, s: np.ndarray):
+    features = {}
+    features['max'] = np.max(s)
+    features['mean'] = np.mean(s)
+    return features
+
   def enhance(self, x: np.ndarray):
     from scipy.ndimage import gaussian_filter
     x = gaussian_filter(x, sigma=float(self.get('dev_arg')))
     return x
 
-
   def set_dev_arg(self, v):
     """Set developer argument"""
     self.set('dev_arg', v)
   da = set_dev_arg
-
 
   def optimize_alpha(self):
     """Calculate losses given alphas"""
@@ -167,6 +264,9 @@ class DoseViewer(SliceView):
     self.set('alpha', np.sum(full) / np.sum(image))
   oa = optimize_alpha
 
+  # endregion: Developer Area
+
+  # region: Shortcuts
 
   def register_shortcuts(self):
     super().register_shortcuts()
@@ -181,6 +281,12 @@ class DoseViewer(SliceView):
     self.register_a_shortcut(
       'S', lambda: self.flip('show_slice_metric'),
       'Turn on/off `show_slice_metric` option')
+    self.register_a_shortcut(
+      'o', lambda: self.flip('slicomic'), 'Toggle `slicomic`')
+    self.register_a_shortcut(
+      'w', lambda: self.flip('show_weight_map'), 'Toggle `show_weight_map`')
+
+  # endregion: Shortcuts
 
 
 
@@ -188,14 +294,14 @@ if __name__ == '__main__':
   data_dir = r'../../../data/01-ULD/'
   # data_dir = r'F:\xai-omics-data\01-ULD'
 
-  subjects = [1]
+  subjects = [2]
   doses = [
     'Full',
     # '1-2',
-    '1-4',
+    # '1-4',
     # '1-10',
     # '1-20',
-    # '1-50',
+    '1-50',
     # '1-100',
   ]
   doses = [[i] for i in doses]
