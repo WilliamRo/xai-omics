@@ -219,6 +219,7 @@ class ULDSet(DataSet):
       'clip': (0, th.max_clip),
       'cmap': th.color_map,
       'shape': th.data_shape,
+      'norm_margin': [0, 10, 0, 0, 0]
     }
 
     if th.classify:
@@ -319,7 +320,7 @@ class ULDSet(DataSet):
 
     slice_num = 320
     if model.counter == 50:
-      metrics = ['SSIM', 'NRMSE', 'PSNR', 'PW_RMSE', 'RMSE']
+      metrics = ['SSIM', 'NRMSE', 'PSNR', 'RMSE']
       fmetric = get_metrics(self.targets[0, ..., 0],
                             self.features[0, ..., 0],
                             metrics, data_range=1)

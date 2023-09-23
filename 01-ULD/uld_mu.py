@@ -1,7 +1,6 @@
 from tframe import mu, tf
 from tframe.layers.hyper.conv import ConvBase
-from uld.operators.custom_layers import Tanh_k, Atanh_k, Clip, AdaptiveMerge, \
-  NormalizeEnergy
+from uld.operators.custom_layers import *
 from uld.operators.custom_loss import get_ssim_3D, get_nrmse, get_psnr, \
   get_pw_rmse
 
@@ -49,7 +48,7 @@ def finalize(model):
 
   if th.use_sigmoid:
     model.add(mu.Activation('sigmoid'))
-  elif not th.normalize_energy:
+  elif th.clip_off:
     model.add(Clip(0, 1.2))
 
   if th.learn_delta:

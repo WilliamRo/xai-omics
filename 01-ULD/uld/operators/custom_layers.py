@@ -1,11 +1,9 @@
-from tframe import tf
 from tframe.layers import Reshape
-from tframe.layers.layer import Layer
-from tframe.layers.layer import single_input
-from .adaptive_merge import AdaptiveMerge
-from .energy_norm import NormalizeEnergy
-import numpy as np
-
+from tframe.layers.layer import single_input, Layer
+from tframe import tf
+from uld.operators.layers.adaptive_merge import *
+from uld.operators.layers.energy_norm import *
+from uld.operators.layers.guass_pyramid import *
 
 
 class Tanh_k(Layer):
