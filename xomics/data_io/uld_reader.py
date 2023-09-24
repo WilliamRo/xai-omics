@@ -1,7 +1,7 @@
 import numpy as np
 
 from xomics.data_io.npy_reader import NpyReader
-from xomics.data_io.utils.preprocess import calc_SUV, get_color_data, norm_size
+from xomics.data_io.utils.preprocess import calc_SUV, get_color_data
 from xomics.data_io.utils.raw_rw import rd_file
 
 import os
@@ -13,6 +13,7 @@ class UldReader(NpyReader):
   def __init__(self, datadir: str = None):
     super().__init__(datadir)
     self.size_list = []
+    self.param_list = []
     self.process_func = self.process
 
   def process(self, use_suv=False, cmap=None):
@@ -39,14 +40,17 @@ class UldReader(NpyReader):
                        name_mask: (str, str), **kwargs):
     reader = cls()
     arr = []
+    p_arr = []
     for file in file_list:
       filename = name_mask[0] + str(file) + name_mask[1]
       filepath = os.path.join(dirpath, filename)
-      data = rd_file(filepath)
-      reader.size_list.append(data.shape[0])
+      data, param = rd_file(filepath, nii_param=True)
+      reader.size_list.append(data.shape)
       reader._data = data
       arr.append(reader.pre_process(**kwargs))
+      p_arr.append(param)
     reader.data = arr
+    reader.param_list = p_arr
     return reader
 
 

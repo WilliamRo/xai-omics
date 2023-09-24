@@ -2,7 +2,7 @@ from tframe import tf
 from tframe import hub as th
 
 from tframe.layers.common import Input
-from tframe.layers.layer import Layer
+from tframe.layers.layer import Layer, single_input
 from tframe.layers.merge import Merge
 from tframe.operators.neurons import NeuroBase
 
@@ -84,4 +84,4 @@ class Highlighter(Layer):
     rescaled_x = tf.clip_by_value(x / self.beta, 0, clip_value_max=1.0)
     y = tf.concat([x, rescaled_x], axis=-1)
 
-    return
+    return y

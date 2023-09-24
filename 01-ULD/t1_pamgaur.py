@@ -11,8 +11,8 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'pamgau'
-id = 6
+model_name = 'pamgaur'
+id = 7
 def model():
   th = core.th
   model = m.get_initial_model()
@@ -22,8 +22,11 @@ def model():
   # Construct DAG
   weights = [m.mu.HyperConv3D(N, kernel_size=int(ks), activation=th.activation)
              for ks in th.archi_string.split('-')]
-  weights.append(m.mu.HyperConv3D(N, kernel_size=1, use_bias=th.use_bias,
-                                  activation='softmax'))
+
+  if th.beta > 0:
+    weights.insert(0, m.Highlighter(th.beta))
+  weights.append(m.mu.HyperConv3D(
+    N, kernel_size=1, use_bias=th.use_bias, activation='softmax'))
 
   vertices = [
     m.GaussianPyramid3D(kernel_size=th.kernel_size, sigmas=sigmas),
@@ -41,7 +44,7 @@ def main(_):
   console.start('{} on Ultra Low Dose task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = 1
 
   # th.developer_code = 'self2self'
   # ---------------------------------------------------------------------------
@@ -79,6 +82,7 @@ def main(_):
   th.kernel_size = 11
   th.activation = 'relu'
   th.use_bias = True
+  th.beta = 0.02
 
   th.normalize_energy = False
   # ---------------------------------------------------------------------------
@@ -106,11 +110,14 @@ def main(_):
 
   th.train = True
   th.overwrite = True
+
+  if not th.train:
+    th.show_weight_map = True
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
   th.mark = '{}({})'.format(
-    model_name, f'({th.archi_string}ks{th.kernel_size})' + f'dose{th.dose}')
+    model_name, f'({th.archi_string}ks{th.kernel_size})' + f'dose{th.dose}' + f'beta{th.beta}')
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()
 

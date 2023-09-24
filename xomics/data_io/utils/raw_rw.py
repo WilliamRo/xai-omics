@@ -9,15 +9,23 @@ import SimpleITK as sitk
 
 
 
-def rd_file(filepath):
+def rd_file(filepath, nii_param=False):
   """
   use simpleITK to read file
+  :param nii_param:
   :param filepath:
   :return: data array
   """
 
   itk_img = sitk.ReadImage(filepath)
   img = sitk.GetArrayFromImage(itk_img)
+  if nii_param:
+    param = {
+      'origin': itk_img.GetOrigin(),
+      'spacing': itk_img.GetSpacing(),
+      'direction': itk_img.GetDirection(),
+    }
+    return img, param
   return img
 
 
@@ -42,8 +50,12 @@ def rd_series(dirpath):
   return np.stack(data, axis=0)
 
 
-def wr_file(arr, pathname):
+def wr_file(arr, pathname, nii_param=None):
   img = sitk.GetImageFromArray(arr)
+  if nii_param is not None:
+    img.SetOrigin(nii_param['origin'])
+    img.SetSpacing(nii_param['spacing'])
+    img.SetDirection(nii_param['direction'])
   sitk.WriteImage(img, pathname)
 
 

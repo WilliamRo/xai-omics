@@ -122,7 +122,7 @@ class ULDSet(DataSet):
       '1-10': [2, 7, 12, 17, 22, 27, 32, 37, 42, 47],
       '1-20': [3, 8, 13, 18, 23, 28, 33, 38, 43, 48],
       '1-50': [4, 9, 14, 19, 24, 29, 34, 39, 44, 49],
-      '1-100': [5, 10, 15, 20, 25, 30, 37, 40, 45, 50]
+      '1-100': [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
     }
 
     testpath = '../../../../data/01-ULD/testset/'
@@ -132,16 +132,17 @@ class ULDSet(DataSet):
                                           shape=[688, 440, 440])
     raw_data = reader.data
     sizes = reader.size_list
+    param = reader.param_list
     for i, img in enumerate(raw_data):
       img = img.reshape((1, 688, 440, 440, 1))
       img_i = img / np.max(img)
       data_i = DataSet(img_i, img_i)
       pred = model.predict(data_i)
       pred_o = pred * np.max(img)
-      pred_o = pred_o[0, :sizes[i], ..., 0]
-      pred_o.reshape((sizes[i], 440, 440))
-      filename = f'/outputs/Anonymous{subs[i]}.nii.gz'
-      wr_file(pred_o, testpath + filename)
+      pred_o = pred_o[0, :sizes[i][0], :sizes[i][1], :sizes[i][2], 0]
+      pred_o.reshape((sizes[i][0], sizes[i][1], sizes[i][2]))
+      filename = f'/outputs/Anonymous_{subs[i]}.nii.gz'
+      wr_file(pred_o, testpath + filename, nii_param=param[i])
       print(f'({i+1}/{len(subs)}) saved the {filename}')
 
     return
@@ -153,31 +154,29 @@ class ULDSet(DataSet):
       return self.classify_eval(model)
     if th.output_result:
       return self.output_results(model)
-    from dev.explorers.uld_explorer.uld_explorer_v3 import ULDExplorer
-    # from dev.explorers.uld_explorer.uld_explorer import ULDExplorer, DeltaViewer
+    from dev.explorers.uld_explorer.uld_explorer_v31 import ULDExplorer
     from xomics import MedicalImage
 
-    if report_metric: model.evaluate_model(self, batch_size=1)
+    # if report_metric: model.evaluate_model(self, batch_size=1)
 
     # pred.shape = [N, s, s, s, 1]
     data = DataSet(self.features, self.targets)
-    # data = self.gen_random_window(128)
     pred = model.predict(data)
     print(self.size, pred.shape, self.targets.shape)
-    metrics = ['SSIM', 'NRMSE', 'PSNR']
-    fmetric = get_metrics(self.targets[0, ..., 0],
-                          pred[0, ..., 0],
-                          metrics, data_range=1)
-    print('...predict')
-    for k, v in fmetric.items():
-      print(f'{k}:{v: .5f}')
-
-    fmetric = get_metrics(self.targets[0, ..., 0],
-                          self.features[0, ..., 0],
-                          metrics, data_range=1)
-    print('...low')
-    for k, v in fmetric.items():
-      print(f'{k}:{v: .5f}')
+    # metrics = ['SSIM', 'NRMSE', 'PSNR']
+    # fmetric = get_metrics(self.targets[0, ..., 0],
+    #                       pred[0, ..., 0],
+    #                       metrics, data_range=1)
+    # print('...predict')
+    # for k, v in fmetric.items():
+    #   print(f'{k}:{v: .5f}')
+    #
+    # fmetric = get_metrics(self.targets[0, ..., 0],
+    #                       self.features[0, ..., 0],
+    #                       metrics, data_range=1)
+    # print('...low')
+    # for k, v in fmetric.items():
+    #   print(f'{k}:{v: .5f}')
     # Compare results using DrGordon
     medical_images = [
       MedicalImage(f'Sample-{i}', images={
@@ -187,18 +186,26 @@ class ULDSet(DataSet):
         # 'Delta': np.square(pred[i] - data.targets[i])
       }) for i in range(self.size)]
 
-    # dg = DrGordon(medical_images)
-    # dg.slice_view.set('vmin', auto_refresh=False)
-    # dg.slice_view.set('vmax', auto_refresh=False)
-    # dg.show()
+    if th.show_weight_map:
+      fetchers = [th.depot['weight_map']]
+      if 'candidate1' in th.depot: fetchers.append(th.depot['candidate1'])
+
+      values = model.evaluate(fetchers, data)
+      wms = values[0]
+
+      # wm.shape = [?, S, H, W, C]
+      for wm, mi in zip(wms, medical_images):
+        mi.put_into_pocket('weight_map', wm)
+
+      if len(values) > 1:
+        for ca, mi in zip(values[1], medical_images):
+          for c in range(1, ca.shape[-1]):
+            mi.images[f'Candidate-{c}'] = ca[:, :, :, c:c+1]
 
     ue = ULDExplorer(medical_images)
     ue.dv.set('vmin', auto_refresh=False)
     ue.dv.set('vmax', auto_refresh=False)
 
-    # delta_viewer = DeltaViewer(target_key='Targets')
-    # delta_viewer.set('vmax', auto_refresh=False)
-    # ue.add_plotter(delta_viewer)
     ue.show()
 
   @staticmethod
