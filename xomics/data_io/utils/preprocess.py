@@ -4,7 +4,7 @@ import numpy as np
 
 
 def dicom_time(t):
-  t = str(int(t))
+  t = str(int(float(t)))
   if len(t) == 5:
     t = '0' + t
   h_t = float(t[0:2])
