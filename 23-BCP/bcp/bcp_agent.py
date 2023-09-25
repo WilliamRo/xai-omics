@@ -79,31 +79,44 @@ class BCPAgent(DataAgent):
     filenames = os.listdir(dir)
 
     mi_list = [MedicalImage.load(os.path.join(dir, file))
-               for file in filenames]
+               for file in tqdm(filenames, desc='Reading mi files')]
 
-    q = 99.9
+    q = 99.85
     cutoff = [60, 35]
     region_threshold = 0
+    slice_threshold = 100
+    crop_size = [32, 256, 256]
 
     images = np.array([mi.images['pet'][cutoff[0]:-cutoff[1]]
                        for mi in mi_list])
+
+    # Get as accurate a mask as possible
     masks = [get_mask(img, q=q) for img in images]
-    masks = mask_denoise(masks, min_region_size=region_threshold)
+    masks = mask_denoise(masks, min_region_size=region_threshold,
+                         slice_threshold=slice_threshold)
+
+
+    # there is a bad data named '118', 70/197
+    images = np.delete(images, 69, axis=0)
+    masks = np.delete(masks, 69, axis=0)
+    mi_list = mi_list[:69] + mi_list[70:]
 
     # Normalization
-    images = (2 * (images - np.min(images)) /
-              (np.max(images) - np.min(images)) - 1)
+    # images = (images - np.min(images)) / (np.max(images) - np.min(images))
 
     features = []
+    labels = []
     for i, mi in enumerate(mi_list):
       mi.images['pet'] = images[i]
       mi.labels['label-0'] = masks[i]
-      mi.crop([64, 256, 256], random_crop=False)
-      features.append(mi.images['pet'])
+      mi.crop(crop_size=crop_size, random_crop=False)
+      features.append(mi.images['pet'] * mi.labels['label-0'])
+      labels.append(mi.key)
 
     features = np.expand_dims(np.array(features), axis=-1)
     image_dict['features'] = features
     image_dict['targets'] = features
+    image_dict['labels'] = labels
 
     return image_dict
 
@@ -117,15 +130,6 @@ def ratio_to_realnum(ratio: list, total_num: int):
   return parts
 
 
-def normalization_min_max(image: np.ndarray, range: list):
-  assert len(range) == 2
-  mult, add = range[1] - range[0], range[0]
-  image = (mult * (image - np.min(image)) /
-           (np.max(image) - np.min(image)) + add)
-
-  return image
-
-
 def get_mask(image, q: float):
   threshold = np.percentile(image, q=q)
   mask = image > threshold
@@ -133,7 +137,7 @@ def get_mask(image, q: float):
   return mask.astype(np.uint8)
 
 
-def mask_denoise(masks: list, min_region_size=50):
+def mask_denoise(masks: list, min_region_size=50, slice_threshold=100):
   '''
 
   '''
@@ -141,7 +145,7 @@ def mask_denoise(masks: list, min_region_size=50):
 
   labels = []
   structure = generate_binary_structure(3, 1)
-  for mask in tqdm(masks):
+  for mask in tqdm(masks, desc='Mask denoising'):
     # Get connected region for denoise
     labeled_image, num_features = label(mask, structure)
     region_sizes = [np.sum(labeled_image == label)
@@ -153,7 +157,17 @@ def mask_denoise(masks: list, min_region_size=50):
     for l in small_region_labels:
       labeled_image[labeled_image == l] = 0
 
+    # set the region with mask to 1
     labeled_image[labeled_image > 1] = 1
+
+    # The slice with less than slice_threshold mask
+    # in one slice is excluded
+    slice_size = np.sum(labeled_image, axis=(1, 2))
+    bad_indices = np.where(slice_size < slice_threshold)
+    if bad_indices is not None:
+      for i in bad_indices:
+        labeled_image[i] = 0
+
     #
     indices = list(set(np.where(labeled_image == 1)[0]))
     bad_indices = find_noise_indices(indices)
@@ -163,30 +177,7 @@ def mask_denoise(masks: list, min_region_size=50):
 
     labels.append(labeled_image)
 
-  return labels
-
-
-def find_cutoff_values(lst: list, threshold):
-  max_value = max(lst)
-  max_index = lst.index(max_value)
-
-  left_index, right_index = max_index, max_index
-
-  while left_index > 0 and lst[left_index] >= threshold:
-    left_index -= 1
-
-  while right_index < len(lst) - 1 and lst[right_index] >= threshold:
-    right_index += 1
-
-  return left_index + 1, right_index - 1
-
-
-def next_power_of_two(number):
-  import math
-  if number <= 0: return 1
-  else:
-    return 2 ** math.ceil(math.log2(number))
-
+  return np.array(labels)
 
 def find_noise_indices(indices: list):
   bad_indices = []

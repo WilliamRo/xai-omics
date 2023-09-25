@@ -16,14 +16,15 @@ id = 1
 def model():
   th = core.th
 
-  return m.get_unet(th.archi_string)
+  # return m.get_unet(th.archi_string, link_indices=th.link_indices)
+  return m.model2(th.archi_string)
 
 
 def main(_):
   console.start('{} on Brain Analysis'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = False
+  th.rehearse = 0
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -45,16 +46,19 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '8-5-2-3-relu-mp'
+  # th.archi_string = '1-4-2-1-lrelu'
+  th.archi_string = '1-4-5-lrelu'
+  th.link_indices_str = '0'
+
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
   th.epoch = 2000
-  th.early_stop = False
+  th.early_stop = True
   th.probe_cycle = th.updates_per_round // 2
   th.patience = 10
 
-  th.batch_size = 4
+  th.batch_size = 8
   th.batchlet_size = 4
   # th.gradlet_in_device = 1
 
