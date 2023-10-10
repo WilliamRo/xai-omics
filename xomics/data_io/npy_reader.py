@@ -126,7 +126,7 @@ class NpyReader:
                   norm=None, shape=None,
                   raw=False, clip=None,
                   ret_norm=False, mi=False,
-                  norm_margin=None,
+                  norm_margin=None, swapaxe=None,
                   **kwargs):
     self.process_func(**kwargs)
     if not raw:
@@ -141,6 +141,9 @@ class NpyReader:
       self._data = np.clip(self._data, clip[0], clip[1])
     if mi:
       self._data = self._data.reshape(self._data.shape[1:])
+    if swapaxe is not None:
+      for axis in swapaxe:
+        self._data = self._data.swapaxes(axis[0], axis[1])
     if ret_norm:
       return self._data, norm
     else:

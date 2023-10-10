@@ -9,7 +9,7 @@ from xomics.gui.dr_gordon import DrGordon
 data_dir = r'../../../data/01-ULD/'
 # subjects = list(range(1, 16))
 subjects = [2]
-mode = "uld-test"
+mode = "uld-train"
 
 
 keys = [['Full'],
@@ -24,7 +24,8 @@ mis = []
 reader = UldReader(data_dir)
 
 if mode == 'uld-train':
-  mis = reader.load_data(subjects, keys, methods='mi', use_suv=True, raw=True)
+  mis = reader.load_data(subjects, keys, methods='mi', use_suv=False,
+                         raw=True)
 
 if mode == 'uld-test':
   # imgs = rd_uld_test(data_dir + "testset", subjects)

@@ -31,6 +31,10 @@ def get_suv_factor(decay_dose: float, weight):
   return 1000 * float(weight) / decay_dose
 
 
+def suv_reverse(data, decay_dose, weight):
+  return data * float(decay_dose) / (1000 * weight)
+
+
 def normalize(arr: np.ndarray, norm=None, ret_norm=False, margin: Union[tuple, list]=None):
   if margin is not None:
     assert len(margin) == len(arr.shape)
