@@ -14,12 +14,12 @@ def dicom_time(t):
 
 
 def calc_SUV(data, tags=None, norm=False, **kwargs):
-  if tags is not None:
+  if 'DD' not in tags.keys():
     decay_time = dicom_time(tags['ST']) - dicom_time(tags['RST'])
     decay_dose = float(tags['RTD']) * pow(2, -float(decay_time) / float(tags['RHL']))
     SUVbwScaleFactor = (1000 * float(tags['PW'])) / decay_dose
   else:
-    SUVbwScaleFactor = get_suv_factor(**kwargs)
+    SUVbwScaleFactor = get_suv_factor(tags["DD"], tags["PW"])
   if norm:
     PET_SUV = (data * float(tags['RS']) + float(tags['RI'])) * SUVbwScaleFactor
   else:
@@ -28,7 +28,7 @@ def calc_SUV(data, tags=None, norm=False, **kwargs):
 
 
 def get_suv_factor(decay_dose: float, weight):
-  return 1000 * weight / decay_dose
+  return 1000 * float(weight) / decay_dose
 
 
 def normalize(arr: np.ndarray, norm=None, ret_norm=False, margin: Union[tuple, list]=None):

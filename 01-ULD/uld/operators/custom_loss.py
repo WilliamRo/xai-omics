@@ -19,10 +19,7 @@ def get_ssim_3D():
   def ssim(truth, output):
     # [bs, num_slides, 440, 440, 1]
     from uld_core import th
-    if th.color_map is not None:
-      shape = [-1, 440, 440, 3]
-    else:
-      shape = [-1, 440, 440, 1]
+    shape = [-1] + th.data_shape[1:]
     truth, output = [tf.reshape(x, shape) for x in (truth, output)]
 
     return tf.image.ssim(truth, output, max_val=1.0)

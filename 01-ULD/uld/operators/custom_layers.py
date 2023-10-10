@@ -4,6 +4,7 @@ from tframe import tf
 from uld.operators.layers.adaptive_merge import *
 from uld.operators.layers.energy_norm import *
 from uld.operators.layers.guass_pyramid import *
+from uld.operators.layers.pixel_shuffle import *
 
 
 class Tanh_k(Layer):

@@ -16,17 +16,18 @@ class UldReader(NpyReader):
     self.param_list = []
     self.process_func = self.process
 
-  def process(self, use_suv=False, cmap=None):
+  def process(self, use_suv=False, cmap=None, **kwargs):
     if use_suv:
-      tags = self.load_tags()
+      tags = self.load_tags(**kwargs)
       self._data = calc_SUV(self._data, tags)
     if cmap:
       self._data = get_color_data(self._data, cmap)
 
-  def load_tags(self):
-    tmp = os.path.dirname(self._current_filepath)
-    file = os.path.basename(self._current_filepath)
-    tagpath = os.path.join(tmp, f'tags_{file[:-3]}txt')
+  def load_tags(self, tagpath=None):
+    if tagpath is None:
+      tmp = os.path.dirname(self._current_filepath)
+      file = os.path.basename(self._current_filepath)
+      tagpath = os.path.join(tmp, f'tags_{file[:-3]}txt')
     tags = {}
     with open(tagpath, 'r') as f:
       for data in f.readlines():
@@ -47,7 +48,8 @@ class UldReader(NpyReader):
       data, param = rd_file(filepath, nii_param=True)
       reader.size_list.append(data.shape)
       reader._data = data
-      arr.append(reader.pre_process(**kwargs))
+      tagpath = filepath[:-7] + '.tag'
+      arr.append(reader.pre_process(tagpath=tagpath, **kwargs))
       p_arr.append(param)
     reader.data = arr
     reader.param_list = p_arr
