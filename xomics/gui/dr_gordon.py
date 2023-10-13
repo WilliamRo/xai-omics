@@ -16,8 +16,9 @@ class DrGordon(Pictor):
     PATIENTS = 'PaTiEnTs'
     LAYERS = 'LaYeRs'
 
-  def __init__(self, medical_images, title='Dr. Gordon'):
-    super(DrGordon, self).__init__(title)
+  def __init__(
+      self, medical_images, title='Dr. Gordon', figure_size=(5, 5)):
+    super(DrGordon, self).__init__(title, figure_size)
 
     self.slice_view: SliceView = self.add_plotter(SliceView(self))
 
