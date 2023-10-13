@@ -39,15 +39,6 @@ class ULDSet(DataSet):
 
     # self.features/targets.shape = [N, S, H, W, 1]
     if th.classify:
-      features = []
-      targets = []
-      # for _ in range(batch_size):
-      #   index, s, h, w = get_random_window(self.features, th.window_size,
-      #                                      th.slice_size, th.rand_batch)
-      #   features.append(get_sample(self.features, index, s, h, w,
-      #                              th.windows_size, th.slice_size))
-      #   targets.append(self.targets[index])
-      # features = np.concatenate(features)
       index = np.random.randint(self.features.shape[0], size=batch_size)
       features, targets = self.features[index], self.targets[index]
     else:
@@ -325,7 +316,7 @@ class ULDSet(DataSet):
     assert isinstance(model, Predictor)
 
 
-    slice_num = 320
+    slice_num = 64
     if model.counter == 50:
       metrics = ['SSIM', 'NRMSE', 'PSNR', 'RMSE']
       fmetric = get_metrics(self.targets[0, ..., 0],
@@ -343,11 +334,11 @@ class ULDSet(DataSet):
       plt.imsave(os.path.join(model.agent.ckpt_dir, tfn),
                  target, cmap='gray', vmin=0., vmax=vmax)
     # (1) Get image (shape=[1, S, H, W, 1])
-    # data = DataSet(self.features[:1, 314:330], self.targets[:1, 314:330])
-    images = model.predict(self)
+    data = DataSet(self.features[:1], self.targets[:1])
+    images = model.predict(data)
 
     # (2) Get metrics
-    val_dict = model.validate_model(self)
+    val_dict = model.validate_model(data)
 
   # (3) Save image
     metric_str = '-'.join([f'{k}{v:.5f}' for k, v in val_dict.items()])

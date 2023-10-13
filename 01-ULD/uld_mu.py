@@ -25,6 +25,8 @@ def get_initial_model():
   model.add(mu.Input(sample_shape=th.input_shape))
   if th.use_tanh != 0:
     model.add(Tanh_k(k=th.use_tanh))
+  if th.use_shuffle:
+    model.add(PixelShuffle(2))
   return model
 
 

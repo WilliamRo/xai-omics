@@ -74,11 +74,22 @@ class DoseViewer(SliceView):
     self.new_settable_attr('slicomic', False, bool,
                            'Option to toggle slice-omics')
 
+    self.new_settable_attr('view_methods', '', str,
+                           'Change the methods to view')
+
 
   def view_slice(self, fig: plt.Figure, ax: plt.Axes, x: int):
     mi: MedicalImage = self.selected_medical_image
-    full_dose_vol = mi.images['Full']
+
+    full_dose_vol: np.ndarray = mi.images['Full']
     selected_vol = mi.images[self.displayed_layer_key]
+
+    if self.get('view_methods') == 'cor':
+      full_dose_vol = full_dose_vol.swapaxes(0, 1)
+      selected_vol = selected_vol.swapaxes(0, 1)
+    elif self.get('view_methods') == 'sag':
+      full_dose_vol = full_dose_vol.swapaxes(0, 2)
+      selected_vol = selected_vol.swapaxes(0, 2)
 
     # Show slice
     m = self.get('axial_margin')

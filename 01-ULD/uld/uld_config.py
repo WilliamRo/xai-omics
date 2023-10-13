@@ -40,7 +40,7 @@ class ULDConfig(SmartTrainerHub):
 
   normalize_energy = Flag.boolean(False, '...', is_key=None)
   ne_gamma = Flag.float(0, '...', is_key=None)
-
+  clip_off = Flag.boolean(False, '...', is_key=None)
   include_input = Flag.boolean(False, '...', is_key=None)
 
   sub_indices = Flag.whatever(None, '...')
@@ -48,6 +48,8 @@ class ULDConfig(SmartTrainerHub):
 
   show_weight_map = Flag.boolean(False, '...')
   sigmas = Flag.string(None, '...', is_key=None)
+
+  use_shuffle = Flag.boolean(False, '...', is_key=None)
 
   @property
   def data_arg(self) -> Arguments:
