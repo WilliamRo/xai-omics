@@ -23,7 +23,6 @@ class MedicalImage(Nomear):
     self.images = images
     self.labels = labels
 
-    self._init_data()
     self._check_data()
 
   # region: Properties
@@ -129,11 +128,9 @@ class MedicalImage(Nomear):
   def _check_data(self):
     for image in self.images.values():
       assert self.representative.shape == image.shape
-      assert image.dtype == np.float32
 
     for label in self.labels.values():
       assert self.representative.shape == label.shape
-      assert label.dtype == np.int8
 
 
   def window(self, layer: str, bottom, top):
