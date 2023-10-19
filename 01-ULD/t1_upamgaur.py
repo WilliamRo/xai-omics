@@ -11,14 +11,14 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'pamgaur'
-id = 7
+model_name = 'upamgaur'
+id = 9
 def model():
   th = core.th
   model = m.get_initial_model()
 
   sigmas = [int(s) for s in th.sigmas.split(',')]
-  N = len(sigmas) + 1
+  N = len(sigmas) + 2
   # Construct DAG
   weights = [m.mu.HyperConv3D(N, kernel_size=int(ks), activation=th.activation)
              for ks in th.archi_string.split('-')]
@@ -28,14 +28,20 @@ def model():
   weights.append(m.mu.HyperConv3D(
     N, kernel_size=1, use_bias=th.use_bias, activation='softmax'))
 
+  unet = m.get_unet_list(th.unet_archi_string)
+  unet.append(m.mu.HyperConv3D(filters=1, kernel_size=1))
+  unet.append(m.Clip(0, 1.0))
+
   vertices = [
     m.GaussianPyramid3D(kernel_size=th.kernel_size, sigmas=sigmas),
+    m.mu.Merge.Concat(),
+    unet,
     m.mu.Merge.Concat(),
     weights,
     m.WeightedSum(),
   ]
-  edges = '1;11;001;0011'
-  model.add(m.mu.ForkMergeDAG(vertices, edges))
+  edges = '1;11;100;0011;00001;000011'
+  model.add(m.mu.ForkMergeDAG(vertices, edges, auto_merge=False))
 
   return m.finalize(model)
 
@@ -44,7 +50,7 @@ def main(_):
   console.start('{} on Ultra Low Dose task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 1
+  th.rehearse = 0
 
   # th.developer_code = 'self2self'
   # ---------------------------------------------------------------------------
@@ -78,7 +84,8 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '3-3-3-6-6-6-12-12-24'
+  th.archi_string = '3-3-3'
+  th.unet_archi_string = '4-3-3-2-lrelu'
   th.sigmas = '1,3'
   th.kernel_size = 11
   th.activation = 'relu'

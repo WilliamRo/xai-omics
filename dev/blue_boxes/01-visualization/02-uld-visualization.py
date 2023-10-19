@@ -1,6 +1,6 @@
 import numpy as np
 
-from dev.explorers.uld_explorer.uld_explorer_v3 import ULDExplorer
+from dev.explorers.uld_explorer.uld_explorer_v31 import ULDExplorer
 from xomics.data_io.uld_reader import UldReader
 from xomics.data_io.utils.uld_raw_rd import rd_uld_test
 from xomics import MedicalImage
@@ -9,7 +9,7 @@ from xomics.gui.dr_gordon import DrGordon
 data_dir = r'../../../data/01-ULD/'
 # subjects = list(range(1, 16))
 subjects = [2]
-mode = "uld-train"
+mode = "uld-pair"
 
 
 keys = [['Full'],
@@ -40,7 +40,8 @@ if mode == 'uld-test':
     mis.append(mi)
 
 if mode == 'uld-pair':
-  data = reader.load_data(subjects, keys, methods='pair', norm_margin=[0, 10, 0, 0, 0])
+  data = reader.load_data(subjects, keys, methods='pair', norm_margin=[0, 10, 0, 0, 0],
+                          shape=[1, 684, 440, 440, 1])
   data_f, data_t = {}, {}
   for num, i in enumerate(subjects):
     data_f[f'sub{i}'] = np.concatenate(data['features'])[num]
@@ -57,16 +58,18 @@ if mode == 'uld-outputs':
                                          'test-low': imgs_l[i]})
     mis.append(mi)
 
-if mode == 'uld-raw':
-  from xomics.data_io.utils.raw_rw import rd_series
+if mode == 'uld-predict':
+  import joblib
   filepath = ''
+  mis = joblib.load(filepath)
+
 
 
 # Visualization
-# ue = ULDExplorer(mis)
-ue = DrGordon(mis)
-ue.slice_view.set('vmax', auto_refresh=False)
+ue = ULDExplorer(mis)
+# ue = DrGordon(mis)
+# ue.slice_view.set('vmax', auto_refresh=False)
 ue.slice_view.set('vmin', auto_refresh=False)
-# ue.dv.set('vmin', auto_refresh=False)
-# ue.dv.set('vmax', auto_refresh=False)
+ue.dv.set('vmin', auto_refresh=False)
+ue.dv.set('vmax', auto_refresh=False)
 ue.show()

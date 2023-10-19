@@ -1,3 +1,4 @@
+import os
 import random
 import numpy as np
 
@@ -120,12 +121,12 @@ class ULDSet(DataSet):
     subs = classification[th.dose]
     reader = self.reader.load_as_npy_data(testpath, subs,
                                           ('Anonymous_', '.nii.gz'), raw=True,
-                                          shape=[688, 440, 440])
+                                          shape=[704, 440, 440])
     raw_data = reader.data
     sizes = reader.size_list
     param = reader.param_list
     for i, img in enumerate(raw_data):
-      img = img.reshape((1, 688, 440, 440, 1))
+      img = img.reshape((1, 704, 440, 440, 1))
       img_i = img / np.max(img)
       data_i = DataSet(img_i, img_i)
       pred = model.predict(data_i)
@@ -147,13 +148,19 @@ class ULDSet(DataSet):
       return self.output_results(model)
     from dev.explorers.uld_explorer.uld_explorer_v31 import ULDExplorer
     from xomics import MedicalImage
+    from utils.split_combined import SplCom
 
     # if report_metric: model.evaluate_model(self, batch_size=1)
-
     # pred.shape = [N, s, s, s, 1]
-    data = DataSet(self.features, self.targets)
-    pred = model.predict(data)
-    print(self.size, pred.shape, self.targets.shape)
+    splcom = SplCom(self.features, 3, [0, 24, 0, 0, 0])
+    for i, arr in enumerate(splcom):
+      data = DataSet(arr, arr)
+      console.supplement(f'model predicting({i+1}/{len(splcom)})', level=2)
+      splcom.combine(model.predict(data))
+
+    pred = splcom.com_arr
+
+    # print(self.size, pred.shape, self.targets.shape)
     # metrics = ['SSIM', 'NRMSE', 'PSNR']
     # fmetric = get_metrics(self.targets[0, ..., 0],
     #                       pred[0, ..., 0],
@@ -171,28 +178,35 @@ class ULDSet(DataSet):
     # Compare results using DrGordon
     medical_images = [
       MedicalImage(f'Sample-{i}', images={
-        'Input': data.features[i],
-        'Full': data.targets[i],
+        'Input': self.features[i],
+        'Full': self.targets[i],
         'Model-Output': pred[i],
         # 'Delta': np.square(pred[i] - data.targets[i])
       }) for i in range(self.size)]
 
-    if th.show_weight_map:
-      fetchers = [th.depot['weight_map']]
-      if 'candidate1' in th.depot: fetchers.append(th.depot['candidate1'])
+    # if th.show_weight_map:
+    #   fetchers = [th.depot['weight_map']]
+    #   if 'candidate1' in th.depot: fetchers.append(th.depot['candidate1'])
+    #
+    #   values = model.evaluate(fetchers, data)
+    #   wms = values[0]
+    #
+    #   # wm.shape = [?, S, H, W, C]
+    #   for wm, mi in zip(wms, medical_images):
+    #     mi.put_into_pocket('weight_map', wm)
+    #
+    #   if len(values) > 1:
+    #     for ca, mi in zip(values[1], medical_images):
+    #       for c in range(1, ca.shape[-1]):
+    #         mi.images[f'Candidate-{c}'] = ca[:, :, :, c:c+1]
 
-      values = model.evaluate(fetchers, data)
-      wms = values[0]
+    # import joblib
+    # joblib.dump(medical_images, th.mark + '.out')
 
-      # wm.shape = [?, S, H, W, C]
-      for wm, mi in zip(wms, medical_images):
-        mi.put_into_pocket('weight_map', wm)
-
-      if len(values) > 1:
-        for ca, mi in zip(values[1], medical_images):
-          for c in range(1, ca.shape[-1]):
-            mi.images[f'Candidate-{c}'] = ca[:, :, :, c:c+1]
-
+    # from xomics.gui.dr_gordon import DrGordon
+    # ue = DrGordon(medical_images)
+    # ue.slice_view.set('vmax', auto_refresh=False)
+    # ue.slice_view.set('vmin', auto_refresh=False)
     ue = ULDExplorer(medical_images)
     ue.dv.set('vmin', auto_refresh=False)
     ue.dv.set('vmax', auto_refresh=False)
