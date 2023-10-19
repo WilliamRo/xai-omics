@@ -13,8 +13,8 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'unet'
-id = 1
+model_name = 'sfunet'
+id = 8
 def model():
   th = core.th
 
@@ -29,7 +29,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.dose = '1-4'
+  th.dose = '1-20'
   th.data_config = fr'epsilon dataset=01-ULD dose={th.dose}'
 
   th.val_size = 30
@@ -38,7 +38,7 @@ def main(_):
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
-  th.data_shape = [1, 656, 440, 440, 1]
+  th.data_shape = [1, 128, 128, 128, 1]
 
 
   # th.use_suv = False
@@ -54,7 +54,7 @@ def main(_):
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
   th.suffix = ''
-  th.suffix += f'_{th.data_kwargs["dose"]}_w{th.window_size}_s{th.slice_size}'
+  th.suffix += f'_{th.data_kwargs["dose"]}'
 
 
   th.visible_gpu_id = 0
@@ -67,9 +67,9 @@ def main(_):
   # th.archi_string = '8-5-2-3-lrelu'
 
   th.use_tanh = 0
-  th.learn_delta = False
-  th.rand_batch = True
-  th.use_sigmoid = False
+  th.rand_batch = False
+  # th.use_shuffle = True
+
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -91,32 +91,16 @@ def main(_):
   th.learning_rate = 0.0003
   th.val_decimals = 7
 
-  th.clip_threshold = 5
-  th.clip_method = 'value'
+  th.clip_off = True
+
+  # th.clip_threshold = 5
+  # th.clip_method = 'value'
 
   th.train = True
   th.overwrite = True
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
-  if th.learn_delta:
-    th.suffix += '_delta'
-  if th.use_sigmoid:
-    th.suffix += '_sig'
-  if not th.rand_batch:
-    th.suffix += '_fakeRandBS'
-  if th.train_self:
-    th.suffix += '_self'
-  if th.use_suv:
-    th.suffix += '_SUV'
-  if not th.norm_by_feature:
-    th.suffix += '_normSelf'
-  if th.use_tanh != 0:
-    th.suffix += f'_tanh{th.use_tanh}'
-  if th.max_clip != None:
-    th.suffix += f'_clip(0,{th.use_clip})'
-  th.suffix += f'_lr{th.learning_rate:3e}_loss({th.loss_string})_BS{th.batch_size}'
-  th.suffix += f'_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()

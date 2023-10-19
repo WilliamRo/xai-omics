@@ -62,7 +62,7 @@ class DoseViewer(SliceView):
     self.new_settable_attr('show_metric', False, bool, 'Option to show metric')
     self.new_settable_attr('show_slice_metric', True, bool,
                            'Option to show slice metric')
-    self.new_settable_attr('axial_margin', 70, int,
+    self.new_settable_attr('axial_margin', 0, int,
                            'Margin to cut in axial view')
     self.new_settable_attr('show_weight_map', False, bool,
                            'Option to show weight map')
