@@ -12,7 +12,7 @@ class GordonView(SliceView):
 
     self.percentile = None
     self.click_address = None
-    self.new_label_name = 'label-10'
+    self.new_label_name = 'new mask'
 
     # Settable attributes
     self.new_settable_attr('painter', False, bool, 'Painter')
@@ -56,9 +56,12 @@ class GordonView(SliceView):
       self.annotations_to_show.append(self.new_label_name)
       self.refresh()
 
+      self.display_in_textbox(f"Mouse clicked at ({x:.2f}, {y:.2f})")
+      self.display_in_textbox(f"percentile: {percentile}")
+      self.display_in_textbox(f"threshold: {round(threshold, 3)}")
+
       print(f"Mouse clicked at ({x:.2f}, {y:.2f})")
-      print(f"percentile: {percentile}")
-      print(f"threshold: {threshold}")
+      print(f"percentile: {percentile}  threshold: {threshold}")
 
 
   def on_mouse_scroll(self, event):
@@ -90,6 +93,10 @@ class GordonView(SliceView):
     new_mask = (image >= threshold).astype(np.uint8)
     new_mask = self.amend_mask(new_mask, self.click_address)
     self.selected_medical_image.labels[self.new_label_name] = new_mask
+
+
+  def display_in_textbox(self, text):
+    return self.pictor.tool_panel.display_in_status_box(text)
 
 
 

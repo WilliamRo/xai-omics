@@ -57,18 +57,6 @@ class MedicalImage(Nomear):
     dir_path = os.path.join(dir_path, self.key)
     if not os.path.exists(dir_path): os.mkdir(dir_path)
 
-    # for key in self.images.keys():
-    #   nifti_image = nib.Nifti1Image(self.images[key], affine=np.eye(4))
-    #   file_path = os.path.join(dir_path, key + '.nii')
-    #   nib.save(nifti_image, file_path)
-    #   console.show_status(f'Saveing {file_path}')
-    #
-    # for key in self.labels.keys():
-    #   nifti_label = nib.Nifti1Image(self.labels[key], affine=np.eye(4))
-    #   file_path = os.path.join(dir_path, key + '.nii')
-    #   nib.save(nifti_label, file_path)
-    #   console.show_status(f'Saveing {file_path}')
-
     for key in self.images.keys():
       file_path = os.path.join(dir_path, key + '.nii')
       sltk.WriteImage(sltk.GetImageFromArray(self.images[key]), file_path)
@@ -142,9 +130,10 @@ class MedicalImage(Nomear):
   def normalization(self, layers):
     for layer in layers:
       assert layer in self.images.keys()
-      mean = np.mean(self.images[layer])
-      std = np.std(self.images[layer])
-      self.images[layer] = ((self.images[layer] - mean) / std)
+      max_data = np.max(self.images[layer])
+      min_data = np.min(self.images[layer])
+      self.images[layer] = (
+          (self.images[layer] - min_data) / (max_data - min_data))
 
 
   def crop(self, crop_size: list, random_crop: bool):

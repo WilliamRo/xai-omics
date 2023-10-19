@@ -7,6 +7,7 @@ from widgets.tool_panel import ToolPanel
 from widgets.gordon_view import GordonView
 
 import tkinter as tk
+import windnd
 import numpy as np
 import os
 
@@ -19,7 +20,7 @@ class GordonPainter(DrGordon):
     # Call parent's constructor, add (1) canvas
     super().__init__(medical_images, title=title, figure_size=figure_size)
 
-    # Objects Setting and Plotters Setting
+    windnd.hook_dropfiles(self.master, func=self.dragged_files)
     self.slice_view = GordonView(self)
     self.set_to_axis(self.Keys.PLOTTERS, [self.slice_view], overwrite=True)
 
@@ -83,10 +84,10 @@ class GordonPainter(DrGordon):
   def refresh(self, wait_for_idle=False):
     if self.patients == []: return
 
-    self._refresh_annotation()
     self._refresh_text()
     self._refresh_button()
     self._refresh_position()
+    self._refresh_annotation()
     super().refresh()
 
 
@@ -110,6 +111,7 @@ class GordonPainter(DrGordon):
       f'Channel: {self.slice_view.displayed_layer_key.upper()}')
 
     # annotation process bar
+    # label:percentile
     if self.slice_view.percentile and self.slice_view.get('painter'):
       self.text_var['percentile'].set(
         f'Percentile: {str(round(self.slice_view.percentile, 2))}')
@@ -118,16 +120,6 @@ class GordonPainter(DrGordon):
 
 
   def _refresh_button(self):
-    def find_buttons_in_frame(frame):
-      button_instances = []
-      for widget in frame.winfo_children():
-        if isinstance(widget, tk.Button):
-          button_instances.append(widget)
-        elif isinstance(widget, tk.Frame):
-          button_instances.extend(find_buttons_in_frame(widget))
-
-      return button_instances
-
     # annotation process bar
     # Button show and Button delete
     label_list = list(self.slice_view.selected_medical_image.labels.keys())
@@ -138,11 +130,13 @@ class GordonPainter(DrGordon):
     if label_set != showed_label_set:
       for l in showed_label_set:
         self.tool_panel.annotation_process_panel.children[f'frame:label-{l}'].destroy()
-        del self.tool_panel.unit_position[self.tool_panel.annotation_process_panel.winfo_name()][f'frame:label-{l}']
+        del self.tool_panel.unit_position[
+          self.tool_panel.annotation_process_panel.winfo_name()][f'frame:label-{l}']
       for i, l in enumerate(label_set):
         self.tool_panel.create_dynamic_label_frame(l, i + 1)
 
-    element_button = find_buttons_in_frame(self.tool_panel.annotation_process_panel)
+    element_button = self.find_widgets_in_frame(
+      self.tool_panel.annotation_process_panel, tk.Button)
     element_button = [
       b for b in element_button if 'painter' not in b.winfo_name()]
     state_1 = 'active' if self.slice_view.get('painter') else 'disable'
@@ -156,9 +150,7 @@ class GordonPainter(DrGordon):
 
 
   def _refresh_position(self):
-    bars = [self.tool_panel.status_panel,
-            self.tool_panel.image_switch_panel,
-            self.tool_panel.annotation_process_panel]
+    bars = list(self.tool_panel.children.values())
     position_dict = self.tool_panel.unit_position
 
     for b in bars:
@@ -167,6 +159,25 @@ class GordonPainter(DrGordon):
         row, column, columnspan = position_dict[b.winfo_name()][name]
         unit.grid(
           row=row, column=column, columnspan=columnspan, sticky='nsew')
+
+
+  def dragged_files(self, files):
+    files = [f.decode('utf-8') for f in files]
+
+    # 1. Determine the file type
+    if all([True for f in files if '.mi' == f[-3:]]):
+      self.menu_bar.open_mi_file(files)
+
+
+  def find_widgets_in_frame(self, frame, type):
+    button_instances = []
+    for widget in frame.winfo_children():
+      if isinstance(widget, type):
+        button_instances.append(widget)
+      elif isinstance(widget, tk.Frame):
+        button_instances.extend(self.find_widgets_in_frame(widget, type))
+
+    return button_instances
 
 
 
