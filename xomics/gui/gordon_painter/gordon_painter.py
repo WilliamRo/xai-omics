@@ -5,6 +5,7 @@ from collections import OrderedDict
 from widgets.menu_bar import MenuBar
 from widgets.tool_panel import ToolPanel
 from widgets.gordon_view import GordonView
+from tkinter import messagebox
 
 import tkinter as tk
 import windnd
@@ -162,11 +163,25 @@ class GordonPainter(DrGordon):
 
 
   def dragged_files(self, files):
-    files = [f.decode('utf-8') for f in files]
+    files = [f.decode('gbk', 'ignore') for f in files]
 
-    # 1. Determine the file type
-    if all([True for f in files if '.mi' == f[-3:]]):
+    # (1) Determine the file format
+    file_format = files[0].split('.')[-1]
+    if file_format not in ['dcm', 'DCM', 'nii', 'gz', 'mi']:
+      messagebox.showerror('Error', 'Please enter the correct file format!')
+      return
+
+    # (2) file format == 'mi'
+    if all(file.endswith(".mi") for file in files):
       self.menu_bar.open_mi_file(files)
+
+    # (3) file format == 'nii' or 'nii.gz'
+    if all(file.endswith(".nii") or file.endswith(".nii.gz") for file in files):
+      self.menu_bar.open_nifti_file(files[0])
+
+    # (4) file format == 'dcm'
+    if all(file.endswith(".dcm") or file.endswith(".DCM") for file in files):
+      self.menu_bar.open_dicom_file(files[0])
 
 
   def find_widgets_in_frame(self, frame, type):
