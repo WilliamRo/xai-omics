@@ -141,7 +141,7 @@ class GordonPainter(DrGordon):
         del self.tool_panel.unit_position[
           self.tool_panel.annotation_process_panel.winfo_name()][f'frame:label-{l}']
       for i, l in enumerate(label_set):
-        self.tool_panel.create_dynamic_label_frame(l, i + 1)
+        self.tool_panel.annotation_process_panel.create_dynamic_label_frame(l, i + 1)
     # endregion: Button show and Button delete
 
     # TODO ：
