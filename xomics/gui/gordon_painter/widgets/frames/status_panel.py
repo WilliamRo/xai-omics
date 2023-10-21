@@ -41,7 +41,7 @@ class StatusPanel(FrameBase):
 
     textbox = self.children['frame:textbox'].children['text:status']
     textbox.config(state=tk.NORMAL)
-    textbox.insert(tk.END, text + "\n")
+    textbox.insert(tk.END, '>>' + text + "\n")
     textbox.config(state=tk.DISABLED)
 
     # Check that the number of lines in the text box is more than 10,

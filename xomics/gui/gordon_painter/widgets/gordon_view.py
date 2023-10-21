@@ -30,29 +30,29 @@ class GordonView(SliceView):
 
   def on_mouse_click(self, event):
     if event.xdata is not None and event.ydata is not None and self.get('painter'):
-      # Coordinates of the mouse click
+      # (1) Coordinates of the mouse click
       y, x = int(event.xdata), int(event.ydata)
       num_slice = self.pictor.cursors[self.pictor.Keys.OBJECTS]
       image = self.selected_medical_image.images[self.displayed_layer_key]
       data = image[num_slice, x, y]
 
-      # get the percentile
+      # (2) Get the percentile
       flatten_image = np.sort(image.flatten())
       percentile = round(
         ((np.searchsorted(flatten_image, data) + 1) / flatten_image.size * 100), 2)
 
-      # calculate the percentile and the threshold
+      # (3) Calculate the percentile and the threshold
       percentile = max(percentile - 0.5, 0)
       self.percentile = percentile
       self.click_address = tuple([num_slice, x, y])
       threshold = np.percentile(image, q=percentile)
 
-      # get the mask and add to mi
+      # (4) Get the mask and add to mi
       mask = (image >= threshold).astype(np.uint8)
       mask = self.amend_mask(mask, tuple([num_slice, x, y]))
       self.selected_medical_image.labels[self.new_label_name] = mask
 
-      # visualiza the new label
+      # (5) Visualize the new label
       self.annotations_to_show.append(self.new_label_name)
       self.refresh()
 
@@ -96,7 +96,7 @@ class GordonView(SliceView):
 
 
   def display_in_textbox(self, text):
-    return self.pictor.tool_panel.display_in_status_box(text)
+    return self.pictor.tool_panel.status_panel.display_in_status_box(text)
 
 
 

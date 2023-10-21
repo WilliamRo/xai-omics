@@ -125,6 +125,8 @@ class AnnotationProcessPanel(FrameBase):
 
     def on_enter(event, label, entry, channel_name):
       new_channel_name = entry.get()
+      self.position_setting(label, [0, 0, 2], self.sticky)
+      entry.grid_forget()
 
       # update selected_medical_image.labels
       if channel_name != new_channel_name:
@@ -134,11 +136,8 @@ class AnnotationProcessPanel(FrameBase):
           new_channel_name] = label_data
         del self.slice_view.selected_medical_image.labels[channel_name]
         self.master.status_panel.display_in_status_box(
-          f'rename label-{channel_name} to label-{new_channel_name}')
+          f'rename label: {channel_name} => {new_channel_name}')
         self.main_canvas.refresh()
-
-      self.position_setting(label, [0, 0, 2], self.sticky)
-      entry.grid_forget()
 
     # endregion: Button Func
 
@@ -196,6 +195,49 @@ class AnnotationProcessPanel(FrameBase):
     })
 
     # endregion: Position Setting of Frame
+
+
+  def refresh(self):
+    # region: (1) Dynamic Frame
+    # Button delete
+    label_list = list(self.slice_view.selected_medical_image.labels.keys())
+    units = list(self.children.values())
+    showed_label_list = [u.winfo_name().split(':label-')[-1]
+                         for u in units if 'frame:label' in u.winfo_name()]
+    label_set, showed_label_set = set(label_list), set(showed_label_list)
+    if label_set != showed_label_set:
+      for l in showed_label_set:
+        self.children[f'frame:label-{l}'].destroy()
+        del self.unit_position[self.winfo_name()][f'frame:label-{l}']
+      for i, l in enumerate(label_set):
+        self.create_dynamic_label_frame(l, i + 1)
+
+    # endregion: (1) Dynamic Frame
+
+    # region: (2) Button
+    # Button Painter
+    element_button = self.find_widgets_in_frame(self, tk.Button)
+    element_button = [
+      b for b in element_button if 'painter' not in b.winfo_name()]
+    state_1 = 'active' if self.slice_view.get('painter') else 'disable'
+    state_2 = 'disable' if self.slice_view.get('painter') else 'active'
+
+    for b in element_button:
+      if 'percentile' in b.winfo_name(): b.configure(state=state_1)
+      else: b.configure(state=state_2)
+
+    # endregion: (2) Button
+
+    # region: (3) Label
+    # Label Percentile
+    if self.slice_view.percentile and self.slice_view.get('painter'):
+      self.text_var['percentile'].set(
+        f'Percentile: {str(round(self.slice_view.percentile, 2))}')
+    else:
+      self.text_var['percentile'].set('Percentile: None')
+    # endregion: (3) Label
+
+    super().refresh()
 
 
 

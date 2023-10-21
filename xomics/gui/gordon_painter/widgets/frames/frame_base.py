@@ -13,6 +13,7 @@ class FrameBase(tk.Frame):
     # (2) Initialization
     self._init_panel()
 
+
   # region: Properties
   @property
   def main_canvas(self):
@@ -65,8 +66,29 @@ class FrameBase(tk.Frame):
       })
 
 
+  @classmethod
+  def find_widgets_in_frame(cls, frame, widget_type):
+    button_instances = []
+    for widget in frame.winfo_children():
+      if isinstance(widget, widget_type):
+        button_instances.append(widget)
+      elif isinstance(widget, tk.Frame):
+        button_instances.extend(
+          cls.find_widgets_in_frame(widget, widget_type))
+
+    return button_instances
+
+
   def refresh(self):
-    pass
+    # region: (1) Position
+    position_dict = self.unit_position
+    for f in position_dict[self.winfo_name()].keys():
+      unit = self.children[f]
+      row, column, columnspan = position_dict[self.winfo_name()][f]
+      unit.grid(
+        row=row, column=column, columnspan=columnspan, sticky='nsew')
+
+    # endregion: (1) Position
 
 
 
