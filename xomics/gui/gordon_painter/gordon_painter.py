@@ -32,7 +32,7 @@ class GordonPainter(DrGordon):
     # (3) Tool panel
     self.tool_panel = ToolPanel(self.master, bg='lightgray')
 
-    # (*) Initialize layout
+    # (4) Initialize layout
     self._init_layout()
 
 
@@ -105,24 +105,31 @@ class GordonPainter(DrGordon):
 
 
   def _refresh_text(self):
-    # image switch bar
+    # (1) image switch panel
+    # region: Text Variable
     self.text_var['patient'].set(
       f'Patient: {self.slice_view.selected_medical_image.key.split("_")[-1]}')
     self.text_var['channel'].set(
       f'Channel: {self.slice_view.displayed_layer_key.upper()}')
+    # endregion: Text Variable
 
-    # annotation process bar
-    # label:percentile
+    # (2) annotation process panel
+    # region: label:percentile
     if self.slice_view.percentile and self.slice_view.get('painter'):
       self.text_var['percentile'].set(
         f'Percentile: {str(round(self.slice_view.percentile, 2))}')
     else:
       self.text_var['percentile'].set('Percentile: None')
+    # endregion: label:percentile
+
+    # region: Dynamic Label Frame
+
+    # endregion: Dynamic Label Frame
 
 
   def _refresh_button(self):
-    # annotation process bar
-    # Button show and Button delete
+    # (1) annotation process panel
+    # region: Button show and Button delete in dynamic button
     label_list = list(self.slice_view.selected_medical_image.labels.keys())
     units = list(self.tool_panel.annotation_process_panel.children.values())
     showed_label_list = [u.winfo_name().split(':label-')[-1]
@@ -135,7 +142,10 @@ class GordonPainter(DrGordon):
           self.tool_panel.annotation_process_panel.winfo_name()][f'frame:label-{l}']
       for i, l in enumerate(label_set):
         self.tool_panel.create_dynamic_label_frame(l, i + 1)
+    # endregion: Button show and Button delete
 
+    # TODO ：
+    #  The boundaries of the buttons are not clear
     element_button = self.find_widgets_in_frame(
       self.tool_panel.annotation_process_panel, tk.Button)
     element_button = [

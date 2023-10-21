@@ -205,7 +205,8 @@ class ToolPanel(tk.Frame):
 
 
   def _create_annotation_process_panel(self):
-    # Button Functions
+    # (1) Button Function Setting
+    # region: Button Func
     def button_set_percentile(step):
       if self.slice_view.percentile and self.slice_view.click_address:
         self.slice_view.percentile = self.slice_view.percentile + step
@@ -223,17 +224,23 @@ class ToolPanel(tk.Frame):
       self.display_in_status_box(
         f'Button Painter set to {self.slice_view.get("painter")}')
 
-    # Parameter Setting
-    percentile_step = self.percentile_step
+    # endregion: Button Func
 
-    # Frame Setting
+    # (2) Widgets Setting
+    # region: Parameter Setting
+    percentile_step = self.percentile_step
+    # endregion: Parameter Setting
+
+    # region: Frame Setting
     frame_painter = tk.Frame(
       self.annotation_process_panel, bg='lightgray', name='frame:painter')
 
-    # Button Setting
+    # endregion: Frame Setting
+
+    # region: Button Setting
     button_painter = tk.Button(
-      frame_painter, text="Painter", width=self.width * 4,
-      height=self.height, command=lambda: button_set_painter(),
+      frame_painter, text='Painter', height=self.height,
+      command=lambda: button_set_painter(),
       name='button:painter')
 
     button_add_percentile = tk.Button(
@@ -246,7 +253,9 @@ class ToolPanel(tk.Frame):
       command=lambda s=percentile_step: button_set_percentile(-s),
       name='button:sub percentile')
 
-    # Label Setting
+    # endregion: Button Setting
+
+    # region: Label Setting
     self.text_var['percentile'] = tk.StringVar()
     label_percentile = tk.Label(
       frame_painter, textvariable=self.text_var['percentile'],
@@ -256,24 +265,34 @@ class ToolPanel(tk.Frame):
       frame_painter, text='All labels are below: ', width=self.width * 4,
       bg='gray', name='label:mask prompt')
 
-    # Position Setting in Frame
+    # endregion: Label Setting
+
+    # (3) Position Setting
+    # region: Position Setting in Frame
     self.position_setting(button_sub_percentile, [0, 0, 1], self.sticky)
     self.position_setting(label_percentile, [0, 1, 2], self.sticky)
     self.position_setting(button_add_percentile, [0, 3, 1], self.sticky)
     self.position_setting(button_painter, [1, 0, 4], self.sticky)
     self.position_setting(label_mask_prompt, [2, 0, 4], self.sticky)
 
-    # Position Setting out of Frame
+    # endregion: Position Setting in Frame
+
+    # region: Position Setting out of Frame
     self.unit_position[self.annotation_process_panel.winfo_name()].update({
       frame_painter.winfo_name(): [0, 0, 1]
     })
 
-    # Dynamic Button Setting
+    # endregion: Position Setting out of Frame
+
+    # (4) Dynamic widgets Setting
+    # region: Dynamic Button Setting
     for i, layer in enumerate(self.main_canvas.channels):
       channel_name = list(
         self.slice_view.selected_medical_image.labels.keys())[layer]
 
       self.create_dynamic_label_frame(channel_name, i + 1)
+
+    # endregion: Dynamic Button Setting
 
 
   def _create_status_panel(self):
@@ -307,6 +326,7 @@ class ToolPanel(tk.Frame):
 
 
   def create_dynamic_label_frame(self, channel_name, row):
+    # (1) Button Function Setting
     # region: Button Func
     def button_show_label(label_name):
       if label_name in self.slice_view.annotations_to_show:
@@ -329,62 +349,90 @@ class ToolPanel(tk.Frame):
 
 
     def on_double_click(event, label, entry):
+      if self.slice_view.get('painter'): return
       label.grid_forget()
       self.position_setting(entry, [0, 0, 2], self.sticky)
       entry.delete(0, tk.END)
-      entry.insert(0, label.cget("text"))
+      entry.insert(0, label.cget('text'))
       entry.focus()
 
 
-    def on_enter(event, label, entry):
-      label.config(text=entry.get())
+    def on_enter(event, label, entry, channel_name):
+      new_channel_name = entry.get()
+
+      # update selected_medical_image.labels
+      if channel_name != new_channel_name:
+        label_data = self.slice_view.selected_medical_image.labels[channel_name]
+        self.slice_view.selected_medical_image.labels[new_channel_name] = label_data
+        del self.slice_view.selected_medical_image.labels[channel_name]
+        self.display_in_status_box(
+          f'rename label-{channel_name} to label-{new_channel_name}')
+        self.main_canvas.refresh()
+
       self.position_setting(label, [0, 0, 2], self.sticky)
       entry.grid_forget()
 
 
     # endregion: Button Func
 
-    # Frame Setting
+    # (2) Widgets Setting
+    # region: Frame Setting
     frame = tk.Frame(
       self.annotation_process_panel,
       bg=self.annotation_process_panel['background'],
       name=f'frame:label-{channel_name}')
 
-    # Label Setting
+    # endregion: Frame Setting
+
+    # region: Label Setting
     label_layer = tk.Label(
       frame, text=channel_name, width=self.width * 2,
       bg=self.annotation_process_panel['background'],
-      name=f'label:layer-{channel_name}')
+      name='label:layer dynamic')
 
-    # # Entry Setting
-    # entry = tk.Entry(frame, name=f'entry:layer-{channel_name}')
-    #
-    # double_click_callback = partial(
-    #   on_double_click, label=label_layer, entry=entry)
-    # enter_callback = partial(on_enter, label=label_layer, entry=entry)
-    #
-    # label_layer.bind("<Double-Button-1>", double_click_callback)
-    # entry.bind("<Return>", enter_callback)
+    # endregion: Label Setting
+
+    # region: Entry Setting
+    entry = tk.Entry(frame, name='entry:layer dynamic')
+
+    double_click_callback = partial(
+      on_double_click, label=label_layer, entry=entry)
+    enter_callback = partial(
+      on_enter, label=label_layer, entry=entry, channel_name=channel_name)
+
+    label_layer.bind("<Double-Button-1>", double_click_callback)
+    entry.bind("<Return>", enter_callback)
     # self.master.bind("<Button-1>", on_window_click)
 
-    # Button Setting
+    # endregion: Entry Setting
+
+    # region: Button Setting
     button_show = tk.Button(
       frame, text='Show', width=self.width, height=self.height,
       command=lambda n=channel_name: button_show_label(n),
-      name=f'button:show {channel_name}')
+      name='button:show dynamic')
 
     button_delete = tk.Button(
       frame, text='Delete', width=self.width, height=self.height,
       command=lambda n=channel_name: button_delete_label(n),
-      name=f'button:delete {channel_name}')
+      name='button:delete dynamic')
 
+    # endregion: Button Setting
+
+    # (3) Position Setting
+    # region: Position Setting in Frame
     self.position_setting(label_layer, [0, 0, 2], self.sticky)
     self.position_setting(button_show, [0, 2, 1], self.sticky)
     self.position_setting(button_delete, [0, 3, 1], self.sticky)
 
+    # endregion: Position Setting in Frame
+
+    # region: Position Setting of Frame
     self.unit_position[self.annotation_process_panel.winfo_name()].update({
       frame.winfo_name(): [row, 0, 1]
     })
+
+    # endregion: Position Setting of Frame
 
 
   def display_in_status_box(self, text):
