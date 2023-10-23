@@ -1,7 +1,7 @@
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from utils.metrics_calc import get_metrics
-
-from xomics.data_io.uld_reader import UldReader
+# from mpl_toolkits.axes_grid1 import make_axes_locatable
+# from utils.metrics_calc import get_metrics
+#
+# from xomics.data_io.uld_reder import UldReader
 from xomics.gui.dr_gordon import DrGordon, SliceView, Plotter
 from xomics import MedicalImage
 
@@ -16,7 +16,8 @@ class BrainExplorer(DrGordon):
   def __init__(self, medical_images, title='Brain Explorer'):
     super().__init__(medical_images, title=title)
     self.brain_viewer = BrainViewer(self)
-    self.set_to_axis(self.Keys.PLOTTERS, [self.brain_viewer], overwrite=True)
+    self.set_to_axis(self.Keys.PLOTTERS, [self.brain_viewer],
+                     overwrite=True)
 
 
 
@@ -30,16 +31,27 @@ class BrainViewer(SliceView):
     super().register_shortcuts()
 
   def mask(self, q: float):
-    x = self.selected_medical_image.images['pet']
+    """Generate mask"""
+    # (0) Get 3D brain volume
+    x = list(self.selected_medical_image.images.values())[0]
+    # x.shape = [S, H, W, 1]
+
+    # (1) Create mask based on x
     threshold = np.percentile(x, q=q)
-    self.selected_medical_image.labels['mask'] = x > threshold
+    mask = x > threshold
+
+    # (*) Visualize your mask
+    self.selected_medical_image.labels['mask-1'] = mask
+
+    cn_mask = x > np.percentile(x, 99)
+    self.selected_medical_image.labels['caudate nuclei'] = cn_mask
 
 
 
 if __name__ == '__main__':
-  data_dir = r'../../../data/04-Brain-CT-PET/mi'
+  data_dir = r'../../../data/05-Brain-MR/mi/neurocon/'
 
-  subjects = [3, 4, 5]
+  subjects = ['sub-control032014', 'sub-control032015']
 
   mi_list = []
   for file in [os.path.join(data_dir, f'{s}.mi') for s in subjects]:
