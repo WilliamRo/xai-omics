@@ -16,12 +16,13 @@ def rld2npy(datadir, new_dir):
     l2_path = os.path.join(l1_path, l2_dir)
     image_dirs = os.listdir(l2_path)
     print(f'Reading data from {l1} ({sub}/{num}):')
+    ctwb = None
+    ctbh = None
     flag = False
     for file in image_dirs:
       print(f'...Reading images from {file}')
       image_path = os.path.join(l2_path, file)
-      image = rd_series(image_path)
-      image = image.reshape((1,) + image.shape + (1,))
+
       tag = get_tags(image_path, suv=False, isSeries=True)
 
       name_list = file.split('_')
@@ -29,6 +30,20 @@ def rld2npy(datadir, new_dir):
 
       img_type = func3('CT', 'PET')
       pos = func3('WB', 'BH')
+
+      if img_type == 'CT':
+        if pos == 'WB':
+          ctwb = rd_series_itk(image_path)
+        elif pos == 'BH':
+          ctbh = rd_series_itk(image_path)
+        image = rd_series(image_path)
+      elif img_type == 'PET':
+        if pos == 'WB':
+          image = rd_series(image_path, resample=True, refimage=ctwb)
+        elif pos == 'BH':
+          image = rd_series(image_path, resample=True, refimage=ctbh)
+
+      image = image.reshape(image.shape + (1,))
 
       stime = ''
       times = [15, 20, 30, 120, 180, 240]
@@ -74,7 +89,7 @@ def rld2npy(datadir, new_dir):
 
 if __name__ == '__main__':
   datadir = 'D:\\projects\\xai-omics\\data\\02-RLD-RAW\\'
-  new_dir = '/data/02-RLD\\'
+  new_dir = 'D:\\projects\\xai-omics\\data\\02-RLD\\'
   # rd_series('D:\\projects\\xai-omics\\data\\02-RLD-RAW\\CHEN_HE_PING_YHP00011233\\PET_13_DL_WB_GATED_(ADULT)_20230906_111759_623000\\CT_BH_15S_3_0_B30F_0013')
   rld2npy(datadir, new_dir)
 

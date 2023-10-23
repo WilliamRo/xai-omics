@@ -12,12 +12,12 @@ def loadvolume(patient_path):
     DICOMUtils.loadPatientByUID(db.patients()[0])
 
   loadedNodes = slicer.util.getNodes()
-  ct_id, pet_id = None, None
+  pet_id = None
   for nodeID, node in loadedNodes.items():
     if node.IsA("vtkMRMLScalarVolumeNode"):
       if 'CT' in nodeID:
         ct_id = nodeID
-      elif 'PET' in nodeID:
+      if 'PET' in nodeID:
         pet_id = nodeID
 
   assert ct_id is not None
@@ -31,30 +31,32 @@ def loadvolume(patient_path):
 
 
 if __name__ == '__main__':
-  dir = r'E:\xai-omics\data\02-PET-CT-Y1\sg_raw'
+  dir = r'D:/projects/xai-omics/data/02-RLD-RAW/'
   patients = os.listdir(dir)
 
   for p in tqdm(patients):
     # load the data
     patient_path = os.path.join(dir, p)
-    save_path_pet = os.path.join(dir, p, 'pet-resample.nii')
-    save_path_ct = os.path.join(dir, p, 'ct.nii')
+    patient_path = os.path.join(os.listdir(patient_path)[0], patient_path)
+    image_path = os.listdir(patient_path)
+    save_path_pet = os.path.join(patient_path)
 
-    ct, pet = loadvolume(patient_path)
+    for path in image_path:
+      real_path = os.path.join(patient_path, path)
+      pet = loadvolume(real_path)
+      # resample
+      outputVolumeNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLScalarVolumeNode')
+      outputVolumeNode.SetName('output')
 
-    # resample
-    outputVolumeNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLScalarVolumeNode')
-    outputVolumeNode.SetName('output')
+      resampleModule = slicer.modules.resamplescalarvectordwivolume
 
-    resampleModule = slicer.modules.resamplescalarvectordwivolume
+      parameters = {}
+      parameters['inputVolume'] = slicer.util.getNode('pet')
+      parameters['outputVolume'] = slicer.util.getNode('output')
+      parameters['referenceVolume'] = slicer.util.getNode('ct')
+      parameters['interpolationType'] = 'linear'
 
-    parameters = {}
-    parameters['inputVolume'] = slicer.util.getNode('pet')
-    parameters['outputVolume'] = slicer.util.getNode('output')
-    parameters['referenceVolume'] = slicer.util.getNode('ct')
-    parameters['interpolationType'] = 'linear'
-
-    cliNode = slicer.cli.runSync(resampleModule, None, parameters)
+      cliNode = slicer.cli.runSync(resampleModule, None, parameters)
 
     # save the data
     slicer.util.saveNode(slicer.util.getNode('output'), save_path_pet)

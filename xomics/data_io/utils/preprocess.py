@@ -13,7 +13,9 @@ def dicom_time(t):
   return h_t * 3600 + m_t * 60 + s_t
 
 
-def calc_SUV(data, tags=None, norm=False, **kwargs):
+def calc_SUV(data, tags=None, norm=False, advance=False, **kwargs):
+  if advance:
+    return calc_SUV_advance(data, tags, norm)
   if 'DD' not in tags.keys():
     decay_time = dicom_time(tags['ST']) - dicom_time(tags['RST'])
     decay_dose = float(tags['RTD']) * pow(2, -float(decay_time) / float(tags['RHL']))
@@ -26,6 +28,17 @@ def calc_SUV(data, tags=None, norm=False, **kwargs):
     PET_SUV = data * SUVbwScaleFactor
   return PET_SUV
 
+
+def calc_SUV_advance(data, tags, norm=False):
+  decay_time = dicom_time(tags['ST']) - dicom_time(tags['RST'])
+  decay_dose = float(tags['RTD']) * pow(2, -float(decay_time) / float(tags['RHL']))
+  SUVbwScaleFactor = (1000 * float(tags['PW'])) / decay_dose
+
+  if norm:
+    PET_SUV = (data * float(tags['RS']) + float(tags['RI'])) * SUVbwScaleFactor
+  else:
+    PET_SUV = data * SUVbwScaleFactor
+  return PET_SUV
 
 def get_suv_factor(decay_dose: float, weight):
   return 1000 * float(weight) / decay_dose

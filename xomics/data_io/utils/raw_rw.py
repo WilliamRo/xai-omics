@@ -29,25 +29,36 @@ def rd_file(filepath, nii_param=False):
   return img
 
 
-def rd_series(dirpath):
+def rd_series_itk(dirpath):
+  series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(dirpath)
+  series_reader = sitk.ImageSeriesReader()
+  series_reader.SetFileNames(series_file_names)
+  image3D = series_reader.Execute()
+
+  return image3D
+
+
+def rd_series(dirpath, resample=False, refpath=None, refimage=None):
   """
   use pydicom to read image series
   :param dirpath: directory path name
   :return:
   """
-  # series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(dirpath)
-  # series_reader = sitk.ImageSeriesReader()
-  # series_reader.SetFileNames(series_file_names)
-  # image3D = series_reader.Execute()
-  # data = sitk.GetArrayFromImage(image3D)
-  # return data
+  image3D = rd_series_itk(dirpath)
+  if resample:
+    assert refpath is not None or refimage is not None
+    refer_img = rd_series_itk(refpath) if refimage is None else refimage
+    image3D = resize_image_itk(image3D, refer_img)
 
-  file_paths = finder.walk(dirpath)
-  dcms = [pydicom.read_file(path)
-          for path in file_paths]
-  dcms = sorted(dcms, key=lambda d: d.InstanceNumber, reverse=True)
-  data = [d.pixel_array for d in dcms]
-  return np.stack(data, axis=0)
+  data = sitk.GetArrayFromImage(image3D)
+  return data
+
+  # file_paths = finder.walk(dirpath)
+  # dcms = [pydicom.read_file(path)
+  #         for path in file_paths]
+  # dcms = sorted(dcms, key=lambda d: d.InstanceNumber, reverse=True)
+  # data = [d.pixel_array for d in dcms]
+  # return np.stack(data, axis=0)
 
 
 def wr_file(arr, pathname, nii_param=None):
@@ -123,6 +134,45 @@ def rd_tags(path):
 def npy_save(data, filepath):
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
   np.save(filepath, data)
+
+
+def resize_image_itk(ori_img, target_img,
+                     resamplemethod=sitk.sitkLinear):
+  """
+  用itk方法将原始图像resample到与目标图像一致
+  :param ori_img: 原始需要对齐的itk图像
+  :param target_img: 要对齐的目标itk图像
+  :param resamplemethod: itk插值方法: sitk.sitkLinear-线性  sitk.sitkNearestNeighbor-最近邻
+  :return:img_res_itk: 重采样好的itk图像
+  使用示范：
+  import SimpleITK as sitk
+  target_img = sitk.ReadImage(target_img_file)
+  ori_img = sitk.ReadImage(ori_img_file)
+  img_r = resize_image_itk(ori_img, target_img, resamplemethod=sitk.sitkLinear)
+  """
+  target_Size = target_img.GetSize()  # 目标图像大小  [x,y,z]
+  target_Spacing = target_img.GetSpacing()  # 目标的体素块尺寸    [x,y,z]
+  target_origin = target_img.GetOrigin()  # 目标的起点 [x,y,z]
+  target_direction = target_img.GetDirection()  # 目标的方向 [冠,矢,横]=[z,y,x]
+
+  # itk的方法进行resample
+  resampler = sitk.ResampleImageFilter()
+  resampler.SetReferenceImage(ori_img)  # 需要重新采样的目标图像
+  # 设置目标图像的信息
+  resampler.SetSize(target_Size)  # 目标图像大小
+  resampler.SetOutputOrigin(target_origin)
+  resampler.SetOutputDirection(target_direction)
+  resampler.SetOutputSpacing(target_Spacing)
+  # 根据需要重采样图像的情况设置不同的type
+  if resamplemethod == sitk.sitkNearestNeighbor:
+    resampler.SetOutputPixelType(sitk.sitkUInt8)  # 近邻插值用于mask的，保存uint8
+  else:
+    resampler.SetOutputPixelType(sitk.sitkFloat32)
+    # 线性插值用于PET/CT/MRI之类的，保存float32
+  resampler.SetTransform(sitk.Transform(3, sitk.sitkIdentity))
+  resampler.SetInterpolator(resamplemethod)
+  itk_img_resampled = resampler.Execute(ori_img)  # 得到重新采样后的图像
+  return itk_img_resampled
 
 
 
