@@ -90,9 +90,9 @@ class SplCom:
       self.com_arr = np.zeros(self.shape)
     self.com_arr[tuple(self.com_slices)] = arr[tuple(self.off_slices)]
 
-  def execute(self):
+  def execute(self, *args, **kwargs):
     for i in self:
-      self.combine(self.processor(i))
+      self.combine(self.processor(i, *args, **kwargs))
     return self.com_arr
 
 

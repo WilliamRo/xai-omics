@@ -142,39 +142,46 @@ class ULDSet(DataSet):
   def evaluate_model(self, model: Predictor, report_metric=True):
     from uld_core import th
     from utils.metrics_calc import get_metrics
+    import joblib
+
     if th.classify:
       return self.classify_eval(model)
     if th.output_result:
       return self.output_results(model)
     from dev.explorers.uld_explorer.uld_explorer_v31 import ULDExplorer
     from xomics import MedicalImage
-    from utils.split_combined import SplCom
 
     # if report_metric: model.evaluate_model(self, batch_size=1)
     # pred.shape = [N, s, s, s, 1]
-    splcom = SplCom(self.features, 3, [0, 24, 0, 0, 0])
-    for i, arr in enumerate(splcom):
-      data = DataSet(arr, arr)
-      console.supplement(f'model predicting({i+1}/{len(splcom)})', level=2)
-      splcom.combine(model.predict(data))
 
-    pred = splcom.com_arr
+    # from utils.split_combined import SplCom
+    # splcom = SplCom(self.features, 11, [0, 24, 0, 0, 0])
+    # for i, arr in enumerate(splcom):
+    #   data = DataSet(arr, arr)
+    #   console.supplement(f'model predicting({i+1}/{len(splcom)})', level=2)
+    #   splcom.combine(model.predict(data))
+    # pred = splcom.com_arr
 
-    # print(self.size, pred.shape, self.targets.shape)
-    # metrics = ['SSIM', 'NRMSE', 'PSNR']
-    # fmetric = get_metrics(self.targets[0, ..., 0],
-    #                       pred[0, ..., 0],
-    #                       metrics, data_range=1)
-    # print('...predict')
-    # for k, v in fmetric.items():
-    #   print(f'{k}:{v: .5f}')
-    #
-    # fmetric = get_metrics(self.targets[0, ..., 0],
-    #                       self.features[0, ..., 0],
-    #                       metrics, data_range=1)
-    # print('...low')
-    # for k, v in fmetric.items():
-    #   print(f'{k}:{v: .5f}')
+
+    if not os.path.exists(th.mark+'.out'):
+      data = DataSet(self.features, self.targets)
+      pred = model.predict(data)
+      joblib.dump(pred, th.mark + '.out')
+    else:
+      pred = joblib.load(th.mark + '.out')
+
+    metrics = ['SSIM', 'NRMSE', 'PSNR']
+    pmetric = get_metrics(self.targets[0, ..., 0],
+                          pred[0, ..., 0],
+                          metrics, data_range=1)
+
+    lmetric = get_metrics(self.targets[0, ..., 0],
+                          self.features[0, ..., 0],
+                          metrics, data_range=1)
+    console.show_status('metrics (low/predict)')
+    for i in lmetric.keys():
+      console.supplement(f'{i}:{lmetric[i]: .5f} /{pmetric[i]: .5f}', level=2)
+
     # Compare results using DrGordon
     medical_images = [
       MedicalImage(f'Sample-{i}', images={
@@ -184,29 +191,28 @@ class ULDSet(DataSet):
         # 'Delta': np.square(pred[i] - data.targets[i])
       }) for i in range(self.size)]
 
-    # if th.show_weight_map:
-    #   fetchers = [th.depot['weight_map']]
-    #   if 'candidate1' in th.depot: fetchers.append(th.depot['candidate1'])
-    #
-    #   values = model.evaluate(fetchers, data)
-    #   wms = values[0]
-    #
-    #   # wm.shape = [?, S, H, W, C]
-    #   for wm, mi in zip(wms, medical_images):
-    #     mi.put_into_pocket('weight_map', wm)
-    #
-    #   if len(values) > 1:
-    #     for ca, mi in zip(values[1], medical_images):
-    #       for c in range(1, ca.shape[-1]):
-    #         mi.images[f'Candidate-{c}'] = ca[:, :, :, c:c+1]
+    if th.show_weight_map:
+      fetchers = [th.depot['weight_map']]
+      if 'candidate1' in th.depot: fetchers.append(th.depot['candidate1'])
 
-    # import joblib
-    # joblib.dump(medical_images, th.mark + '.out')
+      if not os.path.exists(th.mark+'_wm.out'):
+        values = model.evaluate(fetchers, data)
+        joblib.dump(values, th.mark + '_wm.out')
+      else:
+        values = joblib.load(th.mark+'_wm.out')
 
-    # from xomics.gui.dr_gordon import DrGordon
-    # ue = DrGordon(medical_images)
-    # ue.slice_view.set('vmax', auto_refresh=False)
-    # ue.slice_view.set('vmin', auto_refresh=False)
+      wms = values[0]
+      # wm.shape = [?, S, H, W, C]
+      for wm, mi in zip(wms, medical_images):
+        mi.put_into_pocket('weight_map', wm)
+
+      if len(values) > 1:
+        for ca, mi in zip(values[1], medical_images):
+          for c in range(1, ca.shape[-1]):
+            mi.images[f'Candidate-{c}'] = ca[:, :, :, c:c+1]
+
+
+
     ue = ULDExplorer(medical_images)
     ue.dv.set('vmin', auto_refresh=False)
     ue.dv.set('vmax', auto_refresh=False)

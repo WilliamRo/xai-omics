@@ -98,7 +98,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.epoch = 1000
   th.early_stop = True
-  th.patience = 10
+  th.patience = 20
   th.probe_cycle = 0
 
   th.batch_size = 4
