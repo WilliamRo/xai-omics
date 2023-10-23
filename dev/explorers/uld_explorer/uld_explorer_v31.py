@@ -75,7 +75,7 @@ class DoseViewer(SliceView):
                            'Option to toggle slice-omics')
 
     self.new_settable_attr('view_methods', '', str,
-                           'Change the methods to view')
+                           'Change the methods to view(cor, sag, other)')
 
 
   def view_slice(self, fig: plt.Figure, ax: plt.Axes, x: int):
