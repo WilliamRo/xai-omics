@@ -1,5 +1,5 @@
 from tframe import mu
-from uld.operators.custom_layers import Clip
+from rld.layers.layers import *
 from rld.loss.custom_loss import get_ssim_3D, get_nrmse, get_psnr
 
 custom_loss = {
@@ -9,7 +9,7 @@ custom_loss = {
 }
 
 def get_initial_model():
-  from uld_core import th
+  from rld_core import th
 
   model = mu.Predictor(th.mark)
   model.add(mu.Input(sample_shape=th.input_shape))

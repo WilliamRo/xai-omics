@@ -41,11 +41,14 @@ class NpyReader:
   def load_data_by_subject(self, subjects: list[int],
                            types_list: list[list[str]], **kwargs):
     arr_dict = {}
+    type_strs = ["_".join(i) for i in types_list]
     for subject in subjects:
       arr = []
-      for types in types_list:
-        types_str = '_'.join(types)
-        self._load_type = types[0]
+      console.supplement(f'loading sub{subject} with {type_strs}',
+                         level=2)
+      for i, types_str in enumerate(type_strs):
+        console.print_progress(i, len(type_strs))
+        self._load_type = types_list[i][0]
         filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
                                 f'{self.SUBJECT_NAME}{subject}_{types_str}.npy')
         self.npy_load(filepath, **kwargs)
@@ -57,11 +60,15 @@ class NpyReader:
   def load_data_by_types(self, subjects: list[int],
                          types_list: list[list[str]], **kwargs):
     arr_dict = {}
+
     for types in types_list:
       arr = []
       types_str = '_'.join(types)
+      console.supplement(f'loading {types_str} with sub{subjects}',
+                         level=2)
       self._load_type = types[0]
-      for subject in subjects:
+      for i, subject in enumerate(subjects):
+        console.print_progress(i, len(subjects))
         filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}/',
                                 f'{self.SUBJECT_NAME}{subject}_{types_str}.npy')
         self.npy_load(filepath, **kwargs)
@@ -108,12 +115,15 @@ class NpyReader:
       type_str = '_'.join(types)
 
       if self._load_type not in norm_types:
-        data_dict[type_str] = self.load_data_by_types(subjects,
-                                                      [types], **kwargs)[type_str]
+        data_dict[type_str] = self.load_data_by_types(subjects, [types],
+                                                      **kwargs)[type_str]
         continue
 
       data_list = []
+      console.supplement(f'loading {type_str} with sub{subjects}',
+                         level=2)
       for i, subject in enumerate(subjects):
+        console.print_progress(i, len(subjects))
         filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
                                 f'{self.SUBJECT_NAME}{subject}_{type_str}.npy')
         if norms[i] is None:
@@ -149,7 +159,7 @@ class NpyReader:
       mis.append(mi)
     return mis
 
-  def npy_load(self, filepath, show_log=True, **kwargs):
+  def npy_load(self, filepath, show_log=False, **kwargs):
     self._current_filepath = filepath
     self._data = np.load(filepath)
     if show_log:

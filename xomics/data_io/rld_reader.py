@@ -1,5 +1,3 @@
-import os
-
 from xomics.data_io.npy_reader import NpyReader
 from xomics.data_io.utils.raw_rw import rd_tags
 from xomics.data_io.utils.preprocess import calc_SUV

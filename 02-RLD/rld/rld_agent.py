@@ -20,5 +20,5 @@ class RLDAgent(DataAgent):
 
     # features/targets.shape = [N, S, H, W, 1]
     data_root = os.path.join(data_dir, th.data_kwargs['dataset'])
-    return RLDSet.load_as_rldset(data_root)
+    return RLDSet(data_dir=data_root, buffer_size=th.buffer_size)
 
