@@ -15,6 +15,7 @@ class NpyReader:
     self.SUBJECT_NAME = 'subject'
     self._data = None
     self._current_filepath = None
+    self._load_type = None
     self.data = None
     self.datadir = datadir
     self.process_func = None
@@ -23,6 +24,7 @@ class NpyReader:
       'type': self.load_data_by_types,
       'mi': self.load_mi_data,
       'pair': self.load_data_in_pair,
+      'train': self.load_data_with_same_norm,
     }
 
   def _load_data(self, subjects, types, methods, **kwargs):
@@ -43,6 +45,7 @@ class NpyReader:
       arr = []
       for types in types_list:
         types_str = '_'.join(types)
+        self._load_type = types[0]
         filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
                                 f'{self.SUBJECT_NAME}{subject}_{types_str}.npy')
         self.npy_load(filepath, **kwargs)
@@ -57,8 +60,9 @@ class NpyReader:
     for types in types_list:
       arr = []
       types_str = '_'.join(types)
+      self._load_type = types[0]
       for subject in subjects:
-        filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
+        filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}/',
                                 f'{self.SUBJECT_NAME}{subject}_{types_str}.npy')
         self.npy_load(filepath, **kwargs)
         arr.append(self._data)
@@ -74,6 +78,8 @@ class NpyReader:
     for subject in subjects:
       type_str1 = '_'.join(types_list[0])
       type_str2 = '_'.join(types_list[1])
+      assert types_list[0][0] == types_list[1][0]
+      self._load_type = types_list[0][0]
       f_filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
                                 f'{self.SUBJECT_NAME}{subject}_{type_str1}.npy')
       t_filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
@@ -91,6 +97,34 @@ class NpyReader:
       'targets': targets,
     }
     return self.data
+
+  def load_data_with_same_norm(self, subjects: list[int],
+                               types_list: list[list[str]],
+                               norm_types: list[str], **kwargs):
+    data_dict = {}
+    for types in types_list:
+      norms = [None] * len(subjects)
+      self._load_type = types[0]
+      type_str = '_'.join(types)
+
+      if self._load_type not in norm_types:
+        data_dict[type_str] = self.load_data_by_types(subjects,
+                                                      [types], **kwargs)[type_str]
+        continue
+
+      data_list = []
+      for i, subject in enumerate(subjects):
+        filepath = os.path.join(self.datadir, f'{self.SUBJECT_NAME}{subject}',
+                                f'{self.SUBJECT_NAME}{subject}_{type_str}.npy')
+        if norms[i] is None:
+          data, norm = self.npy_load(filepath, ret_norm=True, **kwargs)
+        else:
+          data = self.npy_load(filepath, norm=norms[i], **kwargs)
+        data_list.append(data)
+      data_dict[type_str] = data_list
+
+    self.data = data_dict
+    return data_dict
 
   def load_data(self, subjects: list[int],
                 types: list[list[str]],

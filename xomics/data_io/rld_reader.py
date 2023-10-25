@@ -9,12 +9,12 @@ class RLDReader(NpyReader):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.SUBJECT_NAME = 'sub'
+    self.process_func = self.process
 
-  def pre_process(self, suv=False, **kwargs):
-    if suv:
+  def process(self, suv=False, **kwargs):
+    if suv and self._load_type == 'PET':
       tagpath = self._current_filepath[:-3] + 'pkl'
       tags = rd_tags(tagpath)
       self._data = calc_SUV(self._data, tags=tags, advance=True)
 
 
-    return

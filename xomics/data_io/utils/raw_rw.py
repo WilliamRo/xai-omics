@@ -81,8 +81,12 @@ def get_all_tags(dirpath, isSeries=False):
   if isSeries:
     dirpath = os.path.join(dirpath, os.listdir(dirpath)[0])
   data = pydicom.dcmread(dirpath)
-  elements = data.elements()
-  tags = list(elements)
+  tags = {}
+  for key in data.dir():
+    if key == "PixelData":
+      continue
+    value = getattr(data, key, '')
+    tags[key] = value
   return tags
 
 

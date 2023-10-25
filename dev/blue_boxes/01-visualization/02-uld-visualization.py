@@ -2,14 +2,13 @@ import numpy as np
 
 from dev.explorers.uld_explorer.uld_explorer_v31 import ULDExplorer
 from xomics.data_io.uld_reader import UldReader
-from xomics.data_io.utils.uld_raw_rd import rd_uld_test
+from xomics.data_io.scripts.uld_raw_rd import rd_uld_test
 from xomics import MedicalImage
-from xomics.gui.dr_gordon import DrGordon
 
 data_dir = r'../../../data/01-ULD/'
 # subjects = list(range(1, 16))
 subjects = [2]
-mode = "uld-pair"
+mode = "uld-train"
 
 
 keys = [['Full'],

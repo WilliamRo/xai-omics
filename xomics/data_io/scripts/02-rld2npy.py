@@ -43,7 +43,7 @@ def rld2npy(datadir, new_dir):
         elif pos == 'BH':
           image = rd_series(image_path, resample=True, refimage=ctbh)
 
-      image = image.reshape(image.shape + (1,))
+      image = image.reshape((1,) + image.shape + (1,))
 
       stime = ''
       times = [15, 20, 30, 120, 180, 240]

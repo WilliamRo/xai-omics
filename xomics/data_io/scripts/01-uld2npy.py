@@ -1,6 +1,6 @@
 from roma import finder
 from xomics.data_io.utils.raw_rw import npy_save, wr_tags
-from xomics.data_io.utils.uld_raw_rd import rd_uld_train
+from xomics.data_io.scripts.uld_raw_rd import rd_uld_train
 
 import os
 
