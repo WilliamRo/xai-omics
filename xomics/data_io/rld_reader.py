@@ -11,10 +11,14 @@ class RLDReader(NpyReader):
     self.SUBJECT_NAME = 'sub'
     self.process_func = self.process
 
+  def get_tags(self):
+    tagpath = self._current_filepath[:-3] + 'pkl'
+    tags = rd_tags(tagpath)
+    return tags
+
   def process(self, suv=False, **kwargs):
     if suv and self._load_type == 'PET':
-      tagpath = self._current_filepath[:-3] + 'pkl'
-      tags = rd_tags(tagpath)
+      tags = self.get_tags()
       self._data = calc_SUV(self._data, tags=tags, advance=True)
 
 

@@ -37,14 +37,23 @@ class RLDViewer(SliceView):
     mi: MedicalImage = self.selected_medical_image
     selected_vol = mi.images[self.displayed_layer_key]
 
+    ps = [0.9765625]*2
+    ss = 3.0
+    aspect = ps[1]/ps[0]
+    sag_aspect = ps[1] / ss
+    cor_aspect = ss / ps[0]
+
     if self.get('view_point') == 'cor':
       selected_vol = selected_vol.swapaxes(0, 1)
+      aspect = cor_aspect
     elif self.get('view_point') == 'sag':
       selected_vol = selected_vol.swapaxes(0, 2)
+      aspect = sag_aspect
 
     image: np.ndarray = selected_vol[x]
     im = ax.imshow(image, cmap=self.get('cmap'), vmin=self.get('vmin'),
                    vmax=self.get('vmax'))
+    ax.set_aspect(aspect)
 
     # Set title
     title = mi.key
