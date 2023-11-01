@@ -17,6 +17,7 @@ tests
 tmp
 *.png
 *.npy
+sync.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
