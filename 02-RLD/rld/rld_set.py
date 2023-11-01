@@ -1,6 +1,7 @@
 import os
 import numpy as np
 
+
 from tframe import console
 from tframe import DataSet
 from tframe import Predictor
@@ -80,7 +81,7 @@ class RLDSet(DataSet):
     if is_training: self._clear_dynamic_round_len()
 
   def evaluate_model(self, model: Predictor, report_metric=True):
-
+    from dev.explorers.rld_explore.rld_explorer import RLDExplorer
     pred = model.predict(self)
 
     # Compare results using DrGordon
@@ -89,13 +90,12 @@ class RLDSet(DataSet):
         'Input': self.features[i],
         'Full': self.targets[i],
         'Model-Output': pred[i],
-        # 'Delta': np.square(pred[i] - data.targets[i])
       }) for i in range(self.size)]
 
-    # re = RLDExplorer(medical_images)
-    # re.dv.set('vmin', auto_refresh=False)
-    # re.dv.set('vmax', auto_refresh=False)
-    # re.show()
+    re = RLDExplorer(medical_images)
+    re.sv.set('vmin', auto_refresh=False)
+    re.sv.set('vmax', auto_refresh=False)
+    re.show()
 
   @staticmethod
   def fetch_data(self):
@@ -124,14 +124,18 @@ class RLDSet(DataSet):
       ['PET', 'WB', '240S', 'STATIC'],
     ]
 
-    f = lambda x: np.concatenate(data['_'.join(types[x])])
+    f_index = [0, 1]
+    t_index = [2]
 
     data = self.reader.load_data(subjects, types, methods='train', **kwargs)
-    self.features = np.concatenate([f(0), f(1)], axis=4)
-    self.targets = f(2)
+    self.data_concat(data, types, f_index, t_index)
     pass
 
-  @classmethod
-  def load_as_rldset(cls, data_dir):
-    from tframe import hub as th
-    return RLDSet(data_dir=data_dir, buffer_size=th.buffer_size)
+  def data_concat(self, data, types, feature_index: list, target_index: list):
+    f = lambda x: np.concatenate(data['_'.join(types[x])])
+
+    features = [f(i) for i in feature_index]
+    target = [f(i) for i in target_index]
+    self.features = np.concatenate(features, axis=-1)
+    self.targets = np.concatenate(target, axis=-1)
+

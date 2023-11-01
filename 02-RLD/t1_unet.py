@@ -72,7 +72,7 @@ def main(_):
   # th.batchlet_size = 2
   th.val_batch_size = 4
 
-  th.buffer_size = 18
+  th.buffer_size = 6
 
   th.loss_string = 'rmse'
   th.opt_str = 'adam'
