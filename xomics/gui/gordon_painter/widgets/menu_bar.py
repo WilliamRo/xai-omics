@@ -1,7 +1,6 @@
 from xomics import MedicalImage
 from tkinter import messagebox
 from xomics.data_io.utils.preprocess import calc_SUV
-from tqdm import tqdm
 
 import tkinter as tk
 import numpy as np

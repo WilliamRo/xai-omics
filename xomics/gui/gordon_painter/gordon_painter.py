@@ -1,7 +1,5 @@
 from xomics.gui.dr_gordon import DrGordon
 from xomics.gui.gordon_painter.widgets.frames.frame_base import FrameBase
-from xomics import MedicalImage
-from tqdm import tqdm
 from collections import OrderedDict
 from widgets.menu_bar import MenuBar
 from widgets.tool_panel import ToolPanel
@@ -10,8 +8,6 @@ from tkinter import messagebox
 
 import tkinter as tk
 import windnd
-import numpy as np
-import os
 
 
 

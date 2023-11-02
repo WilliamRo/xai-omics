@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from roma import Nomear, console
+from typing import Union
 
 import os
 import nibabel as nib
@@ -136,16 +137,30 @@ class MedicalImage(Nomear):
           (self.images[layer] - min_data) / (max_data - min_data))
 
 
-  def crop(self, crop_size: list, random_crop: bool):
+  def crop(self, crop_size: list, random_crop: bool, basis: Union[str, list]):
     '''
 
     '''
     assert len(crop_size) == 3
+    max_indices = [0, 0, 0]
+    min_indices = list(self.shape)
 
     # Find the coordinates of the region with value 1
-    indices = np.argwhere(self.labels['label-0'] == 1)
-    max_indices = np.max(indices, axis=0)
-    min_indices = np.min(indices, axis=0)
+    if isinstance(basis, str):
+      assert basis in self.labels.keys()
+      indices = np.argwhere(self.labels[basis] == 1)
+      max_indices = np.max(indices, axis=0)
+      min_indices = np.min(indices, axis=0)
+    elif isinstance(basis, list):
+      for b in basis:
+        assert b in self.labels.keys()
+        indices = np.argwhere(self.labels[b] == 1)
+        max_indices = [
+          max(a, b) for a, b in zip(np.max(indices, axis=0), max_indices)]
+        min_indices = [
+          min(a, b) for a, b in zip(np.min(indices, axis=0), min_indices)]
+
+
 
     delta_indices = [
       maxi - mini for maxi, mini in zip(max_indices, min_indices)]
