@@ -128,13 +128,24 @@ class MedicalImage(Nomear):
     self.images[layer][self.images[layer] > top] = top
 
 
-  def normalization(self, layers):
+  def normalization(self, layers, method):
+    def z_score(input):
+      mean = np.mean(input)
+      std = np.std(input)
+      return (input - mean) / std
+
+
+    def min_max(input):
+      max_data = np.max(input)
+      min_data= np.min(input)
+      return (input - min_data) / (max_data - min_data)
+
+    assert method in ['z_score', 'min_max']
+    met = z_score if method == 'z_score' else min_max
+
     for layer in layers:
       assert layer in self.images.keys()
-      max_data = np.max(self.images[layer])
-      min_data = np.min(self.images[layer])
-      self.images[layer] = (
-          (self.images[layer] - min_data) / (max_data - min_data))
+      self.images[layer] = met(self.images[layer])
 
 
   def crop(self, crop_size: list, random_crop: bool, basis: Union[str, list]):
