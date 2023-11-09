@@ -1,12 +1,23 @@
 from tframe.core.quantity import Quantity
 
 
+
+def get_lpips():
+  from tframe import tf
+
+  def lpips(truth, output):
+    from lpips_tf import lpips
+    return lpips(truth, output)
+
+  return Quantity(lpips, tf.reduce_mean, name='lpips', lower_is_better=False)
+
+
 def get_ssim_3D():
   from tframe import tf
   def ssim(truth, output):
     # [bs, num_slides, 440, 440, 1]
     from rld_core import th
-    shape = [-1] + th.data_shape[1:]
+    shape = [-1] + th.data_shape + [1]
     truth, output = [tf.reshape(x, shape) for x in (truth, output)]
 
     return tf.image.ssim(truth, output, max_val=1.0)

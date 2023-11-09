@@ -18,12 +18,24 @@ def model():
   th = core.th
   return m.get_unet(th.archi_string)
 
+  model = m.get_initial_model()
+  conv = lambda n: m.mu.HyperConv3D(filters=int(n), kernel_size=th.kernel_size,
+                                    activation=th.activation)
+  deconv = lambda n: m.mu.HyperDeconv3D(filters=int(n),
+                                        kernel_size=th.kernel_size)
+  vertices = [
+  ]
+  edges = '1'
+  model.add(m.mu.ForkMergeDAG(vertices, edges, auto_merge=False))
+
+  return m.finalize(model)
+
 
 def main(_):
-  console.start('{} on Ultra Low Dose task'.format(model_name.upper()))
+  console.start('{} on PET/CT reconstruct task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 1
+  th.rehearse = 0
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -31,14 +43,16 @@ def main(_):
   th.data_config = fr'alpha dataset=02-RLD'
 
   th.val_size = 5
-  th.test_size = 1
+  th.test_size = 2
 
-  th.window_size = 128
-  th.slice_size = 128
+  th.window_size = 64
+  th.slice_size = 64
   # th.eval_window_size = 128
-  th.data_shape = [1, 260, 512, 512, 1]
+  th.data_shape = [256, 440, 440]
 
-
+  # th.noCT = True
+  if th.noCT:
+    th.input_shape[-1] = 1
   # th.use_suv = False
 
   # ---------------------------------------------------------------------------
@@ -56,8 +70,9 @@ def main(_):
   # 2. model setup
   # ---------------------------------------------------------------------------
   th.model = model
-
-  th.archi_string = '4-3-3-2-lrelu'
+  th.kernel_size = 3
+  th.activation = 'lrelu'
+  th.archi_string = '4-3-3-2-' + th.activation
 
   th.use_sigmoid = False
   # ---------------------------------------------------------------------------
@@ -69,8 +84,8 @@ def main(_):
   th.probe_cycle = th.updates_per_round
 
   th.batch_size = 4
-  # th.batchlet_size = 2
-  th.val_batch_size = 4
+  th.batchlet_size = 1
+  th.val_batch_size = 2
 
   th.buffer_size = 6
 
@@ -90,7 +105,7 @@ def main(_):
     th.suffix += '_sig'
   if th.use_suv:
     th.suffix += '_suv'
-  # th.suffix += f'_lr{th.learning_rate:3e}_loss({th.loss_string})_BS{th.batch_size}'
+  th.suffix += '_noCT' if th.noCT else ''
   th.suffix += f'_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'

@@ -22,6 +22,8 @@ class RLDConfig(SmartTrainerHub):
   data_clip = Flag.float(None, "clip the data value", is_key=None)
   clip_off = Flag.boolean(False, '...', is_key=None)
 
+  noCT = Flag.boolean(False, 'if use ct in input', is_key=None)
+
   @property
   def data_arg(self) -> Arguments:
     return Arguments.parse(self.data_config)

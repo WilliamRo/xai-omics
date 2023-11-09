@@ -1,8 +1,9 @@
 from tframe import mu
 from rld.layers.layers import *
-from rld.loss.custom_loss import get_ssim_3D, get_nrmse, get_psnr
+from rld.loss.custom_loss import *
 
 custom_loss = {
+  # 'lpips': get_lpips(),
   'ssim': get_ssim_3D(),
   'nrmse': get_nrmse(),
   'psnr': get_psnr(),

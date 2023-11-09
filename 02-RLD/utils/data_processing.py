@@ -28,7 +28,7 @@ def windows_choose(distr: np.ndarray, windows_size):
 
 
 def get_random_window(arr: np.ndarray, window_size=128, slice_size=16,
-                      true_rand=True):
+                      true_rand=False):
   # for Gamma test
   # arr = np.where(arr != 0, 1, arr)
   s = np.random.randint(arr.shape[1] - slice_size + 1)
@@ -63,7 +63,7 @@ def get_sample(arr: np.ndarray, index, s, h, w,
 
 
 def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
-                windows_size=128, slice_size=16, true_rand=True):
+                windows_size=128, slice_size=16, true_rand=False):
   features = []
   targets = []
   for _ in range(batch_size):
@@ -80,7 +80,7 @@ def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
 
 if __name__ == '__main__':
   from xomics import MedicalImage
-  from xomics.data_io.uld_reader import UldReader
+  from xomics.data_io.reader.uld_reader import UldReader
   from xomics.gui.dr_gordon import DrGordon
 
   path = '../'

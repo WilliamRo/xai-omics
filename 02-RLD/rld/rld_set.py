@@ -1,4 +1,3 @@
-import os
 import numpy as np
 
 
@@ -6,7 +5,7 @@ from tframe import console
 from tframe import DataSet
 from tframe import Predictor
 from xomics import MedicalImage
-from xomics.data_io.rld_reader import RLDReader
+from xomics.data_io.reader.rld_reader import RLDReader
 
 
 class RLDSet(DataSet):
@@ -23,7 +22,7 @@ class RLDSet(DataSet):
 
     self.subjects = []
     if subjects is None:
-      for i in listdir(data_dir):
+      for i in sorted(listdir(data_dir)):
         if i.startswith('sub'):
           self.subjects.append(int(i[3:]))
     else:
@@ -37,7 +36,14 @@ class RLDSet(DataSet):
 
   def __getitem__(self, item):
     # If item is index array
-    assert type(item) == slice
+    if isinstance(item, str):
+      if item in self.data_dict.keys():
+        return self.data_dict[item]
+      elif item in self.properties.keys():
+        return self.properties[item]
+      else:
+        raise KeyError('!! Can not resolve "{}"'.format(item))
+
     data_set = type(self)(subjects=self.subjects[item],
                           buffer_size=self.buffer_size,
                           data_dir=self.data_dir,
@@ -54,7 +60,7 @@ class RLDSet(DataSet):
 
     # self.features/targets.shape = [N, S, H, W, 1]
     features, targets = gen_windows(self.features, self.targets, batch_size,
-                                    th.window_size, th.slice_size, False)
+                                    th.window_size, th.slice_size)
 
     data_batch = DataSet(features, targets)
 
@@ -62,9 +68,10 @@ class RLDSet(DataSet):
 
   def gen_batches(self, batch_size, shuffle=False, is_training=False):
     if not is_training:
-      index = np.random.randint(self.features.shape[0], size=batch_size)
+      index = list(np.random.choice(list(range(self.features.shape[0])),
+                                    batch_size, replace=False))
       features, targets = self.features[index], self.targets[index]
-      eval_set = DataSet(features, targets, name=self.name + '-Eval')
+      eval_set = DataSet(features, targets, name=self.name)
       yield eval_set
       return
     elif callable(self.data_fetcher):
@@ -82,14 +89,22 @@ class RLDSet(DataSet):
 
   def evaluate_model(self, model: Predictor, report_metric=True):
     from dev.explorers.rld_explore.rld_explorer import RLDExplorer
-    pred = model.predict(self)
+    from xomics.data_io.utils.raw_rw import wr_file
+
+    if report_metric:
+      model.evaluate_model(self, batch_size=2)
+    pred = model.predict(self, batch_size=2)
+
+    for i in range(self.size):
+      wr_file(pred[i][:, ..., 0], f'sub-{self.subjects[i]}-pred.nii.gz',
+              self.reader.img_param)
 
     # Compare results using DrGordon
     medical_images = [
-      MedicalImage(f'Sample-{i}', images={
-        'Input': self.features[i],
+      MedicalImage(f'sub-{self.subjects[i]}', images={
+        'Input': self.features[i][:, ..., 1:],
         'Full': self.targets[i],
-        'Model-Output': pred[i],
+        'Output': pred[i],
       }) for i in range(self.size)]
 
     re = RLDExplorer(medical_images)
@@ -115,27 +130,31 @@ class RLDSet(DataSet):
       'use_suv': th.use_suv,
       'clip': th.data_clip,
       'shape': th.data_shape,
-      'norm_margin': [0, 10, 0, 0, 0]
+      'norm_margin': [10, 0, 0]
     }
 
     types = [
-      ['CT', 'WB'],
+      ['PET', 'WB', '30S', 'GATED'],
       ['PET', 'WB', '240S', 'GATED'],
-      ['PET', 'WB', '240S', 'STATIC'],
+      ['CT', 'WB'],
     ]
 
-    f_index = [0, 1]
-    t_index = [2]
+    if th.noCT:
+      types = types[:-1]
+      f_index = [0]
+    else:
+      f_index = [0, len(types)-1]
+    t_index = [1]
 
     data = self.reader.load_data(subjects, types, methods='train', **kwargs)
-    self.data_concat(data, types, f_index, t_index)
-    pass
-
-  def data_concat(self, data, types, feature_index: list, target_index: list):
-    f = lambda x: np.concatenate(data['_'.join(types[x])])
-
-    features = [f(i) for i in feature_index]
-    target = [f(i) for i in target_index]
+    features, targets = [], []
+    for i in range(len(data)):
+      imgs = np.stack(data[i].images.values())
+      if i in f_index:
+        features.append(imgs)
+      elif i in t_index:
+        targets.append(imgs)
     self.features = np.concatenate(features, axis=-1)
-    self.targets = np.concatenate(target, axis=-1)
+    self.targets = np.concatenate(targets, axis=-1)
+
 
