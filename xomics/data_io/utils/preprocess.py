@@ -57,21 +57,24 @@ def suv_reverse(data, decay_dose, weight):
   return data * float(decay_dose) / (1000 * weight)
 
 
-def normalize(arr: np.ndarray, norm=None, ret_norm=False, margin: Union[tuple, list]=None):
-  if margin is not None:
-    assert len(margin) == len(arr.shape)
-    norm_arr = arr
-    for i in range(len(margin)):
-      if margin[i] == 0: continue
-      norm_arr = np.delete(norm_arr, np.s_[0:margin[i]], axis=i, )
-      norm_arr = np.delete(norm_arr, np.s_[-margin[i]:], axis=i)
-  else:
-    norm_arr = arr
+def normalize(arr: np.ndarray, norm=None, ret_norm=False):
   if norm is None:
-    norm = np.max(norm_arr)
+    max_data = np.max(arr)
+    min_data = np.min(arr)
+    norm = [max_data, min_data]
     if ret_norm:
-      return arr / norm, norm
-  return arr / norm
+      return (arr - norm[1]) / (norm[0] - norm[1]), norm
+  return (arr - norm[1]) / (norm[0] - norm[1])
+
+
+def crop_by_margin(arr, margin: Union[tuple, list]):
+  assert len(margin) == len(arr.shape)
+  for i in range(len(margin)):
+    if margin[i] == 0:
+      continue
+    arr = np.delete(arr, np.s_[0:margin[i]], axis=i)
+    arr = np.delete(arr, np.s_[-margin[i]:], axis=i)
+  return arr
 
 
 def get_color_data(data, cmap):

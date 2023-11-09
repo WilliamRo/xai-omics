@@ -189,7 +189,7 @@ class NpyReader:
 
 
 if __name__ == '__main__':
-  filePath = '../../data/01-ULD/'
+  filePath = '../../../data/01-ULD/'
   # img = load_numpy_data(filePath, 8, ['Full'])
   reader = NpyReader(filePath)
   img = reader.load_data([2], [['Full'], ['1-2']],

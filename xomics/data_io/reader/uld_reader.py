@@ -1,6 +1,4 @@
-import numpy as np
-
-from xomics.data_io.npy_reader import NpyReader
+from xomics.data_io.reader.npy_reader import NpyReader
 from xomics.data_io.utils.preprocess import calc_SUV, get_color_data
 from xomics.data_io.utils.raw_rw import rd_file
 
@@ -59,7 +57,7 @@ class UldReader(NpyReader):
 
 
 if __name__ == '__main__':
-  filePath = '../../data/01-ULD/'
+  filePath = '../../../data/01-ULD/'
   # img = load_numpy_data(filePath, 8, ['Full'])
   reader = UldReader(filePath)
   img = reader.load_data([2, 3], [['Full'], ['1-2']], methods='type',

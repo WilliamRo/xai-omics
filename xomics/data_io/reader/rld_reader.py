@@ -1,12 +1,9 @@
-from roma import console
-from xomics.data_io.npy_reader import NpyReader
+from xomics.data_io.reader.mi_reader import MiReader
 from xomics.data_io.utils.raw_rw import rd_tags, rd_file, rd_file_itk, resize_image_itk
 from xomics.data_io.utils.preprocess import calc_SUV
 
-import os
 
-
-class RLDReader(NpyReader):
+class RLDReader(MiReader):
 
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -35,6 +32,7 @@ class RLDReader(NpyReader):
     return self.pre_process(**kwargs)
 
   def process(self, suv=False, **kwargs):
+    self._data = self._data[::-1]
     if suv and self._load_type == 'PET':
       tags = self.get_tags()
       self._data = calc_SUV(self._data, tags=tags, advance=True)
