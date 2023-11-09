@@ -52,7 +52,7 @@ class ULDAgent(DataAgent):
   @classmethod
   def load_as_numpy_arrays(cls, data_dir):
     from uld_core import th
-    from xomics.data_io.npy_reader import NpyReader
+    from xomics.data_io.reader.npy_reader import NpyReader
     data_root = os.path.join(data_dir, th.data_kwargs['dataset'])
     dose = th.data_kwargs['dose']
     subjects = [i for i in range(1, 7)]

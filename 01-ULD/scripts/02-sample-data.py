@@ -5,7 +5,7 @@ import numpy as np
 
 from utils.data_processing import get_random_window
 from xomics import MedicalImage
-from xomics.data_io.npy_reader import load_data
+from xomics.data_io.reader.npy_reader import load_data
 from xomics.gui.dr_gordon import DrGordon
 
 

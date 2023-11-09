@@ -1,6 +1,6 @@
 import os.path
 
-from xomics.data_io.uld_reader import UldReader
+from xomics.data_io.reader.uld_reader import UldReader
 
 import nibabel as nib
 

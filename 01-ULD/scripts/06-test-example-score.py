@@ -1,5 +1,5 @@
 from utils.metrics_calc import get_metrics
-from xomics.data_io.uld_reader import UldReader
+from xomics.data_io.reader.uld_reader import UldReader
 from xomics.data_io.utils.raw_rw import rd_file
 
 import numpy as np

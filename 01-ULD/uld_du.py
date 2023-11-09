@@ -1,6 +1,5 @@
 from uld.uld_agent import ULDAgent, ULDSet
 from roma import console
-from xomics.data_io.uld_reader import UldReader
 
 
 def load_data():

@@ -80,7 +80,7 @@ def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
 
 if __name__ == '__main__':
   from xomics import MedicalImage
-  from xomics.data_io.uld_reader import UldReader
+  from xomics.data_io.reader.uld_reader import UldReader
   from xomics.gui.dr_gordon import DrGordon
 
   path = '../'

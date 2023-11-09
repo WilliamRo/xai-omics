@@ -1,7 +1,7 @@
 import numpy as np
 
 from utils.metrics_calc import get_metrics
-from xomics.data_io.uld_reader import UldReader
+from xomics.data_io.reader.uld_reader import UldReader
 
 dose_tags = [
   ['Full'],

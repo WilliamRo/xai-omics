@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage import exposure
-from xomics.data_io.npy_reader import load_data
+from xomics.data_io.reader.npy_reader import load_data
 
 dose_tags = [
   'Full',

@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 from skimage.exposure.exposure import equalize_hist
 
-from xomics.data_io.npy_reader import load_data
+from xomics.data_io.reader.npy_reader import load_data
 
 dose_tags = [
   'Full',

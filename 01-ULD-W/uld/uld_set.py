@@ -1,11 +1,10 @@
-import random
 import numpy as np
 
 
 from tframe import console
 from tframe import DataSet
 from tframe import Predictor
-from xomics.data_io.uld_reader import UldReader
+from xomics.data_io.reader.uld_reader import UldReader
 
 
 class ULDSet(DataSet):
@@ -36,7 +35,7 @@ class ULDSet(DataSet):
 
   def gen_random_window(self, batch_size):
     from uld_core import th
-    from utils.data_processing import gen_windows, get_random_window, get_sample
+    from utils.data_processing import gen_windows
     # Randomly sample [S, S, S] pair from features and targets
 
     if th.classify:
