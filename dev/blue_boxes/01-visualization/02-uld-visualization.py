@@ -1,7 +1,7 @@
 import numpy as np
 
 from dev.explorers.uld_explorer.uld_explorer_v31 import ULDExplorer
-from xomics.data_io.uld_reader import UldReader
+from xomics.data_io.reader.uld_reader import UldReader
 from xomics.data_io.scripts.uld_raw_rd import rd_uld_test
 from xomics import MedicalImage
 

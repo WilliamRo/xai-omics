@@ -1,8 +1,8 @@
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from utils.metrics_calc import get_metrics
 
-from xomics.data_io.uld_reader import UldReader
-from xomics.gui.dr_gordon import DrGordon, SliceView, Plotter
+from xomics.data_io.reader.uld_reader import UldReader
+from xomics.gui.dr_gordon import DrGordon, SliceView
 from xomics import MedicalImage
 
 import matplotlib.pyplot as plt

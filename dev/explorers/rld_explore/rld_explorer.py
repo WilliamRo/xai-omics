@@ -70,6 +70,8 @@ class RLDViewer(SliceView):
       cax = divider.append_axes('right', size='5%', pad=0.05)
       fig.colorbar(im, cax=cax)
 
+  # region: Custom
+
   # region: Shortcuts
 
   def register_shortcuts(self):
@@ -80,8 +82,16 @@ class RLDViewer(SliceView):
       self.set('view_point', vlist[(vlist.index(self.get('view_point'))+1) % 3])
       self.refresh()
 
+    def temp1():
+      self.pictor.set_cursor(self.pictor.Keys.LAYERS, 1, refresh=True)
+    def temp2():
+      self.pictor.set_cursor(self.pictor.Keys.LAYERS, -1, refresh=True)
+
+    f = lambda : self.pictor.animate(fps=1, scripts=[temp1, temp2])
     self.register_a_shortcut(
       'v', modify_view, 'Change the Viewpoints')
+    self.register_a_shortcut(
+      'd', f, 'temp')
   # endregion: Shortcuts
 
 
