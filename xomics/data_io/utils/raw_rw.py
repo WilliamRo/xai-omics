@@ -7,26 +7,28 @@ import pydicom
 import SimpleITK as sitk
 
 
-
-
-def rd_file(filepath, nii_param=False):
-  """
-  use simpleITK to read file
-  :param nii_param:
-  :param filepath:
-  :return: data array
-  """
-
+def rd_file_itk(filepath, nii_param=False):
   itk_img = sitk.ReadImage(filepath)
-  img = sitk.GetArrayFromImage(itk_img)
   if nii_param:
     param = {
+      'size': itk_img.GetSize(),
       'origin': itk_img.GetOrigin(),
       'spacing': itk_img.GetSpacing(),
       'direction': itk_img.GetDirection(),
     }
+    return itk_img, param
+  return itk_img
+
+
+def rd_file(filepath, nii_param=False):
+  if nii_param:
+    itk_img, param = rd_file_itk(filepath, nii_param=nii_param)
+    img = sitk.GetArrayFromImage(itk_img)
     return img, param
-  return img
+  else:
+    itk_img = rd_file_itk(filepath)
+    img = sitk.GetArrayFromImage(itk_img)
+    return img
 
 
 def rd_series_itk(dirpath):
@@ -50,7 +52,8 @@ def rd_series(dirpath, resample=False, refpath=None, refimage=None):
     refer_img = rd_series_itk(refpath) if refimage is None else refimage
     image3D = resize_image_itk(image3D, refer_img)
 
-  data = sitk.GetArrayFromImage(image3D)
+  data = sitk.GetArrayFromImage(image3D)[::-1]
+
   return data
 
   # file_paths = finder.walk(dirpath)
@@ -140,8 +143,9 @@ def npy_save(data, filepath):
   np.save(filepath, data)
 
 
-def resize_image_itk(ori_img, target_img,
-                     resamplemethod=sitk.sitkLinear):
+def resize_image_itk(ori_img, target_img=None,
+                     size=None, spacing=None, origin=None, direction=None,
+                     resamplemethod=sitk.sitkLinear, raw=True):
   """
   用itk方法将原始图像resample到与目标图像一致
   :param ori_img: 原始需要对齐的itk图像
@@ -154,19 +158,21 @@ def resize_image_itk(ori_img, target_img,
   ori_img = sitk.ReadImage(ori_img_file)
   img_r = resize_image_itk(ori_img, target_img, resamplemethod=sitk.sitkLinear)
   """
-  target_Size = target_img.GetSize()  # 目标图像大小  [x,y,z]
-  target_Spacing = target_img.GetSpacing()  # 目标的体素块尺寸    [x,y,z]
-  target_origin = target_img.GetOrigin()  # 目标的起点 [x,y,z]
-  target_direction = target_img.GetDirection()  # 目标的方向 [冠,矢,横]=[z,y,x]
+  if target_img is not None:
+    size = target_img.GetSize()  # 目标图像大小  [x,y,z]
+    spacing = target_img.GetSpacing()  # 目标的体素块尺寸    [x,y,z]
+    origin = target_img.GetOrigin()  # 目标的起点 [x,y,z]
+    direction = target_img.GetDirection()  # 目标的方向 [冠,矢,横]=[z,y,x]
+  assert None not in [size, spacing, origin, direction]
 
   # itk的方法进行resample
   resampler = sitk.ResampleImageFilter()
   resampler.SetReferenceImage(ori_img)  # 需要重新采样的目标图像
   # 设置目标图像的信息
-  resampler.SetSize(target_Size)  # 目标图像大小
-  resampler.SetOutputOrigin(target_origin)
-  resampler.SetOutputDirection(target_direction)
-  resampler.SetOutputSpacing(target_Spacing)
+  resampler.SetSize(size)  # 目标图像大小
+  resampler.SetOutputOrigin(origin)
+  resampler.SetOutputDirection(direction)
+  resampler.SetOutputSpacing(spacing)
   # 根据需要重采样图像的情况设置不同的type
   if resamplemethod == sitk.sitkNearestNeighbor:
     resampler.SetOutputPixelType(sitk.sitkUInt8)  # 近邻插值用于mask的，保存uint8
@@ -176,7 +182,10 @@ def resize_image_itk(ori_img, target_img,
   resampler.SetTransform(sitk.Transform(3, sitk.sitkIdentity))
   resampler.SetInterpolator(resamplemethod)
   itk_img_resampled = resampler.Execute(ori_img)  # 得到重新采样后的图像
-  return itk_img_resampled
+  if raw:
+    return itk_img_resampled
+  else:
+    return sitk.GetArrayFromImage(itk_img_resampled)
 
 
 
