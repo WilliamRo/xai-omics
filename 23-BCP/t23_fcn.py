@@ -11,12 +11,12 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'unet'
-id = 1
+model_name = 'fcn'
+id = 3
 def model():
   th = core.th
 
-  return m.get_unet_3d(th.archi_string, link_indices=th.link_indices)
+  return m.get_fcn_3d(th.archi_string)
 
 
 def main(_):
@@ -28,8 +28,8 @@ def main(_):
   # 0. date set setup
   # ---------------------------------------------------------------------------
   th.ratio_of_dataset = '7:2:1'
-  th.random_flip = 1
-  th.random_rotation = 1
+  th.random_flip = 0
+  th.random_rotation = 0
   th.random_noise = 1
 
   # ---------------------------------------------------------------------------
@@ -44,9 +44,7 @@ def main(_):
   # 2. model setup
   # ---------------------------------------------------------------------------
   th.model = model
-
-  th.archi_string = '1-4-2-1-lrelu'
-  th.link_indices_str = '0'
+  th.archi_string = '2-4-2-lrelu'
 
   # ---------------------------------------------------------------------------
   # 3. trainer setup
@@ -56,15 +54,15 @@ def main(_):
   th.probe_cycle = th.updates_per_round // 2
   th.patience = 10
 
-  th.batch_size = 8
-  th.batchlet_size = 4
+  th.batch_size = 16
+  th.batchlet_size = 8
   # th.gradlet_in_device = 1
 
   th.val_batch_size = 4
   th.eval_batch_size = 4
 
   th.optimizer = 'adam'
-  th.learning_rate = 0.003
+  th.learning_rate = 0.0003
 
   th.train = True
   th.overwrite = True

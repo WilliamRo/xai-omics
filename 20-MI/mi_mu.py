@@ -1,5 +1,6 @@
 from tframe import console
 from tframe import mu
+from copy import deepcopy
 
 import numpy as np
 
@@ -127,6 +128,92 @@ def get_cnn():
     name='simple_cnn'
   )
   model.add(fm)
+
+  return finalize(model)
+
+
+
+def get_ynet(arc_string='8-5-2-3-lrelu-mp'):
+  from es_core import th
+
+  model = get_initial_model()
+
+  use_maxpool = False
+  option = arc_string.split('-')
+  filters, kernel_size, height, width = [int(op) for op in option[:4]]
+  activation = option[4]
+  for op in option[5:]:
+    if op in ('mp', 'maxpool'): use_maxpool = True
+
+  # Layer Setting
+  conv = lambda _c, _ks, _act: mu.HyperConv3D(
+    _c, _ks, activation=_act)
+  deconv = lambda _c, _ks, _act, _s: mu.HyperDeconv3D(
+    _c, _ks, activation=_act, strides=_s)
+  mp = lambda _ps=2, _s=2: mu.MaxPool3D(_ps, _s)
+
+  # Encoder Setting
+  encoder = []
+  for i in range(height + 1):
+    if i != 0: encoder.append([mp()])
+    encoder.append(
+      [conv(filters * 2**i, kernel_size, activation) for _ in range(width)])
+
+  # Decoder Setting
+  decoder_region = []
+  for i in range(height):
+    f_index = height - i - 1
+    if use_maxpool:
+      decoder_region.append(
+        [deconv(filters * 2 ** f_index, kernel_size, activation, 2)])
+      decoder_region.append([mu.Merge(mu.Merge.CONCAT)])
+      decoder_region.append([conv(
+        filters * 2 ** f_index, kernel_size, activation) for _ in range(width)])
+  decoder_region.append([conv(1, kernel_size, 'sigmoid')])
+
+  decoder_lesion = deepcopy(decoder_region)
+
+  # Vertice and Edges
+  vertice = encoder + decoder_region + decoder_lesion + [[mu.Merge(mu.Merge.PROD)]]
+  conv_index = [
+    vertice.index(l) - 1 for l in vertice if isinstance(l[0], mu.MaxPool3D)]
+  concat_index = [
+    vertice.index(l) for l in vertice if isinstance(l[0], mu.Merge)]
+  concat_index_region = concat_index[:len(concat_index) // 2]
+  concat_index_lesion = concat_index[len(concat_index) // 2:]
+
+  encoder_len = len(encoder)
+  decoder_len = len(decoder_region)
+  edge = []
+  for i in range(len(vertice)):
+    if i < encoder_len:
+      edge.append('0' * i + '1')
+    elif i < encoder_len + decoder_len:
+      if i in concat_index_region:
+        index = concat_index_region.index(i)
+        index = conv_index[-(index + 1)] + 1
+        e = '0' * index + '1' + '0' * (i - index - 1) + '1'
+      else:
+        e = '0' * i + '1'
+      edge.append(e)
+    elif i == len(vertice) - 1:
+      e = '0' * (encoder_len + decoder_len) + '1' + '0' * (decoder_len - 1) + '1'
+      edge.append(e)
+    else:
+      if i == encoder_len + decoder_len:
+        e = '0' * encoder_len + '1' + '0' * decoder_len
+      elif i in concat_index_lesion:
+        index = concat_index_lesion.index(i)
+        index = conv_index[-(index + 1)] + 1
+        e = '0' * index + '1' + '0' * (i - index - 1) + '1'
+      else:
+        e = '0' * i + '1'
+      edge.append(e)
+
+
+  edges = ';'.join(edge)
+
+  model.add(mu.ForkMergeDAG(vertice, edges, name='y-net'))
 
   return finalize(model)
 

@@ -126,7 +126,10 @@ class MIAgent(DataAgent):
       image_dict['targets'] = targets
 
     elif data_key == 'PET':
-      mi_dir = '../../data/02-PET-CT-Y1/mi'
+      mi_dir = os.path.join(
+        os.path.dirname(os.path.dirname(data_dir)),
+        'data/02-PET-CT-Y1/mi/ecs')
+
       mi_dir = os.path.abspath(mi_dir)
       file_names = os.listdir(mi_dir)
       mi_file_list = [os.path.join(mi_dir, file) for file in file_names]

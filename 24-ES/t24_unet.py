@@ -1,5 +1,5 @@
-import bcp_core as core
-import bcp_mu as m
+import es_core as core
+import es_mu as m
 
 from tframe import console
 from tframe import tf
@@ -16,21 +16,21 @@ id = 1
 def model():
   th = core.th
 
-  return m.get_unet_3d(th.archi_string, link_indices=th.link_indices)
+  return m.get_unet(th.archi_string)
 
 
 def main(_):
-  console.start('{} on Brain Analysis'.format(model_name.upper()))
+  console.start('{} on Esophagus Segmentation'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = False
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.ratio_of_dataset = '7:2:1'
-  th.random_flip = 1
-  th.random_rotation = 1
-  th.random_noise = 1
+  th.ratio_of_dataset = '8:2'
+  th.random_flip = 0
+  th.random_rotation = 0
+  th.random_noise = 0
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
@@ -45,9 +45,8 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '1-4-2-1-lrelu'
-  th.link_indices_str = '0'
-
+  th.archi_string = '8-5-2-3-relu-mp'
+  # th.archi_string = '4-5-1-1-relu'
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -56,15 +55,16 @@ def main(_):
   th.probe_cycle = th.updates_per_round // 2
   th.patience = 10
 
-  th.batch_size = 8
+  th.batch_size = 4
   th.batchlet_size = 4
   # th.gradlet_in_device = 1
 
-  th.val_batch_size = 4
-  th.eval_batch_size = 4
+  th.val_batch_size = 2
+  th.eval_batch_size = 2
 
   th.optimizer = 'adam'
-  th.learning_rate = 0.003
+  # th.optimizer = 'sgd'
+  th.learning_rate = 0.033
 
   th.train = True
   th.overwrite = True
@@ -72,6 +72,8 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
+  # th.mark = '{}({})'.format(
+  #   model_name, th.archi_string + '-' + th.link_indices_str)
   th.mark = '{}({})'.format(
     model_name, th.archi_string)
   # th.mark += th.data_config.replace('>', '-')

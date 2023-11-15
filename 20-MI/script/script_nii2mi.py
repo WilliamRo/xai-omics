@@ -8,14 +8,14 @@ import numpy as np
 
 if __name__ == '__main__':
   image_dir = r'../../data/02-PET-CT-Y1/sg_raw'
-  mask_dir = r'../../data/02-PET-CT-Y1/sg_ROI1.1'
-  save_dir = r'../../data/02-PET-CT-Y1/mi'
+  mask_dir = r'../../data/02-PET-CT-Y1/sg_Roi_ecs'
+  save_dir = r'../../data/02-PET-CT-Y1/mi/ecs'
 
   ct_name = 'ct.nii'
   pet_name = 'pet-resample.nii'
 
   patient_id = os.listdir(mask_dir)
-  for p in tqdm(patient_id):
+  for p in tqdm(patient_id, desc='Processing'):
     mask_path = os.path.join(mask_dir, p)
     file = os.listdir(mask_path)
 

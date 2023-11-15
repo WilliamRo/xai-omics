@@ -29,31 +29,33 @@ class BCPSet(DataSet):
         for j in range(batch_size):
           num = random.randint(0, self.size - 1)
           feature = np.squeeze(copy(self.features[num]))
-          target = np.squeeze(copy(self.targets[num]))
+          # target = np.squeeze(copy(self.targets[num]))
 
           # Data Augmentation
           # 1. Flip images
           if th.random_flip and random.choice([True, False]):
             axe = random.choice([0, 1, 2])
             feature = image_flip(feature, axes=axe)
-            target = image_flip(target, axes=axe)
+            # target = image_flip(target, axes=axe)
 
           # 2. Rotate image
           if th.random_rotation:
             angle = random.choice([0, 90, 180, 270])
             feature = image_rotation(feature, angle)
-            target = image_rotation(target, angle)
+            # target = image_rotation(target, angle)
 
           # 3. Add gaussian noise
           if th.random_noise:
             feature = add_gaussian_noise(feature)
 
           features.append(feature)
-          targets.append(target)
+          # targets.append(target)
+          targets.append(self.targets[num])
 
         # expand the channel dimension
         features = np.expand_dims(np.array(features), axis=-1)
-        targets = np.expand_dims(np.array(targets), axis=-1)
+        # targets = np.expand_dims(np.array(targets), axis=-1)
+        targets = np.array(targets)
 
         name = 'batch_train_' + str(i)
         data_batch = DataSet(features=features, targets=targets, name=name)
@@ -66,11 +68,35 @@ class BCPSet(DataSet):
       for num in number_list:
         features, targets = [], []
         for i in num:
-          features.append(self.features[i])
-          targets.append(self.targets[i])
+          feature = np.squeeze(self.features[i])
+          target = np.squeeze(self.targets[i])
+
+          # Data Augmentation
+          # 1. Flip images
+          if th.random_flip and random.choice([True, False]):
+            axe = random.choice([0, 1, 2])
+            feature = image_flip(feature, axes=axe)
+            # target = image_flip(target, axes=axe)
+
+          # 2. Rotate image
+          if th.random_rotation:
+            angle = random.choice([0, 90, 180, 270])
+            feature = image_rotation(feature, angle)
+            # target = image_rotation(target, angle)
+
+          # 3. Add gaussian noise
+          if th.random_noise:
+            feature = add_gaussian_noise(feature)
+
+          features.append(feature)
+          targets.append(target)
+
+        features = np.expand_dims(np.array(features), axis=-1)
+        # targets = np.expand_dims(np.array(targets), axis=-1)
+        targets = np.array(targets)
+
         name = 'batch_val'
-        data_batch = DataSet(
-          features=np.array(features), targets=np.array(targets), name=name)
+        data_batch = DataSet(features=features, targets=targets, name=name)
         yield data_batch
 
     # Clear dynamic_round_len if necessary

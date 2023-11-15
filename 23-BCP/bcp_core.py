@@ -45,7 +45,7 @@ th.gpu_memory_fraction = 0.8
 # -----------------------------------------------------------------------------
 # Data configuration
 # -----------------------------------------------------------------------------
-th.input_shape = [32, 256, 256, 1]
+th.input_shape = [32, 128, 128, 1]
 # -----------------------------------------------------------------------------
 # Set common trainer configs
 # -----------------------------------------------------------------------------
@@ -92,6 +92,9 @@ def activate():
   else:
     val_set.test_model(model)
 
+  model.agent.load()
+  for ds in (train_set, val_set, test_set):
+    model.evaluate_pro(ds, batch_size=1, show_class_detail=True, export_false=True)
 
   # End
   model.shutdown()

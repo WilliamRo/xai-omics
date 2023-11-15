@@ -1,3 +1,4 @@
+import copy
 import random
 import os
 import numpy as np
@@ -35,7 +36,8 @@ class BCPAgent(DataAgent):
       parts = ratio_to_realnum(ratio=ratio, total_num=len(bcp_set))
 
       datasets = bcp_set.split(
-        parts[0], parts[1], parts[2], names=['TrainSet', 'ValSet', 'TestSet'])
+        parts[0], parts[1], parts[2],
+        names=['TrainSet', 'ValSet', 'TestSet'], over_classes=True)
     return datasets
 
 
@@ -48,8 +50,9 @@ class BCPAgent(DataAgent):
     console.show_status('Trying to convert raw datas to tframe DataSet ...')
     image_dict = cls.load_as_numpy_arrays(data_dir)
 
-    data_set = BCPSet(data_dict=image_dict, name='BCPSet')
-
+    # data_set = BCPSet(data_dict=image_dict, name='BCPSet')
+    data_set = BCPSet(data_dict=image_dict, name='BCPSet', NUM_CLASSES=4,
+                      classes=['left', 'right', 'both', 'normal'])
 
     # Show status
     console.show_status('Successfully converted {} samples'.format(
@@ -81,11 +84,15 @@ class BCPAgent(DataAgent):
     mi_list = [MedicalImage.load(os.path.join(dir, file))
                for file in tqdm(filenames, desc='Reading mi files')]
 
-    q = 99.85
+    # there is a bad data named '118', 70/197
+    mi_list = mi_list[:69] + mi_list[70:180] + mi_list[181:]
+
+    # q = 99.85
+    q = 99.9
     cutoff = [60, 35]
     region_threshold = 0
     slice_threshold = 100
-    crop_size = [32, 256, 256]
+    crop_size = [32, 128, 128]
 
     images = np.array([mi.images['pet'][cutoff[0]:-cutoff[1]]
                        for mi in mi_list])
@@ -95,27 +102,35 @@ class BCPAgent(DataAgent):
     masks = mask_denoise(masks, min_region_size=region_threshold,
                          slice_threshold=slice_threshold)
 
-
-    # there is a bad data named '118', 70/197
-    images = np.delete(images, 69, axis=0)
-    masks = np.delete(masks, 69, axis=0)
-    mi_list = mi_list[:69] + mi_list[70:]
-
     # Normalization
-    # images = (images - np.min(images)) / (np.max(images) - np.min(images))
+    images = (images - np.min(images)) / (np.max(images) - np.min(images))
 
-    features = []
-    labels = []
-    for i, mi in enumerate(mi_list):
+    # region: Test
+    masks = amend_masks(masks)
+
+    # endregion: Test
+
+    features, labels = [], []
+    for i, mi in tqdm(enumerate(mi_list), desc='storage mi'):
       mi.images['pet'] = images[i]
       mi.labels['label-0'] = masks[i]
       mi.crop(crop_size=crop_size, random_crop=False)
       features.append(mi.images['pet'] * mi.labels['label-0'])
       labels.append(mi.key)
 
+    dg = DrGordon(mi_list)
+    dg.slice_view.set('vmax', auto_refresh=False)
+    dg.slice_view.set('vmin', auto_refresh=False)
+    dg.show()
+
+    real_labels = np.array([l.split('-')[-1] for l in labels])
+    e_t_n = {'left': 0, 'right': 1, 'both': 2, 'normal': 3}
+    real_labels = np.vectorize(e_t_n.get)(real_labels)
+    one_hot_labels = np.eye(4)[real_labels]
+
     features = np.expand_dims(np.array(features), axis=-1)
     image_dict['features'] = features
-    image_dict['targets'] = features
+    image_dict['targets'] = one_hot_labels
     image_dict['labels'] = labels
 
     return image_dict
@@ -151,11 +166,16 @@ def mask_denoise(masks: list, min_region_size=50, slice_threshold=100):
     region_sizes = [np.sum(labeled_image == label)
                     for label in range(1, num_features + 1)]
 
-    small_region_labels = [l for l, size in enumerate(region_sizes)
-                           if size < min_region_size]
+    sorted_indices = sorted(enumerate(region_sizes), key=lambda x: x[1],
+                            reverse=True)
 
-    for l in small_region_labels:
-      labeled_image[labeled_image == l] = 0
+    top_indices = [index for index, value in sorted_indices[:2]]
+
+    region_num = [i for i in range(len(region_sizes))
+                  if i not in top_indices]
+
+    for l in region_num:
+      labeled_image[labeled_image == l + 1] = 0
 
     # set the region with mask to 1
     labeled_image[labeled_image > 1] = 1
@@ -171,6 +191,7 @@ def mask_denoise(masks: list, min_region_size=50, slice_threshold=100):
     #
     indices = list(set(np.where(labeled_image == 1)[0]))
     bad_indices = find_noise_indices(indices)
+    # assert bad_indices == []
     if bad_indices is not None:
       for i in bad_indices:
         labeled_image[i] = 0
@@ -178,6 +199,7 @@ def mask_denoise(masks: list, min_region_size=50, slice_threshold=100):
     labels.append(labeled_image)
 
   return np.array(labels)
+
 
 def find_noise_indices(indices: list):
   bad_indices = []
@@ -202,6 +224,18 @@ def find_noise_indices(indices: list):
 
   return bad_indices
 
+
+def amend_masks(masks: np.ndarray):
+  new_masks = []
+  for mask in tqdm(masks, desc='Mask amending'):
+    indices = np.where(mask == 1)
+    b_z, t_z = np.min(indices[0]), np.max(indices[0])
+    b_x, t_x = np.min(indices[1]), np.max(indices[1])
+    b_y, t_y = np.min(indices[2]), np.max(indices[2])
+    mask[b_z:t_z+1, b_x:t_x+1, b_y:t_y+1] = 1
+    new_masks.append(mask)
+
+  return np.array(new_masks)
 
 
 if __name__ == '__main__':

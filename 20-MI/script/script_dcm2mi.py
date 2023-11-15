@@ -3,18 +3,22 @@ import os
 import numpy as np
 
 from xomics import MedicalImage
+from xomics.data_io.utils.preprocess import calc_SUV
+from tqdm import tqdm
 
 
 
 if __name__ == "__main__":
-  dir = r'E:\PET\Brain Seg\data'
-  patient_ids = os.listdir(dir)
+  dir = r'E:\xai-omics\data\04-Brain-CT-PET'
+  raw_dir = os.path.join(dir, 'raw data')
+  mi_dir = os.path.join(dir, 'mi')
+  patient_ids = os.listdir(raw_dir)
   patient_ids = [id for id in patient_ids if id != 'mi']
 
-  for id in patient_ids:
-    patient_dir = os.path.join(dir, id)
+  for id in tqdm(patient_ids):
+    patient_dir = os.path.join(raw_dir, id)
     types = os.listdir(patient_dir)
-    save_dir = os.path.join(dir, 'mi', id + '.mi')
+    save_dir = os.path.join(mi_dir, id + '.mi')
 
     mi: MedicalImage = MedicalImage()
 
@@ -25,15 +29,34 @@ if __name__ == "__main__":
       dcms = [pydicom.dcmread(os.path.join(dcm_dir, file))
               for file in dcm_file]
       dcms = sorted(dcms, key=lambda d: d.InstanceNumber, reverse=True)
-      data = [d.pixel_array for d in dcms]
+      data = np.array([d.pixel_array for d in dcms], dtype=np.uint16)
+      if data[0].shape[1] == 512: continue
 
-      # data = [pydicom.dcmread(os.path.join(dcm_dir, file)).pixel_array
-      #         for file in dcm_file]
-      # data = pydicom.dcmread(os.path.join(dcm_dir, dcm_file[0]))
+      # calculate the suv
+      dcm = dcms[0]
+      ST = dcm.SeriesTime
+      AT = dcm.AcquisitionTime
+      PW = dcm.PatientWeight
+      RIS = dcm.RadiopharmaceuticalInformationSequence[0]
+      RST = str(RIS['RadiopharmaceuticalStartTime'].value)
+      RTD = str(RIS['RadionuclideTotalDose'].value)
+      RHL = str(RIS['RadionuclideHalfLife'].value)
+      RS = dcm.RescaleSlope
+      RI = dcm.RescaleIntercept
+      dcm_tag = {
+        'ST': ST,
+        'AT': AT,
+        'PW': PW,
+        'RST': RST,
+        'RTD': RTD,
+        'RHL': RHL,
+        'RS': RS,
+        'RI': RI
+      }
+      data = calc_SUV(data, tags=dcm_tag, norm=False)
 
-      mi.images[f'ct-{i}'] = np.array(data, dtype=np.float32)
+      mi.images[f'pet'] = np.array(data, dtype=np.uint16)
       mi.key = id
-      break
 
     mi.save(save_dir)
 

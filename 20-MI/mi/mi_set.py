@@ -8,7 +8,6 @@ from tools import data_processing
 from tqdm import tqdm
 from xomics import MedicalImage
 from xomics.gui.dr_gordon import DrGordon
-from xomics.objects import MedicalImage
 from copy import copy
 
 
@@ -26,8 +25,8 @@ class MISet(DataSet):
     # preprocessing
     for mi in mi_list:
       mi.window('ct', th.window[0], th.window[1])
-      mi.crop(th.crop_size, random_crop=False)
-      mi.normalization(['ct', 'pet'])
+      mi.crop(th.crop_size, random_crop=False, basis=['label-0'])
+      mi.normalization(['ct', 'pet'], 'z_score')
 
     round_len = self.get_round_length(batch_size, training=is_training)
 
@@ -156,23 +155,26 @@ class MISet(DataSet):
     assert len(mi_file_list) == results.shape[0]
 
     mi_list = []
-    dir_path = r'E:\xai-omics\data\02-PET-CT-Y1\results'
+    dir_path = r'E:\xai-omics\data\02-PET-CT-Y1\results\1005_unet(8-5-2-3-relu-mp)_Sc_78\mi'
     for i, file in enumerate(mi_file_list):
       mi: MedicalImage = MedicalImage.load(file)
 
       # Preprocessing
       mi.window('ct', th.window[0], th.window[1])
-      mi.normalization(['ct', 'pet'])
-      mi.crop(th.crop_size, random_crop=False)
+      mi.normalization(['ct', 'pet'], 'z_score')
+      mi.crop(th.crop_size, random_crop=False, basis=['label-0'])
 
       mi.labels['prediction'] = np.squeeze(results[i])
 
+      pid = mi.key
       acc = self.dice_accuarcy(
         mi.labels['label-0'], mi.labels['prediction'])
-      print('Patient ID:', mi.key, '--------',
-            'Dice Accuracy:', round(acc, 2))
+
+      mi.key = mi.key + f'--- Dice Acc: {round(acc, 2)}'
+      print(f'Patient ID: {mi.key}')
 
       # mi.save_as_nii(dir_path)
+      # mi.save(os.path.join(dir_path, pid + '.mi'))
       mi_list.append(mi)
 
     self.visulization(mi_list)

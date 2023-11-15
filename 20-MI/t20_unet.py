@@ -16,15 +16,15 @@ id = 1
 def model():
   th = core.th
 
-  # return m.get_cnn()
-  return m.get_unet(th.archi_string)
+  # return m.get_unet(th.archi_string)
+  return m.get_ynet(th.archi_string)
 
 
 def main(_):
   console.start('{} on 3D Medical Image Segmentation'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = False
+  th.rehearse = True
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------

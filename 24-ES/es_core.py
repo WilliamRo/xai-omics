@@ -24,9 +24,10 @@ for _ in range(DIR_DEPTH):
 from tframe import console
 from tframe import Predictor
 
-from mi.mi_config import MIConfig as Hub
+from es.es_config import ESConfig as Hub
 
-import mi_du as du
+import es_du as du
+import es_tu as tu
 
 
 # -----------------------------------------------------------------------------
@@ -34,7 +35,7 @@ import mi_du as du
 # -----------------------------------------------------------------------------
 th = Hub(as_global=True)
 th.config_dir()
-th.data_dir = os.path.join(ROOT, '20-MI/data')
+th.data_dir = os.path.join(ROOT, '24-ES/data')
 
 # -----------------------------------------------------------------------------
 # Device configuration
@@ -46,10 +47,11 @@ th.gpu_memory_fraction = 0.8
 # Data configuration
 # -----------------------------------------------------------------------------
 # th.input_shape = [None, None, None, 1]
-th.use_pet = True
+th.ratio_of_dataset = '80:10:18'
 th.window = [-300, 400]
-th.crop_size = [64, 256, 256]
-th.input_shape = th.crop_size + [2] if th.use_pet else th.crop_size + [1]
+th.crop_size = [128, 512, 512]
+th.input_shape = [None, None, None, 2]
+# th.input_shape = [128, 256, 256, 2]
 
 th.random_flip = True
 th.random_rotation = True
@@ -89,6 +91,29 @@ def activate():
   if th.rehearse:
     model.rehearse(export_graph=True, build_model=False,
                    path=model.agent.ckpt_dir, mark='model')
+
+    # TODO
+    structure = model.structure_detail[0]
+    element = structure.split('\n')
+    parameter_total = 0
+    pattern = r' \d+x\d+x\d+x\d+ '
+    import re
+    from functools import reduce
+
+    for i, e in enumerate(element):
+      result = re.search(pattern, e)
+      if result:
+        size = [int(s) for s in result.group().split('x')]
+        parameter = reduce(lambda x, y: x * y, size)
+        parameter = parameter * 4.0 / 1024.0 / 1024.0
+        element[i] = e + '\t' + f'{round(parameter, 2)} M'
+        parameter_total = parameter_total + parameter
+
+    element[-2] = element[-2] + '\t' + f'{round(parameter_total, 2)} M'
+
+    structure_detail = '\n'.join(element)
+    print(structure_detail)
+
     return
 
   # Train or evaluate. Note that, although both validation and evaluation use
@@ -96,7 +121,8 @@ def activate():
   #  itself.
   if th.train:
     model.train(training_set=train_set, validation_set=val_set,
-                test_set=test_set, trainer_hub=th)
+                test_set=test_set, trainer_hub=th, probe=tu.probe,
+                evaluate=tu.evaluate)
   else:
     test_set.test_model(model)
     val_set.test_model(model)
