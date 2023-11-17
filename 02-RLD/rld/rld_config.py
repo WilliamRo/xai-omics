@@ -23,6 +23,11 @@ class RLDConfig(SmartTrainerHub):
   clip_off = Flag.boolean(False, '...', is_key=None)
 
   noCT = Flag.boolean(False, 'if use ct in input', is_key=None)
+  data_set = Flag.list(None, 'select which data to train')
+  data_margin = Flag.list(None, 'add margin to data')
+
+  show_weight_map = Flag.boolean(False, '...', is_key=None)
+  output_conv = Flag.boolean(True, 'use conv at end of net', is_key=None)
 
   @property
   def data_arg(self) -> Arguments:

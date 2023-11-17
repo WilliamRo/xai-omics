@@ -12,22 +12,36 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'unet'
-id = 1
+model_name = 'uadap'
+id = 3
 def model():
   th = core.th
-  return m.get_unet(th.archi_string)
-
   model = m.get_initial_model()
-  conv = lambda n: m.mu.HyperConv3D(filters=int(n), kernel_size=th.kernel_size,
-                                    activation=th.activation)
-  deconv = lambda n: m.mu.HyperDeconv3D(filters=int(n),
-                                        kernel_size=th.kernel_size)
-  vertices = [
-  ]
-  edges = '1'
-  model.add(m.mu.ForkMergeDAG(vertices, edges, auto_merge=False))
 
+  sigmas = [int(s) for s in th.archi_string.split('-')]
+  N = len(sigmas) + 2
+  # Construct DAG
+  weights = [
+    m.mu.HyperConv3D(N, kernel_size=int(ks), activation=th.activation)
+    for ks in th.archi_string.split('-')]
+  # if th.beta > 0: weights.insert(0, m.Highlighter(th.beta))
+  weights.append(m.mu.HyperConv3D(N, kernel_size=1, use_bias=th.use_bias,
+                                  activation='softmax'))
+
+  unet = m.get_unet_list('4-3-3-2-' + th.activation)
+  unet.append(m.mu.HyperConv3D(filters=1, kernel_size=1))
+  unet.append(m.Clip(0, 1.0))
+
+  vertices = [
+    m.GaussianPyramid3D(kernel_size=th.kernel_size, sigmas=sigmas),
+    m.mu.Merge.Concat(),
+    unet,
+    m.mu.Merge.Concat(),
+    weights,
+    m.WeightedSum(),
+  ]
+  edges = '1;11;100;0011;00001;000011'
+  model.add(m.mu.ForkMergeDAG(vertices, edges))
   return m.finalize(model)
 
 
@@ -45,14 +59,14 @@ def main(_):
   th.val_size = 5
   th.test_size = 2
 
-  th.window_size = 64
-  th.slice_size = 64
+  th.window_size = 128
+  th.slice_size = 128
   # th.eval_window_size = 128
   th.data_shape = [256, 440, 440]
-  th.data_set = [2, 3]
+  th.data_set = [1, 3]
   th.data_margin = [10, 0, 0]
 
-  # th.noCT = True
+  th.noCT = True
   if th.noCT:
     th.input_shape[-1] = 1
   # th.use_suv = False
@@ -74,10 +88,12 @@ def main(_):
   th.model = model
   th.kernel_size = 3
   th.activation = 'lrelu'
-  th.archi_string = '4-3-3-2-' + th.activation
+  th.archi_string = '1-3'
+  th.use_bias = True
 
   th.use_sigmoid = False
-  th.clip_off = True
+  th.clip_off = False
+  th.output_conv = False
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -92,7 +108,7 @@ def main(_):
 
   th.buffer_size = 6
 
-  th.loss_string = 'rmse'
+  th.loss_string = 'nrmse'
   th.opt_str = 'adam'
 
   th.optimizer = th.opt_str
@@ -104,12 +120,12 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
-  if th.use_sigmoid:
-    th.suffix += '_sig'
+  th.show_weight_map = True
+
   if th.use_suv:
     th.suffix += '_suv'
   th.suffix += '_noCT' if th.noCT else ''
-  th.suffix += '_120to240G'
+  th.suffix += '_30Gto240G'
   th.suffix += f'_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'

@@ -3,10 +3,9 @@ from rld.layers.layers import *
 from rld.loss.custom_loss import *
 
 custom_loss = {
-  # 'lpips': get_lpips(),
+  'psnr': get_psnr(),
   'ssim': get_ssim_3D(),
   'nrmse': get_nrmse(),
-  'psnr': get_psnr(),
 }
 
 def get_initial_model():
@@ -21,7 +20,8 @@ def finalize(model):
   from rld_core import th
 
   assert isinstance(model, mu.Predictor)
-  model.add(mu.HyperConv3D(filters=1, kernel_size=1))
+  if th.output_conv:
+    model.add(mu.HyperConv3D(filters=1, kernel_size=1))
 
   if th.use_sigmoid:
     model.add(mu.Activation('sigmoid'))
@@ -30,7 +30,7 @@ def finalize(model):
 
   # Build model
   metrics = list(custom_loss.values())
-  if th.loss_string not in metrics:
+  if th.loss_string not in list(custom_loss.keys()):
     model.build(loss=th.loss_string, metric=metrics + ['loss'])
   else:
     model.build(loss=custom_loss[th.loss_string], metric=metrics)
