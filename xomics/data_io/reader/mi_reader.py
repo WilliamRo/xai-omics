@@ -15,12 +15,20 @@ class MiReader:
     self.SUBJECT_NAME = 'subject'
     self.FILETYPE = 'npy'
     self._data = None
-    self._current_filepath = None
     self._load_type = None
+
     self.data = None
     self.datadir = datadir
+
     self.process_func = None
     self.loader = self.npy_load
+
+    self.norm_list = None
+    self.file_path_list = []
+    self.dict = {}
+    self.times = None
+    self.now = 0
+
     self.methods_dict = {
       'sub': self.load_data_by_subject,
       'type': self.load_data_by_types,
@@ -31,6 +39,11 @@ class MiReader:
     assert methods in self.methods_dict.keys()
 
     return self.methods_dict[methods](subjects, types, **kwargs)
+
+  def _loader(self, filepath, *args, **kwargs):
+    self.now += 1
+    self.file_path_list.append(filepath)
+    return self.loader(filepath, *args, **kwargs)
 
   def get_file_path(self, sub: int, types: str):
     return os.path.join(self.datadir, f'{self.SUBJECT_NAME}{sub}',
@@ -48,7 +61,7 @@ class MiReader:
         console.print_progress(i, len(type_strs))
         self._load_type = types_list[i][0]
         filepath = self.get_file_path(subject, types_str)
-        self.loader(filepath, **kwargs)
+        self._loader(filepath, **kwargs)
         data[types_str] = self._data
       mi = MedicalImage(f'sub-{subject}', data)
       mis.append(mi)
@@ -67,7 +80,7 @@ class MiReader:
       for i, subject in enumerate(subjects):
         console.print_progress(i, len(subjects))
         filepath = self.get_file_path(subject, types_str)
-        self.loader(filepath, **kwargs)
+        self._loader(filepath, **kwargs)
         data[f'sub-{subject}'] = self._data
       mi = MedicalImage(f'{types_str}', data)
       mis.append(mi)
@@ -78,8 +91,8 @@ class MiReader:
                                types_list: list[list[str]],
                                norm_types: list[str], **kwargs):
     mis = []
+    self.norm_list = [None] * len(subjects)
     for types in types_list:
-      norms = [None] * len(subjects)
       self._load_type = types[0]
       type_str = '_'.join(types)
 
@@ -92,14 +105,13 @@ class MiReader:
       for i, subject in enumerate(subjects):
         console.print_progress(i, len(subjects))
         filepath = self.get_file_path(subject, type_str)
-        if norms[i] is None:
-          data, norm = self.loader(filepath, ret_norm=True, **kwargs)
+        if self.norm_list[i] is None:
+          data, self.norm_list[i] = self._loader(filepath, ret_norm=True, **kwargs)
         else:
-          data = self.loader(filepath, norm=norms[i], **kwargs)
+          data = self._loader(filepath, norm=self.norm_list[i], **kwargs)
         data_dict[f'sub-{subject}'] = data
       mi = MedicalImage(type_str, data_dict)
       mis.append(mi)
-
     self.data = mis
     return mis
 
@@ -113,10 +125,15 @@ class MiReader:
     :param methods: load methods
     :return: data
     """
+    self.dict = {
+      'sub': subjects,
+      'type': types,
+      'method': methods
+    }
+    self.times = len(subjects) * len(types)
     return self._load_data(subjects, types, methods, **kwargs)
 
   def npy_load(self, filepath, show_log=False, **kwargs):
-    self._current_filepath = filepath
     self._data = np.load(filepath)
     if show_log:
       console.supplement(f'Loaded `{os.path.split(filepath)[-1]}`', level=2)

@@ -21,7 +21,7 @@ def calc_SUV(data, tags=None, norm=False, advance=False, **kwargs):
     decay_dose = float(tags['RTD']) * pow(2, -float(decay_time) / float(tags['RHL']))
     SUVbwScaleFactor = (1000 * float(tags['PW'])) / decay_dose
   else:
-    SUVbwScaleFactor = get_suv_factor(tags["DD"], tags["PW"])
+    SUVbwScaleFactor = 1000 * float(tags['PW']) / tags['DD']
   if norm:
     PET_SUV = (data * float(tags['RS']) + float(tags['RI'])) * SUVbwScaleFactor
   else:
@@ -29,7 +29,22 @@ def calc_SUV(data, tags=None, norm=False, advance=False, **kwargs):
   return PET_SUV
 
 
+def reverse_suv(data, tags):
+  SUVbwScaleFactor, RS, RI = get_suv_factor(tags)
+  raw_data = data / SUVbwScaleFactor
+  return raw_data
+
+
 def calc_SUV_advance(data, tags, norm=False):
+  SUVbwScaleFactor, RS, RI = get_suv_factor(tags)
+  if norm:
+    PET_SUV = (data * float(RS) + float(RI)) * SUVbwScaleFactor
+  else:
+    PET_SUV = data * SUVbwScaleFactor
+  return PET_SUV
+
+
+def get_suv_factor(tags):
   ST = tags['SeriesTime']
   RIS = tags['RadiopharmaceuticalInformationSequence'][0]
   RST = str(RIS['RadiopharmaceuticalStartTime'].value)
@@ -43,18 +58,7 @@ def calc_SUV_advance(data, tags, norm=False):
   decay_dose = float(RTD) * pow(2, -float(decay_time) / float(RHL))
   SUVbwScaleFactor = (1000 * float(PW)) / decay_dose
 
-  if norm:
-    PET_SUV = (data * float(RS) + float(RI)) * SUVbwScaleFactor
-  else:
-    PET_SUV = data * SUVbwScaleFactor
-  return PET_SUV
-
-def get_suv_factor(decay_dose: float, weight):
-  return 1000 * float(weight) / decay_dose
-
-
-def suv_reverse(data, decay_dose, weight):
-  return data * float(decay_dose) / (1000 * weight)
+  return SUVbwScaleFactor, RS, RI
 
 
 def normalize(arr: np.ndarray, norm=None, ret_norm=False):

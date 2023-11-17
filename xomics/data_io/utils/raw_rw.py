@@ -143,6 +143,14 @@ def npy_save(data, filepath):
   np.save(filepath, data)
 
 
+def itk_norm(data, vmax, vmin=0):
+  filters = sitk.RescaleIntensityImageFilter()
+  filters.SetOutputMaximum(vmax)
+  filters.SetOutputMinimum(vmin)
+  return filters.Execute(data)
+
+
+
 def resize_image_itk(ori_img, target_img=None,
                      size=None, spacing=None, origin=None, direction=None,
                      resamplemethod=sitk.sitkLinear, raw=True):
@@ -164,7 +172,11 @@ def resize_image_itk(ori_img, target_img=None,
     origin = target_img.GetOrigin()  # 目标的起点 [x,y,z]
     direction = target_img.GetDirection()  # 目标的方向 [冠,矢,横]=[z,y,x]
   assert None not in [size, spacing, origin, direction]
-
+  if size == ori_img.GetSize():
+    if raw:
+      return ori_img
+    else:
+      return sitk.GetArrayFromImage(ori_img)
   # itk的方法进行resample
   resampler = sitk.ResampleImageFilter()
   resampler.SetReferenceImage(ori_img)  # 需要重新采样的目标图像
