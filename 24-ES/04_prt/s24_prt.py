@@ -23,7 +23,7 @@ gpu_id = 1
 s.register('gather_summ_name', summ_name + '.sum')
 s.register('gpu_id', gpu_id)
 s.register('allow_growth', False)
-s.register('gpu_memory_fraction', 0.9)
+s.register('gpu_memory_fraction', 0.95)
 s.register('rehearse', False)
 # -----------------------------------------------------------------------------
 # Set up your models and run
@@ -44,7 +44,7 @@ s.register('random_crop', True)
 # Model
 s.register('model_num', 3)
 s.register('archi_string',
-           '8-5-2-1-relu-mp', '8-5-2-3-relu-mp')
+           '8-7-2-3-relu-mp', '8-5-3-3-relu-mp')
 # s.register('archi_string', '4-3-2-1-relu-mp')
 s.register('alpha_total', 0.0)
 s.register('alpha_lesion', 1.0)

@@ -1,5 +1,4 @@
 import random
-
 import numpy as np
 
 from tframe import console, Predictor
@@ -11,7 +10,23 @@ from collections import OrderedDict
 
 
 def probe(trainer: Trainer):
-  pass
+  from tframe import context
+  from tframe.core import TensorSlot
+  from es_core import th
+
+  set_region_alpha = context.depot['set_region_alpha']
+  loss_lesion_slot = [
+    slot for slot in list(trainer.batch_loss_stats.keys()) if 'lesion' in slot.name]
+  assert len(loss_lesion_slot) == 1
+  loss_lesion_slot = loss_lesion_slot[0]
+  assert isinstance(loss_lesion_slot, TensorSlot)
+
+  if (trainer.batch_loss_stats[loss_lesion_slot].running_average < 0.3
+      and th.alpha_var == 0.0):
+    set_region_alpha(th.alpha_region)
+    th.alpha_var = th.alpha_region
+
+  return f'Current alpha_region: {th.alpha_var}'
 
 
 def evaluate(trainer: Trainer):

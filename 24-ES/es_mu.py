@@ -435,13 +435,23 @@ def get_region_loss(model):
   m_r = tf.placeholder(dtype=th.dtype, name='region_mask')
   tf.add_to_collection(pedia.default_feed_dict, m_r)
 
-  alpha = th.alpha_region
+  # TODO:
+  # alpha = th.alpha_region
+  alpha = tf.get_variable('region_alpha', dtype=th.dtype,
+                          initializer=0.0, trainable=False)
+  def set_region_alpha(v):
+    assert isinstance(model, mu.Predictor)
+    v_plchd = tf.placeholder(dtype=th.dtype, name='alpha_place_holder')
+    op = tf.assign(alpha, v_plchd)
+    model.agent.session.run(op, feed_dict={v_plchd: v})
+  context.depot['set_region_alpha'] = set_region_alpha
+
   region_loss = tf.reduce_mean(y_r * (1 - m_r))
 
   l_r_slot = TensorSlot(model, 'Loss_region')
   model._update_group.add(l_r_slot)
 
-  l_r = tf.multiply(alpha * 1.0, region_loss, name='region_loss')
+  l_r = tf.multiply(alpha * 2.0, region_loss, name='region_loss')
   l_r_slot.plug(l_r)
 
   return l_r

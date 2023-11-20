@@ -29,6 +29,9 @@ class ESConfig(SmartTrainerHub):
 
   if_pre_train = Flag.boolean(False, '', is_key=None)
 
+  alpha_var = Flag.float(0.0, '', is_key=None)
+
+
 
 # New hub class inherited from SmartTrainerHub must be registered
 ESConfig.register()

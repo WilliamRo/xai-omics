@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 def save_summary_excel(input_dir, excel_path):
   model_name = os.listdir(input_dir)
+  model_name = [m for m in model_name if '.xlsx' not in m]
 
   total_key = []
   for m in tqdm(model_name, desc='Model'):
@@ -39,8 +40,10 @@ if __name__ == '__main__':
   dir = r'../../data/02-PET-CT-Y1/results/03-ynet/mi'
   excel_path = os.path.join(dir, 'acc summary_1.xlsx')
 
-  save_summary_excel(dir, excel_path)
-
+  if not os.path.exists(excel_path):
+    save_summary_excel(dir, excel_path)
+  else:
+    assert TypeError(f'{excel_path} has existed!!!' )
 
   print()
 
