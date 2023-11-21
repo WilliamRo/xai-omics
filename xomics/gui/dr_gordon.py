@@ -105,6 +105,18 @@ class DrGordon(Pictor):
     if refresh_layer: self.set_to_axis(
       self.Keys.LAYERS, list(range(mi.num_layers)), overwrite=True)
 
+  def set_patient_cursor(self, i: int):
+    self.set_cursor(self.Keys.PATIENTS, cursor=i - 1, refresh=True)
+
+  def find_label(self, i: int):
+    selected_medical_image = self.get_element(self.Keys.PATIENTS)
+    label_list = list(selected_medical_image.labels.keys())
+    assert i <= len(label_list)
+    label = label_list[i - 1]
+    slice_num = np.min(np.where(
+      selected_medical_image.labels[label] == 1)[0])
+    self.set_object_cursor(slice_num + 1)
+
   # endregion: Public Methods
 
   # region: Overwritting
@@ -114,6 +126,8 @@ class DrGordon(Pictor):
     super().refresh(wait_for_idle)
 
   ep = export_patients
+  spc = set_patient_cursor
+  fl = find_label
   # endregion: Overwritting
 
 
@@ -206,7 +220,14 @@ class SliceView(Plotter):
         self.selected_medical_image.labels.keys())]
       return '\n'.join(hints)
 
+    def get_fl_hints():
+      hints = ['Annotations', '-' * 11]
+      hints += [f'[{i + 1}] {k}' for i, k in enumerate(
+        self.selected_medical_image.labels.keys())]
+      return '\n'.join(hints)
+
     self.command_hints['ta'] = get_anno_hints
+    self.command_hints['fl'] = get_fl_hints
 
   # endregion: Overwritting
 
