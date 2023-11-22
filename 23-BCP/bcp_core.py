@@ -45,7 +45,7 @@ th.gpu_memory_fraction = 0.8
 # -----------------------------------------------------------------------------
 # Data configuration
 # -----------------------------------------------------------------------------
-th.input_shape = [32, 128, 128, 1]
+th.input_shape = [192, 256, 256, 1]
 # -----------------------------------------------------------------------------
 # Set common trainer configs
 # -----------------------------------------------------------------------------
@@ -58,19 +58,14 @@ th.validation_per_round = 1
 
 th.export_tensors_upon_validation = True
 
-th.validate_train_set = True
 th.validate_test_set = True
 
-th.evaluate_train_set = True
 th.evaluate_test_set = True
 
 
 
 def activate():
   if 'deactivate' in th.developer_code: return
-
-  # Load datas
-  train_set, val_set, test_set = du.load_data()
 
   # Build model
   assert callable(th.model)
@@ -81,7 +76,33 @@ def activate():
   if th.rehearse:
     model.rehearse(export_graph=True, build_model=False,
                    path=model.agent.ckpt_dir, mark='model')
+
+    # TODO
+    structure = model.structure_detail[0]
+    element = structure.split('\n')
+    parameter_total = 0
+    pattern = r' \d+x\d+x\d+x\d+ '
+    import re
+    from functools import reduce
+
+    for i, e in enumerate(element):
+      result = re.search(pattern, e)
+      if result:
+        size = [int(s) for s in result.group().split('x')]
+        parameter = reduce(lambda x, y: x * y, size)
+        parameter = parameter * 4.0 / 1024.0 / 1024.0
+        element[i] = e + '\t' + f'{round(parameter, 2)} M'
+        parameter_total = parameter_total + parameter
+
+    element[-2] = element[-2] + '\t' + f'{round(parameter_total, 2)} M'
+
+    structure_detail = '\n'.join(element)
+    print(structure_detail)
+
     return
+
+  # Load datas
+  train_set, val_set, test_set = du.load_data()
 
   # Train or evaluate. Note that, although both validation and evaluation use
   #  data_set.data_for_validation, evaluate_denoiser is called by data_set
@@ -90,11 +111,7 @@ def activate():
     model.train(training_set=train_set, validation_set=val_set,
                 test_set=test_set, trainer_hub=th)
   else:
-    val_set.test_model(model)
-
-  model.agent.load()
-  for ds in (train_set, val_set, test_set):
-    model.evaluate_pro(ds, batch_size=1, show_class_detail=True, export_false=True)
+    pass
 
   # End
   model.shutdown()

@@ -23,14 +23,14 @@ def main(_):
   console.start('{} on Brain Analysis'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = False
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.ratio_of_dataset = '7:2:1'
-  th.random_flip = 1
-  th.random_rotation = 1
-  th.random_noise = 1
+  th.ratio_of_dataset = '4:1'
+  th.random_flip = True
+  th.random_rotation = True
+  th.random_noise = True
 
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
@@ -45,8 +45,8 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '1-4-2-1-lrelu'
-  th.link_indices_str = '0'
+  th.archi_string = '2-4-2-1-lrelu'
+  th.link_indices_str = 'a'
 
   # ---------------------------------------------------------------------------
   # 3. trainer setup
@@ -56,12 +56,11 @@ def main(_):
   th.probe_cycle = th.updates_per_round // 2
   th.patience = 10
 
-  th.batch_size = 8
-  th.batchlet_size = 4
-  # th.gradlet_in_device = 1
+  th.batch_size = 4
+  th.batchlet_size = 2
 
-  th.val_batch_size = 4
-  th.eval_batch_size = 4
+  th.val_batch_size = 2
+  th.eval_batch_size = 2
 
   th.optimizer = 'adam'
   th.learning_rate = 0.003
