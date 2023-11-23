@@ -50,6 +50,15 @@ class MedicalImage(Nomear):
   def save(self, filepath):
     if filepath.split('.')[-1] != self.EXTENSION:
       filepath += '.{}'.format(self.EXTENSION)
+
+    # image
+    for k in self.images.keys():
+      self.images[k] = self.images[k].astype(np.float16)
+
+    # label
+    for k in self.labels.keys():
+      self.labels[k] = self.labels[k].astype(np.int8)
+
     with open(filepath, 'wb') as output:
       pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
