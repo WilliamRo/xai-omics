@@ -27,6 +27,7 @@ from tframe import Predictor
 from bcp.bcp_config import BCPConfig as Hub
 
 import bcp_du as du
+import bcp_tu as tu
 
 
 # -----------------------------------------------------------------------------
@@ -45,7 +46,9 @@ th.gpu_memory_fraction = 0.8
 # -----------------------------------------------------------------------------
 # Data configuration
 # -----------------------------------------------------------------------------
-th.input_shape = [192, 256, 256, 1]
+th.slice_num = 8
+th.xy_size = 192
+th.input_shape = [th.slice_num, th.xy_size, th.xy_size, 1]
 # -----------------------------------------------------------------------------
 # Set common trainer configs
 # -----------------------------------------------------------------------------
@@ -59,8 +62,10 @@ th.validation_per_round = 1
 th.export_tensors_upon_validation = True
 
 th.validate_test_set = True
+th.validate_train_set = True
 
 th.evaluate_test_set = True
+th.evaluate_train_set = True
 
 
 
@@ -109,9 +114,12 @@ def activate():
   #  itself.
   if th.train:
     model.train(training_set=train_set, validation_set=val_set,
-                test_set=test_set, trainer_hub=th)
+                test_set=test_set, trainer_hub=th, probe=tu.probe,
+                evaluate=tu.evaluate)
   else:
-    pass
+    from bcp.bcp_set import BCPSet
+    assert isinstance(test_set, BCPSet)
+    test_set.test_model(model)
 
   # End
   model.shutdown()

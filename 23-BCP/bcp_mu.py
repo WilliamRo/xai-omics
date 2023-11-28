@@ -12,7 +12,6 @@ import numpy as np
 def get_initial_model():
   from bcp_core import th
 
-  # model = mu.Predictor(th.mark)
   model = mu.Predictor(th.mark)
   model.add(mu.Input(sample_shape=th.input_shape))
   return model
@@ -83,7 +82,7 @@ def get_cnn_3d(arc_string='64-p-32'):
 def get_loss():
   from tframe.core.quantity import Quantity
   from tframe import tf
-  from es_core import th
+  from bcp_core import th
   from tframe.losses import cross_entropy
 
   kernel, tf_summ_method, np_summ_method = None, tf.reduce_mean, None
@@ -110,7 +109,7 @@ def get_loss():
                   tf.reduce_sum(outputs_f, axis=1) + smooth))
     dice_coef = tf.expand_dims(dice_coef, 1)
 
-    return th.alpha_total * 1.0 * (1.0 - dice_coef)
+    return 1.0 * (1.0 - dice_coef)
 
 
   use_logits = False

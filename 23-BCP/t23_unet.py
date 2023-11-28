@@ -23,15 +23,15 @@ def main(_):
   console.start('{} on Brain Analysis'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = False
+  th.rehearse = True
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.ratio_of_dataset = '4:1'
+  th.ratio_of_dataset = '6:1:1'
+
+  th.random_noise = True
   th.random_flip = True
   th.random_rotation = True
-  th.random_noise = True
-
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device
   # ---------------------------------------------------------------------------
@@ -45,9 +45,14 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.model = model
 
-  th.archi_string = '2-4-2-1-lrelu'
-  th.link_indices_str = 'a'
+  th.filter = 16
+  th.kernel_size = 7
+  th.depth = 3
+  th.width = 2
+  th.activation = 'relu'
 
+  th.archi_string = '{}-{}-{}-{}-{}-mp'.format(
+    th.filter, th.kernel_size, th.depth, th.width, th.activation)
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -56,7 +61,7 @@ def main(_):
   th.probe_cycle = th.updates_per_round // 2
   th.patience = 10
 
-  th.batch_size = 4
+  th.batch_size = 8
   th.batchlet_size = 2
 
   th.val_batch_size = 2
@@ -71,7 +76,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
-  th.mark = '{}({})'.format(
+  th.mark = '(23-BCP)_{}({})'.format(
     model_name, th.archi_string)
   # th.mark += th.data_config.replace('>', '-')
   th.gather_summ_name = th.prefix + summ_name + '.sum'
