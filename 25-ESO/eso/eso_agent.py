@@ -27,7 +27,7 @@ class ESOAgent(DataAgent):
 
     mi_list = []
     mi_file_list = mi_set.data_dict['mi_file_list'].tolist()
-    # mi_file_list = [mi_file_list[0]]
+    # mi_file_list = mi_file_list[:3]
 
     for f in tqdm(mi_file_list, desc='Loading mi files'):
       mi: MedicalImage = MedicalImage.load(f)
@@ -40,7 +40,7 @@ class ESOAgent(DataAgent):
       mi.crop(th.crop_size, random_crop=False, basis=['lesion'])
       mi_list.append(mi)
 
-    if len(mi_list) == 1:
+    if len(mi_list) <= 10:
       train_list, valid_list, test_list = mi_list, mi_list, mi_list
     else:
       train_list = mi_list[:18] + mi_list[20:82]
@@ -114,6 +114,10 @@ class ESOAgent(DataAgent):
 
     mi_dir = os.path.abspath(mi_dir)
     file_names = os.listdir(mi_dir)
+
+    file_names = sorted(file_names, key=sorting_key, reverse=False)
+    print(file_names)
+
     mi_file_list = [os.path.join(mi_dir, file) for file in file_names]
 
     image_dict['mi_file_list'] = np.array(mi_file_list, dtype=object)
@@ -128,6 +132,10 @@ def ratio_to_realnum(ratio: list, total_num: int):
   assert sum(parts) == total_num
 
   return parts
+
+
+def sorting_key(item):
+  return int(item.split('_')[0])
 
 
 

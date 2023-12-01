@@ -23,7 +23,7 @@ def main(_):
   console.start('{} on Esophagus Segmentation'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 1
+  th.rehearse = 0
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -44,10 +44,10 @@ def main(_):
   # 2. model setup
   # ---------------------------------------------------------------------------
   th.model = model
-  th.filter = 8
-  th.kernel_size = 7
-  th.depth = 5
-  th.width = 2
+  th.filter = 4
+  th.kernel_size = 3
+  th.depth = 1
+  th.width = 1
   th.activation = 'relu'
 
   th.archi_string = '{}-{}-{}-{}-{}-mp'.format(

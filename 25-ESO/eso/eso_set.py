@@ -1,9 +1,9 @@
 import random
 import time
-
 import numpy as np
 import math
 import os
+import tensorflow as tf
 
 from tframe import DataSet
 from roma import console
@@ -128,10 +128,11 @@ class ESOSet(DataSet):
     pids = self.data_dict['pids'].tolist()
     features = np.squeeze(self.features)
     targets = np.squeeze(self.targets)
+    targets = targets.astype(np.float32)
 
     assert len(features) == len(pids)
 
-    predictions = model.predict(self)
+    predictions = model.predict(self, th.eval_batch_size)
     predictions = np.squeeze(predictions)
     predictions[predictions <= 0.5] = 0
     predictions[predictions > 0.5] = 1
@@ -141,8 +142,7 @@ class ESOSet(DataSet):
     mi_save_dir = r'E:\xai-omics\data\02-PET-CT-Y1\results\25-ESO\mi'
     model_name = r'1124_unet(4-5-4-1-relu-mp)_Sc_1'
     mi_save_dir = os.path.join(mi_save_dir, model_name)
-    if not os.path.exists(mi_save_dir):
-      os.mkdir(mi_save_dir)
+    if not os.path.exists(mi_save_dir): os.mkdir(mi_save_dir)
 
     mi_list, acc_list = [], []
     for f, t, k, p in zip(features, targets, pids, predictions):
@@ -186,6 +186,24 @@ class ESOSet(DataSet):
     return acc
 
 
+def tf_dice_accuracy(labels, outputs):
+  smooth = 1.0
+
+  # Flatten
+  labels_f = tf.keras.layers.Flatten()(labels)
+  outputs_f = tf.keras.layers.Flatten()(outputs)
+
+  # Discretization
+  outputs_f = tf.where(outputs_f > 0.5, tf.ones_like(outputs_f),
+                       tf.zeros_like(outputs_f))
+
+  intersection = tf.reduce_sum(labels_f * outputs_f, axis=1)
+  dice_coef = ((2.0 * intersection + smooth) /
+               (tf.reduce_sum(labels_f, axis=1) +
+                tf.reduce_sum(outputs_f, axis=1) + smooth))
+  dice_coef = tf.expand_dims(dice_coef, 1)
+
+  return dice_coef
 
 if __name__ == '__main__':
   pass
