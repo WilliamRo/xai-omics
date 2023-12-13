@@ -253,9 +253,9 @@ class SliceView(Plotter):
   # region: Mouse Command
   def on_mouse_scroll(self, event):
     if event.button == 'up':
-      self.pictor.set_cursor(self.pictor.Keys.OBJECTS, 1, refresh=True)
-    elif event.button == 'down':
       self.pictor.set_cursor(self.pictor.Keys.OBJECTS, -1, refresh=True)
+    elif event.button == 'down':
+      self.pictor.set_cursor(self.pictor.Keys.OBJECTS, 1, refresh=True)
 
   # endregion: Mouse Command
 
