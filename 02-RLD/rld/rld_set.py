@@ -71,7 +71,13 @@ class RLDSet(DataSet):
   def gen_batches(self, batch_size, shuffle=False, is_training=False):
     if not is_training:
       if self.name == 'Test-Set':
-        features, targets = self.features, self.targets
+        # assert self.size % batch_size == 0
+        for i in range(self.size//batch_size+(self.size % batch_size)):
+          features = self.features[i*batch_size:(i+1)*batch_size]
+          targets = self.targets[i*batch_size:(i+1)*batch_size]
+          eval_set = DataSet(features, targets, name=self.name)
+          yield eval_set
+        return
       else:
         index = list(np.random.choice(list(range(self.features.shape[0])),
                                       batch_size, replace=False))
@@ -92,51 +98,44 @@ class RLDSet(DataSet):
     # Clear dynamic_round_len if necessary
     if is_training: self._clear_dynamic_round_len()
 
-  def evaluate_model(self, model: Predictor, report_metric=True, update_saves=False):
+  def evaluate_model(self, model: Predictor, report_metric=False, update_saves=False):
     from dev.explorers.rld_explore.rld_explorer import RLDExplorer
     from rld_core import th
     from joblib import load, dump
-    from xomics.data_io.utils.raw_rw import wr_file
     from xomics.data_io.utils.metrics_calc import calc_metric
 
     dirpath = os.path.join(th.job_dir, 'checkpoints/', th.mark, 'saves/')
     cache_path = os.path.join(dirpath, 'caches.pkl')
+    pred = []
     if not update_saves and os.path.exists(dirpath):
       if report_metric:
-        pred, metric = load(cache_path)
+        metric = load(cache_path)
         console.supplement(f'Metric:{metric}', level=2)
-      else:
-        pred = load(cache_path)
+      for path in os.listdir(dirpath):
+        if path.endswith('.nii.gz'):
+          pred.append(self.reader.load_nii(os.path.join(dirpath, path)))
     else:
       os.makedirs(dirpath, exist_ok=True)
-      pred = model.predict(self, batch_size=2)
+      pred = []
+      pred_tmp = model.predict(self, batch_size=1)[:, ..., -1]
+      print(pred_tmp.shape)
+      for i, sub, pred_i in zip(range(self.size), self.subjects, pred_tmp):
+        pred_path = os.path.join(dirpath, f'sub{sub}-pred.nii.gz')
+        pred_i = self.reader.get_raw_data(pred_i, i)
+        self.reader.export_nii(pred_i, pred_path,
+                               nii_param=self.reader.img_param[0])
+        pred.append(pred_i)
       if report_metric:
-        metric = model.evaluate_model(self, batch_size=2)
+        metric = model.evaluate_model(self, batch_size=1)
         dump([pred, metric], cache_path)
-      else:
-        dump(pred, cache_path)
 
+    pred = np.stack(pred, axis=0)
+    pred = np.expand_dims(pred, axis=-1)
     features, targets = self.features[:, ..., :1], self.targets
     for i in range(self.size):
       features[i] = self.reader.get_raw_data(self.features[i, ..., :1], i)
       targets[i] = self.reader.get_raw_data(self.targets[i, ..., :1], i)
-      pred[i] = self.reader.get_raw_data(pred[i, ..., :1], i)
-
-    # for i in range(self.size):
-    #   ssim_ori = calc_metric(self.features[i, ..., 0], self.targets[i, ..., 0], 'ssim')
-    #   ssim = calc_metric(self.features[i, ..., 0], pred[i, ..., 0], 'ssim')
-    #   raw_data = self.reader.get_raw_data(pred[i, ..., 0], i)
-    #   raw_data = np.clip(raw_data, a_min=0, a_max=None)
-    #   wr_file(raw_data, f'sub{self.subjects[i]}-'
-    #                     f'ssim({ssim_ori:.5f}-{ssim:.5f})'
-    #                     f'-pred.nii.gz',
-    #           self.reader.img_param[i])
-    #   wr_file(self.features[i][::-1], f'sub{self.subjects[i]}-'
-    #                                   f'feature.nii.gz',
-    #           self.reader.img_param[i])
-    #   wr_file(self.targets[i][::-1], f'sub{self.subjects[i]}-'
-    #                                  f'target.nii.gz',
-    #           self.reader.img_param[i])
+      # pred[i] = self.reader.get_raw_data(pred[i], i)
 
     # Compare results using DrGordon
     medical_images = [
@@ -154,7 +153,7 @@ class RLDSet(DataSet):
       if os.path.exists(value_path):
         values = load(value_path)
       else:
-        values = model.evaluate(fetchers, self)
+        values = model.evaluate(fetchers, self, batch_size=2)
         dump(values, value_path)
 
       wms = values[0]
@@ -191,12 +190,15 @@ class RLDSet(DataSet):
       'suv': th.use_suv,
       'clip': th.data_clip,
       'shape': th.data_shape,
-      'norm_margin': th.data_margin if th.train else None
+      'norm_margin': th.data_margin if th.train else None,
+      'norm_method': th.norm_method,
     }
 
     types = [
       ['PET', 'WB', '20S', 'STATIC'],
       ['PET', 'WB', '30S', 'GATED'],
+      ['PET', 'WB', '40S', 'STATIC'],
+      ['PET', 'WB', '60S', 'GATED'],
       ['PET', 'WB', '120S', 'STATIC'],
       ['PET', 'WB', '240S', 'GATED'],
       ['PET', 'WB', '240S', 'STATIC'],

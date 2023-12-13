@@ -61,7 +61,24 @@ def get_suv_factor(tags):
   return SUVbwScaleFactor, RS, RI
 
 
-def normalize(arr: np.ndarray, norm=None, ret_norm=False):
+def normalize(arr: np.ndarray, method=None, *args, **kwargs):
+  if method is None:
+    return min_max(arr, *args, **kwargs)
+  elif method == 'z-score':
+    return z_score(arr, *args, **kwargs)
+
+
+def z_score(arr: np.ndarray, norm=None, ret_norm=False):
+  if norm is None:
+    mean_data = np.mean(arr)
+    sigma = np.std(arr)
+    norm = [mean_data, sigma]
+    if ret_norm:
+      return (arr - norm[0]) / norm[1], norm
+  return (arr - norm[0]) / norm[1]
+
+
+def min_max(arr: np.ndarray, norm=None, ret_norm=False):
   if norm is None:
     max_data = np.max(arr)
     min_data = np.min(arr)

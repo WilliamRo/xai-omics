@@ -12,20 +12,53 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'unet'
-id = 1
+model_name = 'explore'
+id = 4
 def model():
   th = core.th
-  return m.get_unet(th.archi_string, use_batchnorm=True)
+  option = th.archi_string.split('-')
 
   model = m.get_initial_model()
-  conv = lambda n: m.mu.HyperConv3D(filters=int(n), kernel_size=th.kernel_size,
-                                    activation=th.activation)
-  deconv = lambda n: m.mu.HyperDeconv3D(filters=int(n),
-                                        kernel_size=th.kernel_size)
+
+  conv = lambda n: m.mu.HyperConv3D(filters=n, kernel_size=int(option[1]),
+                                    activation=option[-1])
+  deconv = lambda n: m.mu.HyperDeconv3D(filters=n, kernel_size=int(option[1]), strides=2)
+
+  unet = []
+  floors = []
+  filters = int(option[0])
+  for height in range(int(option[2])):
+    for thickness in range(int(option[3])):
+      unet.append(conv(filters))
+    floors.append(unet[-1])
+    unet.append(m.mu.MaxPool3D(2, 2))
+    filters *= 2
+
+  for thickness in range(int(option[3])):
+    unet.append(conv(filters))
+
+  for height in range(int(option[2])):
+    filters //= 2
+    unet.append(deconv(filters))
+    unet.append(m.mu.Bridge(floors[int(option[2]) - height - 1]))
+    for thickness in range(int(option[3])):
+      unet.append(conv(filters))
+
+  unet.append(m.mu.HyperConv3D(filters=1, kernel_size=1))
+
+  weights = [m.mu.HyperConv3D(3, kernel_size=3, activation=option[-1])
+             for _ in range(3)]
+
   vertices = [
+    m.GaussianPyramid3D(kernel_size=3, sigmas=[3]),
+    unet,
+    m.mu.Merge.Concat(),
+    weights,
+    m.WeightedSum()
   ]
-  edges = '1'
+
+
+  edges = '1;10;111;0001;00011'
   model.add(m.mu.ForkMergeDAG(vertices, edges, auto_merge=False))
 
   return m.finalize(model)
@@ -42,14 +75,17 @@ def main(_):
 
   th.data_config = fr'alpha dataset=02-RLD'
 
-  th.val_size = 5
-  th.test_size = 2
+  th.val_size = 6
+  th.test_size = 5
 
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
   th.data_shape = [256, 440, 440]
-  th.data_set = [4, 3]
+  # th.input_shape = th.data_shape + [2]
+
+
+  th.data_set = [1, 5]
   th.data_margin = [10, 0, 0]
 
   th.noCT = True
@@ -72,12 +108,12 @@ def main(_):
   # 2. model setup
   # ---------------------------------------------------------------------------
   th.model = model
-  th.kernel_size = 3
-  th.activation = 'lrelu'
-  th.archi_string = '4-3-3-2-' + th.activation
+  th.archi_string = '4-3-3-2-lrelu'
 
   th.use_sigmoid = False
-  th.clip_off = True
+  th.clip_off = False
+  th.output_conv = False
+  # th.use_res = True
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
@@ -92,7 +128,7 @@ def main(_):
 
   th.buffer_size = 6
 
-  th.loss_string = 'nrmse'
+  th.loss_string = 'rela'
   th.opt_str = 'adam'
 
   th.optimizer = th.opt_str
@@ -108,8 +144,10 @@ def main(_):
     th.suffix += '_sig'
   if th.use_suv:
     th.suffix += '_suv'
+  if th.use_res:
+    th.suffix += '_res'
   th.suffix += '_noCT' if th.noCT else ''
-  th.suffix += '_240Sto240G'
+  th.suffix += '_30Gto240G_wm_gauss'
   th.suffix += f'_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'

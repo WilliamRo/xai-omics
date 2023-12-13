@@ -3,14 +3,19 @@ from xomics.data_io.utils.raw_rw import *
 import os
 
 
-sub_ids = [18, 23, 33, 43, 45]
+sub_ids = ['10217', '10163', '10146', '10103', '10104']
+del_ids = ['10665', '10488', '10632', '10717']
+
 
 def rld2npy(datadir, new_dir):
   l1_dirs = sorted(os.listdir(datadir))
   num = len(l1_dirs)
   ids = 0
   id_180 = 0
+  id_del = 0
   for sub, l1 in enumerate(l1_dirs):
+    if sub != 0:
+      return
     l1_path = os.path.join(datadir, l1)
     l2_dir = os.listdir(l1_path)[0]
     l2_path = os.path.join(l1_path, l2_dir)
@@ -46,7 +51,7 @@ def rld2npy(datadir, new_dir):
       # image = image.reshape((1,) + image.shape + (1,))
 
       stime = ''
-      times = [15, 20, 30, 120, 180, 240]
+      times = [15, 20, 30, 40, 60, 120, 180, 240]
       for sec in times:
         if f'{sec}S' in name_list:
           stime = f'_{sec}S'
@@ -65,11 +70,19 @@ def rld2npy(datadir, new_dir):
           param = '_' + par
           break
 
-      if sub in sub_ids:
-        index = f'180S_sub{id_180}'
-        flag = True
-      else:
-        index = f'sub{ids}'
+      index = f'sub{ids}'
+      for i in sub_ids:
+        if i in l1:
+          index = f'180S_sub{id_180}'
+          flag = True
+          break
+
+      for i in del_ids:
+        if i in l1:
+          index = f'del_sub{id_del}'
+          flag = True
+          break
+
 
       name = f'{index}_{img_type}_{pos}{stime}{control}{param}'
       # print(f'<{name}>')
@@ -84,13 +97,17 @@ def rld2npy(datadir, new_dir):
         pass
       print(f'...Saved image and tag to {sub_path}/{name}')
     if flag:
-      id_180 += 1
+      if '180S' in index:
+        id_180 += 1
+      elif 'del' in index:
+        id_del += 1
     else:
       ids += 1
 
 
 if __name__ == '__main__':
-  datadir = 'D:\\projects\\xai-omics\\data\\02-RLD-RAW\\'
+  datadir = 'F:\\xai-omics-data\\02-RLD-RAW\\'
+  # datadir = 'D:\\projects\\xai-omics\\data\\02-RLD-RAW\\'
   new_dir = 'D:\\projects\\xai-omics\\data\\02-RLD\\'
   # rd_series('D:\\projects\\xai-omics\\data\\02-RLD-RAW\\CHEN_HE_PING_YHP00011233\\PET_13_DL_WB_GATED_(ADULT)_20230906_111759_623000\\CT_BH_15S_3_0_B30F_0013')
   rld2npy(datadir, new_dir)

@@ -57,3 +57,15 @@ class RLDReader(MiReader):
     if suv and self._load_type == 'PET':
       tags = self.get_tags(-1)
       self._data = calc_SUV(self._data, tags=tags, advance=True)
+
+  def export_nii(self, data, filepath, **kwargs):
+    from xomics.data_io.utils.raw_rw import wr_file
+    return wr_file(data, filepath, **kwargs)
+
+  def load_nii(self, filepath):
+    from xomics.data_io.utils.raw_rw import rd_file
+    return rd_file(filepath)
+
+  def load_name(self, sub):
+    pass
+

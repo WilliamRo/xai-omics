@@ -57,7 +57,7 @@ def main(_):
   th.data_config = fr'alpha dataset=02-RLD'
 
   th.val_size = 5
-  th.test_size = 2
+  th.test_size = 6
 
   th.window_size = 128
   th.slice_size = 128
@@ -102,8 +102,8 @@ def main(_):
   th.patience = 15
   th.probe_cycle = th.updates_per_round
 
-  th.batch_size = 4
-  th.batchlet_size = 1
+  th.batch_size = 8
+  th.batchlet_size = 2
   th.val_batch_size = 2
 
   th.buffer_size = 6
