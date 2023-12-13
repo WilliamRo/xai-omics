@@ -51,7 +51,7 @@ class GordonPainter(DrGordon):
 
   @DrGordon.property()
   def configs(self): return {
-    'percentile_step': 0.05
+    'percentile_step': 0.01
   }
 
   @property

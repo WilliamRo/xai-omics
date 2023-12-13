@@ -151,6 +151,9 @@ class SliceView(Plotter):
     self.new_settable_attr('show_prediction', False, bool,
                            'whether to show the prediction')
 
+    self.pictor.canvas._canvas.mpl_connect(
+      'scroll_event', self.on_mouse_scroll)
+
   # region: Properties
 
   @property
@@ -247,7 +250,14 @@ class SliceView(Plotter):
 
   # endregion: Commands
 
+  # region: Mouse Command
+  def on_mouse_scroll(self, event):
+    if event.button == 'up':
+      self.pictor.set_cursor(self.pictor.Keys.OBJECTS, 1, refresh=True)
+    elif event.button == 'down':
+      self.pictor.set_cursor(self.pictor.Keys.OBJECTS, -1, refresh=True)
 
+  # endregion: Mouse Command
 
 def load_npy_file(file_path):
   return np.load(file_path, allow_pickle=True).tolist()

@@ -42,7 +42,7 @@ class GordonView(SliceView):
         ((np.searchsorted(flatten_image, data) + 1) / flatten_image.size * 100), 2)
 
       # (3) Calculate the percentile and the threshold
-      percentile = max(percentile - 0.5, 0)
+      percentile = max(percentile - 0.1, 0)
       self.percentile = percentile
       self.click_address = tuple([num_slice, x, y])
       threshold = np.percentile(image, q=percentile)

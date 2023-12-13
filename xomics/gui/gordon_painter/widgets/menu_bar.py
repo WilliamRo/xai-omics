@@ -131,7 +131,7 @@ class MenuBar(tk.Menu):
           'Error', "The shape of input does not match the image's shape")
     else:
       mi = MedicalImage(images={image_type: data}, key=pid)
-      mi.normalization([image_type])
+      mi.normalization([image_type], 'z_score')
       mi_list = [mi]
       self.main_canvas.set_data(mi_list)
 
