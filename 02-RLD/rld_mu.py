@@ -6,6 +6,7 @@ custom_loss = {
   'psnr': get_psnr(),
   'ssim': get_ssim_3D(),
   'nrmse': get_nrmse(),
+  'rela': get_relative_loss(),
 }
 
 def get_initial_model():
@@ -23,10 +24,15 @@ def finalize(model):
   if th.output_conv:
     model.add(mu.HyperConv3D(filters=1, kernel_size=1))
 
+  if th.use_res:
+    model.input_.abbreviation = 'input'
+    model.add(mu.ShortCut(model.input_, mode=mu.ShortCut.Mode.SUM))
+
   if th.use_sigmoid:
     model.add(mu.Activation('sigmoid'))
   elif th.clip_off:
     model.add(Clip(0, 1.2))
+
 
   # Build model
   metrics = list(custom_loss.values())

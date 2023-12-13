@@ -28,6 +28,9 @@ class RLDConfig(SmartTrainerHub):
 
   show_weight_map = Flag.boolean(False, '...', is_key=None)
   output_conv = Flag.boolean(True, 'use conv at end of net', is_key=None)
+  norm_method = Flag.string(None, 'normalization methods', is_key=None)
+
+  use_res = Flag.boolean(False, 'use residual link', is_key=None)
 
   @property
   def data_arg(self) -> Arguments:

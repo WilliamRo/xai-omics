@@ -38,3 +38,14 @@ def get_psnr():
     return tf.image.psnr(truth, output, 1)
 
   return Quantity(psnr, tf.reduce_mean, name='PSNR', lower_is_better=False)
+
+
+def get_relative_loss():
+  from tframe import tf
+
+  def relative_loss(truth, output):
+    axis = list(range(1, len(truth.shape)))
+    a = tf.abs(truth - output) / (tf.maximum(truth, output) + 1e-8)
+    return tf.reduce_mean(a, axis=axis)
+
+  return Quantity(relative_loss, tf.reduce_mean, name='Rela-Loss', lower_is_better=True)

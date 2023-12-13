@@ -50,8 +50,8 @@ class MiReader:
                         f'{self.SUBJECT_NAME}{sub}_{types}.'
                         f'{self.FILETYPE}')
 
-  def load_data_by_subject(self, subjects: list[int],
-                           types_list: list[list[str]], **kwargs):
+  def load_data_by_subject(self, subjects,
+                           types_list, **kwargs):
     mis = []
     type_strs = ["_".join(i) for i in types_list]
     for subject in subjects:
@@ -68,8 +68,8 @@ class MiReader:
     self.data = mis
     return mis
 
-  def load_data_by_types(self, subjects: list[int],
-                         types_list: list[list[str]], **kwargs):
+  def load_data_by_types(self, subjects,
+                         types_list, **kwargs):
     mis = []
 
     for types in types_list:
@@ -87,9 +87,9 @@ class MiReader:
     self.data = mis
     return mis
 
-  def load_data_with_same_norm(self, subjects: list[int],
-                               types_list: list[list[str]],
-                               norm_types: list[str], **kwargs):
+  def load_data_with_same_norm(self, subjects,
+                               types_list,
+                               norm_types, **kwargs):
     mis = []
     self.norm_list = [None] * len(subjects)
     for types in types_list:
@@ -115,10 +115,10 @@ class MiReader:
     self.data = mis
     return mis
 
-  def load_data(self, subjects: list[int],
-                types: list[list[str]],
+  def load_data(self, subjects,
+                types,
                 methods: str,
-                **kwargs) -> list[MedicalImage]:
+                **kwargs):
     """
     :param types: type in order
     :param subjects:
@@ -143,15 +143,16 @@ class MiReader:
                   norm=None, shape=None,
                   raw=False, clip=None,
                   ret_norm=False, crop_margin=None,
+                  norm_method=None,
                   **kwargs):
     self.process_func(**kwargs)
     if crop_margin is not None:
       self._data = crop_by_margin(self._data, crop_margin)
     if not raw:
       if ret_norm:
-        self._data, norm = normalize(self._data, norm, ret_norm=ret_norm)
+        self._data, norm = normalize(self._data, norm_method, norm, ret_norm=ret_norm)
       else:
-        self._data = normalize(self._data, norm)
+        self._data = normalize(self._data, norm_method, norm)
     if shape is not None:
       self._data = norm_size(self._data, shape)
     if clip is not None:

@@ -50,13 +50,13 @@ def main(_):
   th.data_config = fr'alpha dataset=02-RLD'
 
   th.val_size = 5
-  th.test_size = 2
+  th.test_size = 6
 
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
   th.data_shape = [256, 440, 440]
-  th.data_set = [1, 3]
+  th.data_set = [2, 4]
   th.data_margin = [10, 0, 0]
 
   th.noCT = True
@@ -94,8 +94,8 @@ def main(_):
   th.patience = 15
   th.probe_cycle = th.updates_per_round
 
-  th.batch_size = 4
-  th.batchlet_size = 1
+  th.batch_size = 16
+  th.batchlet_size = 4
   th.val_batch_size = 2
 
   th.buffer_size = 6
@@ -117,7 +117,7 @@ def main(_):
   if th.use_suv:
     th.suffix += '_suv'
   th.suffix += '_noCT' if th.noCT else ''
-  th.suffix += '_30Gto240G_lrelu'
+  th.suffix += '_120Sto240S_lrelu'
   th.suffix += f'_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'

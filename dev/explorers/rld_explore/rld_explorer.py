@@ -24,12 +24,20 @@ class RLDExplorer(DrGordon):
       ['h'], lambda: self.set_cursor(self.Keys.LAYERS, -1, refresh=True),
       description='Previous layer', color='yellow')
 
+  def refresh(self, wait_for_idle=False):
+    self.title_suffix = f' - [{self.sv.selected_medical_image.key}] ' \
+                        f'{self.sv.displayed_layer_key}'
+    super(DrGordon, self).refresh(wait_for_idle)
+
 
 class RLDViewer(SliceView):
 
   def __init__(self, dr_gordon=None):
     # Call parent's constructor
     super().__init__(pictor=dr_gordon)
+    self.out_fig, self.out_ax = plt.subplots()
+    self.pro_method = 'h'
+    self.pro_cursor = 220
 
     self.new_settable_attr('view_point', 'other', str,
                            'Change the methods to view(cor, sag, other)')
@@ -40,17 +48,22 @@ class RLDViewer(SliceView):
                            'the key of the full image')
     self.new_settable_attr('show_weight_map', False, bool,
                            'Option to show weight map')
+    self.new_settable_attr('show_suv_metric', False, bool,
+                           'Option to show suv metric')
+    self.new_settable_attr('show_profile', False, bool,
+                           'Option to show profile')
 
 
   def view_slice(self, fig: plt.Figure, ax: plt.Axes, x: int):
     mi: MedicalImage = self.selected_medical_image
+    # fig.suptitle(f'[{mi.key}]' + self.displayed_layer_key)
     selected_vol = mi.images[self.displayed_layer_key][::-1]
     if self.get('full_key') == '':
       self.set('full_key', list(mi.images.keys())[-2])
     full_key = self.get('full_key')
     full_dose_vol: np.ndarray = mi.images[full_key][::-1]
 
-    ps = [0.9765625]*2
+    ps = [1.65]*2
     ss = 3.0
     aspect = ps[1]/ps[0]
     sag_aspect = ps[1] / ss
@@ -58,9 +71,11 @@ class RLDViewer(SliceView):
 
     if self.get('view_point') == 'cor':
       selected_vol = selected_vol.swapaxes(0, 1)
+      full_dose_vol = full_dose_vol.swapaxes(0, 1)
       aspect = cor_aspect
     elif self.get('view_point') == 'sag':
       selected_vol = selected_vol.swapaxes(0, 2)
+      full_dose_vol = full_dose_vol.swapaxes(0, 2)
       aspect = sag_aspect
 
     image: np.ndarray = selected_vol[x]
@@ -76,7 +91,21 @@ class RLDViewer(SliceView):
       else: wm = wm[:, :, :3]
       im = ax.imshow(wm)
     else:
-      im = ax.imshow(image, cmap=self.get('cmap'), vmin=self.get('vmin'),
+      simage = image.copy()
+
+      if self.get("show_profile"):
+        if self.get('full_key') == self.displayed_layer_key:
+          self.show_profile([mi.images[k][::-1][x] for k in mi.images.keys()],
+                            list(mi.images.keys()))
+        else:
+          self.show_profile([image, full_dose_slice],
+                            [self.displayed_layer_key, 'Full'])
+        if self.pro_method == 'h':
+          simage[self.pro_cursor] = np.max(image)
+        else:
+          simage[:, self.pro_cursor] = np.max(image)
+
+      im = ax.imshow(simage, cmap=self.get('cmap'), vmin=self.get('vmin'),
                      vmax=self.get('vmax'))
     ax.set_aspect(aspect)
 
@@ -92,7 +121,8 @@ class RLDViewer(SliceView):
 
       def _get_title():
         if not show_slice_metric:
-          print(f'>> Calculating metrics for `{self.displayed_layer_key}` ...')
+          print(f'>> Calculating metrics for `[{self.selected_medical_image.key}]'
+                f'{self.displayed_layer_key}` ...')
 
         if self.displayed_layer_key == full_key:
           return 'NRMSE: 0, SSIM: 1, PSNR: $\infty$'
@@ -104,12 +134,27 @@ class RLDViewer(SliceView):
       if show_slice_metric:
         title = _get_title()
       else:
-        tt_key = self.displayed_layer_key + '_metrics'
+        tt_key = self.displayed_layer_key + f'_{self.selected_medical_image.key}' \
+                                            f'_metrics'
         title = self.get_from_pocket(tt_key, initializer=_get_title)
         title = '[Global]' + title
+    elif self.get('show_suv_metric'):
+      show_slice_metric = self.get('show_slice_metric')
+      if show_slice_metric:
+        mimage = image
+        # fimage = full_dose_slice
+      else:
+        mimage = selected_vol
+        # fimage = full_dose_vol
+        title = '[Global]'
+      suv_mean = np.mean(mimage)
+      suv_max = np.max(mimage)
+      suv_median = np.median(mimage)
+      title += r"$SUV_{max}=$%.4f, $SUV_{mean}=$%.4f, $SUV_{median}=$%.4f" % \
+               (suv_max, suv_mean, suv_median)
 
     # Show title if necessary
-    ax.set_title(f'[{mi.key}]{title}', fontsize=10)
+    ax.set_title(f'{title}', fontsize=10)
 
     # Set style
     ax.set_axis_off()
@@ -119,6 +164,7 @@ class RLDViewer(SliceView):
       divider = make_axes_locatable(ax)
       cax = divider.append_axes('right', size='5%', pad=0.05)
       fig.colorbar(im, cax=cax)
+
 
   # region: Custom
 
@@ -158,25 +204,27 @@ class RLDViewer(SliceView):
     fig.show()
   ssm = show_slice_metrics
 
-  def show_slice_3d(self, i: int, j: int):
-    mi: MedicalImage = self.selected_medical_image
-    selected_vol = mi.images[self.displayed_layer_key][::-1]
-    selected_slice: np.ndarray = selected_vol[i]
+  def show_profile(self, image_list, legend):
+    fig: plt.figure = self.out_fig
+    ax = self.out_ax
+    ax.clear()
+    shape = image_list[0].shape[1]
+    x = np.arange(shape)
 
-    pixel_values = selected_slice[:, ..., 0][j]
-    # print(selected_slice.shape)
-    x = np.arange(selected_slice.shape[1])
+    for image in image_list:
+      if self.pro_method == 'h':
+        values = image[self.pro_cursor]
+      else:
+        values = image[:, self.pro_cursor].reshape(shape)
+      ax.plot(x, values)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.plot(x, pixel_values)
+    ax.legend(legend)
+    ax.set_ylabel('SUV')
 
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_title(f'Visualization-{i}-{j}')
+    ax.set_xlabel('Width')
+    ax.set_title(f'Profile {self.pro_method.upper()}:{self.pro_cursor}')
     # ax.view_init(elevation_angle, azimuthal_angle)
-    plt.show()
-  ss3 = show_slice_3d
+    fig.canvas.draw()
 
   # region: Shortcuts
 
@@ -188,6 +236,24 @@ class RLDViewer(SliceView):
       self.set('view_point', vlist[(vlist.index(self.get('view_point'))+1) % 3])
       self.refresh()
 
+    def pro_move(i):
+      self.pro_cursor += i
+      if self.pro_cursor < 0: self.pro_cursor = 0
+      if self.pro_cursor >= 440: self.pro_cursor = 439
+      self.refresh()
+
+    def show_profile():
+      self.flip('show_profile')
+      if self.get('show_profile'):
+        self.out_fig.show()
+
+    def switch_pro_method():
+      if self.pro_method == 'h':
+        self.pro_method = 'w'
+      else:
+        self.pro_method = 'h'
+      self.refresh()
+
     self.register_a_shortcut(
       'v', modify_view, 'Change the Viewpoints')
     self.register_a_shortcut(
@@ -197,8 +263,24 @@ class RLDViewer(SliceView):
       'Turn on/off `show_slice_metric` option')
     self.register_a_shortcut(
       'w', lambda: self.flip('show_weight_map'), 'Toggle `show_weight_map`')
+    self.register_a_shortcut(
+      's', lambda: self.flip('show_suv_metric'),
+      'Turn on/off `show_suv_metric` option')
+    self.register_a_shortcut(
+      'A', show_profile,
+      'Turn on/off `show_profile` option')
+    self.register_a_shortcut(
+      'a', switch_pro_method,
+      'switch profile\'s method')
+    self.register_a_shortcut(
+      'z', lambda: pro_move(-1),
+      'profile up')
+    self.register_a_shortcut(
+      'x', lambda: pro_move(1),
+      'profile down')
 
   # endregion: Shortcuts
+
 
 
 
