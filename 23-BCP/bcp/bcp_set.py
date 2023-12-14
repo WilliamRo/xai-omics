@@ -97,11 +97,11 @@ class BCPSet(DataSet):
     mi_dir = os.path.join(
       os.path.dirname(os.path.dirname(th.data_dir)),
       'data/05-Brain-MR/mi/NFBS')
+    save_dir = os.path.join(
+      os.path.dirname(os.path.dirname(th.data_dir)),
+      'data/05-Brain-MR/result/NFBS/mi')
     file_name = os.listdir(mi_dir)
     file_name = [f for f in file_name if '.mi' in f]
-    ss = model.validate_model(self, th.eval_batch_size)
-    sss = model.predict(self, th.eval_batch_size)
-    acc = dice_accuarcy(self.targets, sss)
 
     mi_list = []
     for f in tqdm(file_name, desc='Loading MI files'):
@@ -157,8 +157,10 @@ class BCPSet(DataSet):
 
       mi.labels['pred'] = pred
       acc = dice_accuarcy(mi.labels["label-0"], mi.labels["pred"])
+      pid = mi.key
       mi.key = mi.key + f' --- Acc: {round(acc, 2)}'
       print(mi.key)
+      mi.save(os.path.join(save_dir, pid))
 
       mi_list.append(mi)
 
