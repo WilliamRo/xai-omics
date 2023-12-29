@@ -31,6 +31,7 @@ class RLDConfig(SmartTrainerHub):
   norm_method = Flag.string(None, 'normalization methods', is_key=None)
 
   use_res = Flag.boolean(False, 'use residual link', is_key=None)
+  gen_test_nii = Flag.boolean(False, '...', is_key=None)
 
   @property
   def data_arg(self) -> Arguments:

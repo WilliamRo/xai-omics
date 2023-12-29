@@ -30,7 +30,7 @@ class RLDReader(MiReader):
 
   def nii_loader(self, filepath, noCT=False, **kwargs):
     types = len(self.dict['type']) - noCT
-    subs = len(self.dict['sub']) - noCT
+    subs = len(self.dict['sub'])
     if self._load_type == 'CT':
       self._data = rd_file_itk(filepath)
       i = (self.now - 1) % (types - 1)
@@ -44,7 +44,7 @@ class RLDReader(MiReader):
       self._data, img_param = rd_file(filepath, nii_param=True)
       # assume: all pet image's param of a sub is same
       if self.dict['method'] in ['type', 'train']:
-        if self.now % subs == 1:
+        if self.now <= subs:
           self.img_param.append(img_param)
       elif self.dict['method'] in ['sub']:
         if self.now % types == 1:

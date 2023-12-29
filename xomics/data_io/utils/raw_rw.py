@@ -11,7 +11,7 @@ def rd_file_itk(filepath, nii_param=False):
   itk_img = sitk.ReadImage(filepath)
   if nii_param:
     param = {
-      'size': itk_img.GetSize(),
+      # 'size': itk_img.GetSize(),
       'origin': itk_img.GetOrigin(),
       'spacing': itk_img.GetSpacing(),
       'direction': itk_img.GetDirection(),

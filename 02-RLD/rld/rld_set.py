@@ -123,7 +123,7 @@ class RLDSet(DataSet):
         pred_path = os.path.join(dirpath, f'sub{sub}-pred.nii.gz')
         pred_i = self.reader.get_raw_data(pred_i, i)
         self.reader.export_nii(pred_i, pred_path,
-                               nii_param=self.reader.img_param[0])
+                               nii_param=self.reader.img_param[i])
         pred.append(pred_i)
       if report_metric:
         metric = model.evaluate_model(self, batch_size=1)
@@ -135,6 +135,16 @@ class RLDSet(DataSet):
     for i in range(self.size):
       features[i] = self.reader.get_raw_data(self.features[i, ..., :1], i)
       targets[i] = self.reader.get_raw_data(self.targets[i, ..., :1], i)
+      if th.gen_test_nii:
+        data_path = os.path.join(dirpath, 'raw_data/')
+        if not os.path.exists(data_path):
+          os.makedirs(data_path)
+        low_path = os.path.join(data_path, f'sub{self.subjects[i]}-low.nii.gz')
+        full_path = os.path.join(data_path, f'sub{self.subjects[i]}-full.nii.gz')
+        self.reader.export_nii(features[i], low_path,
+                               nii_param=self.reader.img_param[i])
+        self.reader.export_nii(targets[i], full_path,
+                               nii_param=self.reader.img_param[i])
       # pred[i] = self.reader.get_raw_data(pred[i], i)
 
     # Compare results using DrGordon

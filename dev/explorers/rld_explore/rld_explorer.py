@@ -52,6 +52,11 @@ class RLDViewer(SliceView):
                            'Option to show suv metric')
     self.new_settable_attr('show_profile', False, bool,
                            'Option to show profile')
+    self.new_settable_attr('view_delta', False, bool, 'Option to view delta')
+    self.new_settable_attr('delta_cmap', 'RdBu', str,
+                           'Color map for delta view')
+    self.new_settable_attr('delta_vmax', None, float,
+                           'Max abs value for delta view')
 
 
   def view_slice(self, fig: plt.Figure, ax: plt.Axes, x: int):
@@ -90,6 +95,13 @@ class RLDViewer(SliceView):
         wm = np.concatenate([wm, zeros], axis=-1)
       else: wm = wm[:, :, :3]
       im = ax.imshow(wm)
+    elif self.get('view_delta'):
+      delta = full_dose_slice - image
+      abs_vmax = (np.max(abs(delta)) if self.get('delta_vmax') is None
+                  else self.get('delta_vmax'))
+
+      im = ax.imshow(delta, cmap=self.get('delta_cmap'), vmin=-abs_vmax,
+                     vmax=abs_vmax)
     else:
       simage = image.copy()
 
@@ -226,6 +238,34 @@ class RLDViewer(SliceView):
     # ax.view_init(elevation_angle, azimuthal_angle)
     fig.canvas.draw()
 
+  def union_joint_hist(self):
+    mi: MedicalImage = self.selected_medical_image
+    image_keys = [k for k in mi.images.keys() if k != 'Full']
+    full = mi.images['Full'].ravel()
+    print(image_keys, mi.images['Full'].shape)
+    fig = plt.figure()
+    min_val = 1
+    max_val = 5
+
+    for i, key in enumerate(image_keys):
+      ax: plt.Axes = fig.add_subplot(1, 2, i+1)
+      img = mi.images[key].ravel()
+      hist2D, x_edges, y_edges = np.histogram2d(img, full, bins=2048,
+                                                range=[[min_val, max_val],
+                                                       [min_val, max_val]])
+
+      im = ax.imshow(hist2D.T, origin='lower', cmap='hsv',
+                     extent=[min_val, max_val, min_val, max_val])
+      ax.set_xticks(np.arange(min_val, max_val + 1))
+      ax.set_yticks(np.arange(min_val, max_val + 1))
+      ax.set_xlabel(f'{key} PET')
+      ax.set_ylabel('Full Dose PET')
+      ax.set_title('Joint Voxel Histogram')
+      fig.colorbar(im)
+
+    fig.show()
+
+  ujh = union_joint_hist
   # region: Shortcuts
 
   def register_shortcuts(self):
@@ -254,6 +294,8 @@ class RLDViewer(SliceView):
         self.pro_method = 'h'
       self.refresh()
 
+    self.register_a_shortcut(
+      'space', lambda: self.flip('view_delta'), 'Toggle `view_delta`')
     self.register_a_shortcut(
       'v', modify_view, 'Change the Viewpoints')
     self.register_a_shortcut(
