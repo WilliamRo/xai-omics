@@ -150,6 +150,32 @@ def itk_norm(data, vmax, vmin=0):
   return filters.Execute(data)
 
 
+def resize_image(original_image, target_size, resamplemethod=sitk.sitkLinear):
+  original_spacing = original_image.GetSpacing()
+  original_size = original_image.GetSize()
+
+  target_spacing = [original_spacing[0] * (original_size[0] / target_size[0]),
+                    original_spacing[1] * (original_size[1] / target_size[1]),
+                    original_spacing[2] * (original_size[2] / target_size[2])]
+
+  resampler = sitk.ResampleImageFilter()
+  resampler.SetSize(target_size)
+  resampler.SetOutputSpacing(target_spacing)
+  resampler.SetOutputOrigin(original_image.GetOrigin())
+  resampler.SetOutputDirection(original_image.GetDirection())
+
+  if resamplemethod == sitk.sitkNearestNeighbor:
+    resampler.SetOutputPixelType(sitk.sitkUInt8)  # 近邻插值用于mask的，保存uint8
+  else:
+    resampler.SetOutputPixelType(sitk.sitkFloat32)
+    # 线性插值用于PET/CT/MRI之类的，保存float32
+  resampler.SetTransform(sitk.Transform(3, sitk.sitkIdentity))
+  resampler.SetInterpolator(resamplemethod)
+
+  resampled_image = resampler.Execute(original_image)
+  return resampled_image
+
+
 
 def resize_image_itk(ori_img, target_img=None,
                      size=None, spacing=None, origin=None, direction=None,
@@ -171,7 +197,12 @@ def resize_image_itk(ori_img, target_img=None,
     spacing = target_img.GetSpacing()  # 目标的体素块尺寸    [x,y,z]
     origin = target_img.GetOrigin()  # 目标的起点 [x,y,z]
     direction = target_img.GetDirection()  # 目标的方向 [冠,矢,横]=[z,y,x]
-  assert None not in [size, spacing, origin, direction]
+  else:
+    size = size if size is not None else ori_img.GetSize()
+    spacing = spacing if spacing is not None else ori_img.GetSpacing()
+    origin = origin if origin is not None else ori_img.GetOrigin()
+    direction = direction if direction is not None else ori_img.GetDirection()
+
   if size == ori_img.GetSize():
     if raw:
       return ori_img

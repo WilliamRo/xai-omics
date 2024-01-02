@@ -14,8 +14,10 @@ def rld2npy(datadir, new_dir):
   id_180 = 0
   id_del = 0
   for sub, l1 in enumerate(l1_dirs):
-    if sub != 0:
-      return
+    if "$" in l1: continue
+    if '11544' not in l1: continue
+    sub = 0
+    ids = 0
     l1_path = os.path.join(datadir, l1)
     l2_dir = os.listdir(l1_path)[0]
     l2_path = os.path.join(l1_path, l2_dir)
@@ -106,7 +108,7 @@ def rld2npy(datadir, new_dir):
 
 
 if __name__ == '__main__':
-  datadir = 'F:\\xai-omics-data\\02-RLD-RAW\\'
+  datadir = 'E:\\'
   # datadir = 'D:\\projects\\xai-omics\\data\\02-RLD-RAW\\'
   new_dir = 'D:\\projects\\xai-omics\\data\\02-RLD\\'
   # rd_series('D:\\projects\\xai-omics\\data\\02-RLD-RAW\\CHEN_HE_PING_YHP00011233\\PET_13_DL_WB_GATED_(ADULT)_20230906_111759_623000\\CT_BH_15S_3_0_B30F_0013')
