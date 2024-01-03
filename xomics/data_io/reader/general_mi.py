@@ -19,9 +19,10 @@ class Indexer:
 
   def __init__(self, obj, name='noname', key=None, img_key=None):
     self._obj: GeneralMI = obj
+    assert name in ['images', 'labels', 'noname']
     self._name = name
     self._key = key
-    self._data = self._obj.images_dict[key]
+    self._data = self._obj.images_dict[key] if key else None
     self._img_key = img_key
 
   @property
@@ -97,9 +98,9 @@ class ImgIndexer(ItkIndexer):
   def get_data(self, item):
     if self.data[self._img_key][item] is None:
       if self._name == 'images':
-        assert self._obj.images_raw.itk[item]
+        assert self._obj.images_raw[self._key].itk[item]
       elif self._name == 'labels':
-        assert self._obj.labels_raw.itk[item]
+        assert self._obj.labels_raw[self._key].itk[item]
       self.data[self._img_key][item] = self.process_func(self.data, self._key, item)
     return sitk.GetArrayFromImage(self.data[self._img_key][item])
 
@@ -109,18 +110,36 @@ class ImgIndexer(ItkIndexer):
                       self._key, self._img_key)
 
 
+class Dicter(ImgIndexer):
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+
+  def __getitem__(self, item):
+    assert isinstance(item, str) or isinstance(item, np.str_)
+    item = str(item)
+    if self._name == 'images':
+      assert item in self._obj.image_keys
+    elif self._name == 'labels':
+      assert item in self._obj.label_keys
+    return ImgIndexer(self.process_func, self._obj, img_key=self._img_key,
+                      name=self._name, key=item)
+
+
+
 class GeneralMI:
 
-  def __init__(self, images_dict, image_key=None, label_key=None,
+  def __init__(self, images_dict, image_keys=None, label_keys=None,
                pid=None, process_param=None):
-    assert image_key in images_dict.keys() or image_key is None
-    assert label_key in images_dict.keys() or label_key is None
+    assert all(key in images_dict.keys() for key in image_keys)
+    assert all(key in images_dict.keys() for key in label_keys)
     self.TYPE = 'nii.gz'
     self.pid = pid
 
+    self._image_keys, self._label_keys = [], []
     self.images_dict = images_dict
-    self.image_key = image_key
-    self.label_key = label_key
+    self.image_keys = image_keys
+    self.label_keys = label_keys
 
     self.data_process = self.process
     self.process_param = {
@@ -139,12 +158,11 @@ class GeneralMI:
     image_dict = copy.deepcopy(self.images_dict)
     for key in image_dict.keys():
       image_dict[key]['path'] = self.images_dict[key]['path'][item]
-      if key == self.image_key:
-        image_dict[key]['img_itk'] = self.images_dict[key]['img_itk'][item]
-      elif key == self.label_key:
+      if key in self.image_keys or key in self.label_keys:
         image_dict[key]['img_itk'] = self.images_dict[key]['img_itk'][item]
 
-    return GeneralMI(image_dict, image_key=self.image_key, label_key=self.label_key,
+    return GeneralMI(image_dict, image_keys=self.image_keys,
+                     label_keys=self.label_keys,
                      pid=pid, process_param=self.process_param)
 
   def index(self, pid):
@@ -155,10 +173,10 @@ class GeneralMI:
     if 'CT' not in key:
       new_img = GeneralMI.suv_transform(new_img,
                                         img['path'][item].replace(self.TYPE, 'pkl'))
-      if 'CT' in self.image_key:
-        new_img = resize_image_itk(new_img, self.images_raw.itk[item])
-      elif 'CT' in self.label_key:
-        new_img = resize_image_itk(new_img, self.labels_raw.itk[item])
+      if 'CT' in self.image_keys:
+        new_img = resize_image_itk(new_img, self.images_raw['CT'].itk[item])
+      elif 'CT' in self.label_keys:
+        new_img = resize_image_itk(new_img, self.labels_raw['CT'].itk[item])
     else:
       if self.process_param['ct_window'] is not None:
         wc = self.process_param['ct_window'][0]
@@ -220,49 +238,51 @@ class GeneralMI:
 
   @property
   def images(self):
-    return ImgIndexer(self.data_process, self, img_key='img',
-                      name='images', key=self.image_key)
+    return Dicter(self.data_process, self, img_key='img', name='images')
 
   @property
   def images_raw(self):
-    return ImgIndexer(self.raw_process, self, img_key='img_itk',
-                      name='images', key=self.image_key)
+    return Dicter(self.raw_process, self, img_key='img_itk', name='images')
 
   @property
   def labels(self):
-    return ImgIndexer(self.data_process, self, img_key='img',
-                      name='labels', key=self.label_key)
+    return Dicter(self.data_process, self, img_key='img', name='labels')
 
   @property
   def labels_raw(self):
-    return ImgIndexer(self.raw_process, self, img_key='img_itk',
-                      name='labels', key=self.label_key)
+    return Dicter(self.raw_process, self, img_key='img_itk', name='labels')
 
   @property
-  def image_key(self):
-    return self._image_key
+  def image_keys(self):
+    return self._image_keys
 
-  @image_key.setter
-  def image_key(self, value):
-    self._image_key = value
+  @image_keys.setter
+  def image_keys(self, value):
     if value is None:
       return
-    length = len(self.images_dict[self._image_key]['path'])
-    self.images_dict[self._image_key]['img_itk'] = [None]*length
-    self.images_dict[self._image_key]['img'] = [None]*length
+    for key in value:
+      assert key in self.images_dict.keys()
+      if key not in self.image_keys and key not in self.label_keys:
+        length = len(self.images_dict[key]['path'])
+        self.images_dict[key]['img_itk'] = [None] * length
+        self.images_dict[key]['img'] = [None] * length
+    self._image_keys = value
 
   @property
-  def label_key(self):
-    return self._label_key
+  def label_keys(self):
+    return self._label_keys
 
-  @label_key.setter
-  def label_key(self, value):
-    self._label_key = value
+  @label_keys.setter
+  def label_keys(self, value):
     if value is None:
       return
-    length = len(self.images_dict[self._label_key]['path'])
-    self.images_dict[self._label_key]['img_itk'] = [None]*length
-    self.images_dict[self._label_key]['img'] = [None]*length
+    for key in value:
+      assert key in self.images_dict.keys()
+      if key not in self.image_keys and key not in self.label_keys:
+        length = len(self.images_dict[key]['path'])
+        self.images_dict[key]['img_itk'] = [None]*length
+        self.images_dict[key]['img'] = [None]*length
+    self._label_keys = value
 
 
 
@@ -280,11 +300,11 @@ if __name__ == '__main__':
   for i, type_name in enumerate(types):
     img_path = path_array[:, i]
     img_dict[type_name] = {'path': img_path}
-  test = GeneralMI(img_dict, '30G', '240G', pid)
+  test = GeneralMI(img_dict, ['30G', 'CT'], ['240G'], pid)
 
-  shape = test.images[0].shape + (1,)
-  img = test.images[0]
-  img2 = test.labels[0]
+  shape = test.images['30G'][0].shape + (1,)
+  img = test.images['CT'][0]
+  img2 = test.labels['240G'][0]
   print(img.shape, img2.shape)
   mi = MedicalImage('test', images={'t1': img, 't2': img2})
   re = RLDExplorer([mi])
