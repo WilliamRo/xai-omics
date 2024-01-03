@@ -86,7 +86,13 @@ def main(_):
 
 
   th.data_set = ['30G', '240G']
-  th.data_margin = [10, 0, 0]
+  th.process_param = {
+    'ct_window': None,
+    'norm': 'min-max',  # only min-max,
+    'shape': th.data_shape[::-1],  # [320, 320, 240]
+    'crop': [10, 0, 0][::-1],  # [30, 30, 10]
+    'clip': None,  # [1, None]
+  }
 
   th.noCT = True
   if th.noCT:

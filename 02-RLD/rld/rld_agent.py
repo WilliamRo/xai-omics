@@ -32,7 +32,12 @@ class RLDAgent(DataAgent):
       img_path = path_array[:, i]
       img_dict[type_name] = {'path': img_path}
 
-    mi = GeneralMI(img_dict, image_key=th.data_set[0],
-                   label_key=th.data_set[1], pid=pid)
+    if th.noCT:
+      img_keys = [th.data_set[0]]
+    else:
+      img_keys = [th.data_set[0], 'CT']
+
+    mi = GeneralMI(img_dict, image_keys=img_keys, process_param=th.process_param,
+                   label_keys=[th.data_set[1]], pid=pid)
     return RLDSet(mi_data=mi, buffer_size=th.buffer_size)
 

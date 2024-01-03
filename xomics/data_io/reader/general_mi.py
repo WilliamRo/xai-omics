@@ -3,7 +3,7 @@ import numpy as np
 import SimpleITK as sitk
 import joblib
 
-
+from roma import console
 from xomics import MedicalImage
 from xomics.data_io.utils.preprocess import get_suv_factor
 from xomics.data_io.utils.raw_rw import resize_image, resize_image_itk
@@ -52,7 +52,8 @@ class Indexer:
       return self.get_data(int(item[0][0]))
     elif isinstance(item, list) or isinstance(item, np.ndarray):
       data = []
-      for i in item:
+      for num, i in enumerate(item):
+        console.print_progress(num, len(item))
         data.append(self.get_data(i))
       return data
     elif isinstance(item, slice):
@@ -61,7 +62,8 @@ class Indexer:
       step = item.step if item.step else 1
       iterator = iter(range(start, stop, step))
       data = []
-      for i in iterator:
+      for num, i in enumerate(iterator):
+        console.print_progress(num, int((stop-start)/step))
         data.append(self.get_data(i))
       return data
     elif isinstance(item, str):
@@ -116,7 +118,17 @@ class Dicter(ImgIndexer):
     super().__init__(*args, **kwargs)
 
   def __getitem__(self, item):
-    assert isinstance(item, str) or isinstance(item, np.str_)
+    assert isinstance(item, str) or isinstance(item, np.str_) or isinstance(item, int)
+    if isinstance(item, int):
+      if self._name == 'images':
+        assert item < len(self._obj.image_keys)
+        return ImgIndexer(self.process_func, self._obj, img_key=self._img_key,
+                          name=self._name, key=self._obj.image_keys[item])
+      elif self._name == 'labels':
+        assert item < len(self._obj.label_keys)
+        return ImgIndexer(self.process_func, self._obj, img_key=self._img_key,
+                          name=self._name, key=self._obj.label_keys[item])
+
     item = str(item)
     if self._name == 'images':
       assert item in self._obj.image_keys
@@ -304,7 +316,8 @@ if __name__ == '__main__':
 
   shape = test.images['30G'][0].shape + (1,)
   img = test.images['CT'][0]
-  img2 = test.labels['240G'][0]
+  t = test.images[0][slice(0, 10, 3)]
+  img2 = test.labels[0][0]
   print(img.shape, img2.shape)
   mi = MedicalImage('test', images={'t1': img, 't2': img2})
   re = RLDExplorer([mi])

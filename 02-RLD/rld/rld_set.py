@@ -113,9 +113,9 @@ class RLDSet(DataSet):
       for num, sub, pred_i in zip(range(len(self)), self.pid, pred_tmp):
         pred_path = os.path.join(dirpath, f'{num}-{sub}-pred.nii.gz')
         index = self.mi_data.index(sub)
-        pred_i = pred_i * np.max(self.mi_data.images_raw[index]) + \
-                 np.min(self.mi_data.images_raw[index])
-        GeneralMI.write_img(pred_i, pred_path, self.mi_data.images.itk[index])
+        pred_i = pred_i * np.max(self.mi_data.images_raw[0][index]) + \
+                 np.min(self.mi_data.images_raw[0][index])
+        GeneralMI.write_img(pred_i, pred_path, self.images.itk[index])
         pred.append(pred_i)
       if report_metric:
         metric = model.evaluate_model(self, batch_size=1)
@@ -134,15 +134,14 @@ class RLDSet(DataSet):
         low_path = os.path.join(data_path, f'{pid}-low.nii.gz')
         full_path = os.path.join(data_path, f'{pid}-full.nii.gz')
         index = self.mi_data.index(pid)
-        GeneralMI.write_img(feature, low_path, self.mi_data.images.itk[index])
-        GeneralMI.write_img(target, full_path, self.mi_data.images.itk[index])
+        GeneralMI.write_img(feature, low_path, self.images.itk[index])
+        GeneralMI.write_img(target, full_path, self.images.itk[index])
 
-    print(self.mi_data.images[0].shape, pred[0, ..., 0].shape)
     # Compare results using DrGordon
     medical_images = [
       MedicalImage(f'{self.pid[i]}', images={
-        'Input': self.mi_data.images[i],
-        'Full': self.mi_data.labels[i],
+        'Input': self.images[i],
+        'Full': self.labels[i],
         'Output': pred[i, ..., 0],
       }) for i in range(self.size)]
 
@@ -186,21 +185,16 @@ class RLDSet(DataSet):
                                        replace=False))
     console.show_status(f'Fetching data from {th.data_kwargs["dataset"]} ...')
 
-    process_param = {
-      'ct_window': None,
-      'norm': 'min-max',  # only min-max,
-      'shape': th.data_shape[::-1],  # [320, 320, 240]
-      'crop': th.data_margin[::-1],  # [30, 30, 10]
-      'clip': None,  # [1, None]
-    }
 
-    self.mi_data.process_param = process_param
+
+    self.mi_data.process_param = th.process_param
+
+    features = self.images[subjects]
+    targets = self.labels[subjects]
 
     if not th.noCT:
-      pass
+      ct = self.mi_data.images['CT']
 
-    features = self.mi_data.images[subjects]
-    targets = self.mi_data.labels[subjects]
 
     self.features = np.expand_dims(np.stack(features, axis=0), axis=-1)
     self.targets = np.expand_dims(np.stack(targets, axis=0), axis=-1)
@@ -208,6 +202,14 @@ class RLDSet(DataSet):
   @property
   def pid(self):
     return self.mi_data.pid
+
+  @property
+  def images(self):
+    return self.mi_data.images[0]
+
+  @property
+  def labels(self):
+    return self.mi_data.labels[0]
 
   @staticmethod
   def load_nii(filepath):
