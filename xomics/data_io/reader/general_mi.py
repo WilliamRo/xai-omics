@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import SimpleITK as sitk
 import joblib
@@ -45,7 +46,14 @@ class Indexer:
   def __getitem__(self, item):
     if isinstance(item, int):
       return self.get_data(item)
-    if isinstance(item, slice):
+    elif isinstance(item, tuple):
+      return self.get_data(int(item[0][0]))
+    elif isinstance(item, list) or isinstance(item, np.ndarray):
+      data = []
+      for i in item:
+        data.append(self.get_data(i))
+      return data
+    elif isinstance(item, slice):
       start = item.start if item.start else 0
       stop = item.stop if item.stop else len(self)
       step = item.step if item.step else 1
@@ -54,7 +62,7 @@ class Indexer:
       for i in iterator:
         data.append(self.get_data(i))
       return data
-    if isinstance(item, str):
+    elif isinstance(item, str):
       return self._data[item]
     else:
       raise TypeError('Invalid index type')
@@ -97,10 +105,12 @@ class ImgIndexer(ItkIndexer):
 
 class GeneralMI:
 
-  def __init__(self, images_dict, image_key=None, label_key=None, process_param=None):
+  def __init__(self, images_dict, image_key=None, label_key=None,
+               pid=None, process_param=None):
     assert image_key in images_dict.keys() or image_key is None
     assert label_key in images_dict.keys() or label_key is None
     self.TYPE = 'nii.gz'
+    self.pid = pid
 
     self.images_dict = images_dict
     self.image_key = image_key
@@ -112,7 +122,27 @@ class GeneralMI:
       'norm': None,  # only min-max,
       'shape': None,  # [320, 320, 240]
       'crop': None,  # [30, 30, 10]
+      'clip': None,  # [1, None]
     } if process_param is None else process_param
+
+  def __len__(self):
+    return len(self.pid)
+
+  def __getitem__(self, item):
+    pid = self.pid[item]
+    image_dict = copy.deepcopy(self.images_dict)
+    for key in image_dict.keys():
+      image_dict[key]['path'] = self.images_dict[key]['path'][item]
+      if key == self.image_key:
+        image_dict[key]['img_itk'] = self.images_dict[key]['img_itk'][item]
+      elif key == self.label_key:
+        image_dict[key]['img_itk'] = self.images_dict[key]['img_itk'][item]
+
+    return GeneralMI(image_dict, image_key=self.image_key, label_key=self.label_key,
+                     pid=pid, process_param=self.process_param)
+
+  def index(self, pid):
+    return np.where(self.pid == pid)
 
   def raw_process(self, img, key, item):
     new_img = img['img_itk'][item]
@@ -128,19 +158,29 @@ class GeneralMI:
         wc = self.process_param['ct_window'][0]
         wl = self.process_param['ct_window'][1]
         new_img = sitk.IntensityWindowing(img, wc - wl/2, wc + wl/2, 0, 255)
-
+    if self.process_param.get('crop'):
+      new_img = GeneralMI.crop_by_margin(new_img, self.process_param['crop'])
+    if self.process_param.get('shape'):
+      new_img = resize_image(new_img, self.process_param['shape'])
     return new_img
 
   def process(self, img, key, item):
-    new_img = img['img_itk'][item]
-    if self.process_param.get('shape'):
-      new_img = resize_image(new_img, self.process_param['shape'])
+    new_img: sitk.Image = img['img_itk'][item]
+
+    if self.process_param.get('clip'):
+      clip = self.process_param['clip']
+      if clip[0] is None:
+        clip[0] = np.min(sitk.GetArrayFromImage(new_img))
+      elif clip[1] is None:
+        clip[1] = np.max(sitk.GetArrayFromImage(new_img))
+      new_img = sitk.IntensityWindowing(new_img)
     if self.process_param.get('norm') == 'min-max':
       new_img = sitk.RescaleIntensity(new_img,
                                       outputMinimum=0.0, outputMaximum=1.0)
-    if self.process_param.get('crop'):
-      new_img = GeneralMI.crop_by_margin(new_img, self.process_param['crop'])
     return new_img
+
+  def post_process(self):
+    pass
 
   @staticmethod
   def crop_by_margin(img, margins):
@@ -153,8 +193,12 @@ class GeneralMI:
   @staticmethod
   def write_img(img, filepath, refer_img=None):
     assert isinstance(filepath, str)
-    if refer_img:
-      img = resize_image_itk(img, refer_img)
+    if not isinstance(img, sitk.Image):
+      img = sitk.GetImageFromArray(img)
+    if refer_img is not None:
+      img.SetOrigin(refer_img.GetOrigin())
+      img.SetDirection(refer_img.GetDirection())
+      img.SetSpacing(refer_img.GetSpacing())
     sitk.WriteImage(img, filepath)
 
   @staticmethod
@@ -191,6 +235,8 @@ class GeneralMI:
   @image_key.setter
   def image_key(self, value):
     self._image_key = value
+    if value is None:
+      return
     length = len(self.images_dict[self._image_key]['path'])
     self.images_dict[self._image_key]['img_itk'] = [None]*length
     self.images_dict[self._image_key]['img'] = [None]*length
@@ -202,9 +248,14 @@ class GeneralMI:
   @label_key.setter
   def label_key(self, value):
     self._label_key = value
+    if value is None:
+      return
     length = len(self.images_dict[self._label_key]['path'])
     self.images_dict[self._label_key]['img_itk'] = [None]*length
     self.images_dict[self._label_key]['img'] = [None]*length
+
+
+
 
 
 if __name__ == '__main__':
@@ -219,7 +270,7 @@ if __name__ == '__main__':
   for i, type_name in enumerate(types):
     img_path = path_array[:, i]
     img_dict[type_name] = {'path': img_path}
-  test = GeneralMI(img_dict, 'CT', '240G')
+  test = GeneralMI(img_dict, 'CT', '240G', pid)
 
   shape = test.images[0].shape + (1,)
   img = test.images[0]

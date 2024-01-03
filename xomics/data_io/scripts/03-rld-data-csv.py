@@ -22,7 +22,7 @@ if __name__ == '__main__':
     # CT 20S 30G 40S 60G 120S 240G 240S
     row = [ids]
     # print(dirs)
-    func = lambda x: os.path.join('../../../data/02-RLD', dirs, find_list(files, x))
+    func = lambda x: os.path.join('D:/projects/xai-omics/data/02-RLD', dirs, find_list(files, x)).replace('\\', '/')
     row.append(func('CT_WB'))
     row.append(func('PET_WB_20'))
     row.append(func('PET_WB_30'))

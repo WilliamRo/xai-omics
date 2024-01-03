@@ -68,7 +68,7 @@ def main(_):
   console.start('{} on PET/CT reconstruct task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 1
+  th.rehearse = 0
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -85,7 +85,7 @@ def main(_):
   # th.input_shape = th.data_shape + [2]
 
 
-  th.data_set = [1, 5]
+  th.data_set = ['30G', '240G']
   th.data_margin = [10, 0, 0]
 
   th.noCT = True

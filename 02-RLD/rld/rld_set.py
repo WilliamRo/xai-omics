@@ -7,34 +7,25 @@ from tframe import console
 from tframe import DataSet
 from tframe import Predictor
 from xomics import MedicalImage
-from xomics.data_io.reader.rld_reader import RLDReader
+from xomics.data_io.reader.general_mi import GeneralMI
 
 
 class RLDSet(DataSet):
 
-  def __init__(self, data_dir=None, buffer_size=None, subjects=None,
+  def __init__(self, mi_data, buffer_size=None,
                name='dataset', data_dict=None):
     # super().__init__(**kwargs)
     from os import listdir
-    self.data_dir = data_dir
+    self.mi_data: GeneralMI = mi_data
     self.buffer_size = buffer_size
     self.data_fetcher = self.fetch_data
-    self.reader: RLDReader = RLDReader(self.data_dir)
     self.name = name
-
-    self.subjects = []
-    if subjects is None:
-      for i in sorted(listdir(data_dir)):
-        if i.startswith('sub'):
-          self.subjects.append(int(i[3:]))
-    else:
-      self.subjects = subjects
 
     self.data_dict = {} if data_dict is None else data_dict
     # Necessary fields to prevent errors
     self.is_rnn_input = False
 
-  def __len__(self): return len(self.subjects)
+  def __len__(self): return len(self.mi_data)
 
   def __getitem__(self, item):
     # If item is index array
@@ -46,9 +37,8 @@ class RLDSet(DataSet):
       else:
         raise KeyError('!! Can not resolve "{}"'.format(item))
 
-    data_set = type(self)(subjects=self.subjects[item],
+    data_set = type(self)(mi_data=self.mi_data[item],
                           buffer_size=self.buffer_size,
-                          data_dir=self.data_dir,
                           name=self.name + '(slice)')
     return data_set
 
@@ -113,17 +103,19 @@ class RLDSet(DataSet):
         console.supplement(f'Metric:{metric}', level=2)
       for path in os.listdir(dirpath):
         if path.endswith('.nii.gz'):
-          pred.append(self.reader.load_nii(os.path.join(dirpath, path)))
+          pred.append(RLDSet.load_nii(os.path.join(dirpath, path)))
     else:
       os.makedirs(dirpath, exist_ok=True)
       pred = []
       pred_tmp = model.predict(self, batch_size=1)[:, ..., -1]
+      # pred_tmp = np.zeros((5, 263, 440, 440, 1))
       print(pred_tmp.shape)
-      for i, sub, pred_i in zip(range(self.size), self.subjects, pred_tmp):
-        pred_path = os.path.join(dirpath, f'sub{sub}-pred.nii.gz')
-        pred_i = self.reader.get_raw_data(pred_i, i)
-        self.reader.export_nii(pred_i, pred_path,
-                               nii_param=self.reader.img_param[i])
+      for num, sub, pred_i in zip(range(len(self)), self.pid, pred_tmp):
+        pred_path = os.path.join(dirpath, f'{num}-{sub}-pred.nii.gz')
+        index = self.mi_data.index(sub)
+        pred_i = pred_i * np.max(self.mi_data.images[index]) + \
+                 np.min(self.mi_data.images[index])
+        GeneralMI.write_img(pred_i, pred_path, self.mi_data.images_itk[index])
         pred.append(pred_i)
       if report_metric:
         metric = model.evaluate_model(self, batch_size=1)
@@ -131,28 +123,27 @@ class RLDSet(DataSet):
 
     pred = np.stack(pred, axis=0)
     pred = np.expand_dims(pred, axis=-1)
-    features, targets = self.features[:, ..., :1], self.targets
-    for i in range(self.size):
-      features[i] = self.reader.get_raw_data(self.features[i, ..., :1], i)
-      targets[i] = self.reader.get_raw_data(self.targets[i, ..., :1], i)
+
+    features = self.features[:, ..., 0]
+    targets = self.targets[:, ..., 0]
+    for pid, feature, target in zip(self.pid, features, targets):
       if th.gen_test_nii:
         data_path = os.path.join(dirpath, 'raw_data/')
         if not os.path.exists(data_path):
           os.makedirs(data_path)
-        low_path = os.path.join(data_path, f'sub{self.subjects[i]}-low.nii.gz')
-        full_path = os.path.join(data_path, f'sub{self.subjects[i]}-full.nii.gz')
-        self.reader.export_nii(features[i], low_path,
-                               nii_param=self.reader.img_param[i])
-        self.reader.export_nii(targets[i], full_path,
-                               nii_param=self.reader.img_param[i])
-      # pred[i] = self.reader.get_raw_data(pred[i], i)
+        low_path = os.path.join(data_path, f'{pid}-low.nii.gz')
+        full_path = os.path.join(data_path, f'{pid}-full.nii.gz')
+        index = self.mi_data.index(pid)
+        GeneralMI.write_img(feature, low_path, self.mi_data.images_itk[index])
+        GeneralMI.write_img(target, full_path, self.mi_data.images_itk[index])
 
+    print(self.mi_data.images[0].shape, pred[0, ..., 0].shape)
     # Compare results using DrGordon
     medical_images = [
-      MedicalImage(f'sub-{self.subjects[i]}', images={
-        'Input': features[i],
-        'Full': targets[i],
-        'Output': pred[i],
+      MedicalImage(f'{self.pid[i]}', images={
+        'Input': self.mi_data.images[i],
+        'Full': self.mi_data.labels[i],
+        'Output': pred[i, ..., 0],
       }) for i in range(self.size)]
 
     if th.show_weight_map:
@@ -188,52 +179,42 @@ class RLDSet(DataSet):
 
   def _fetch_data(self):
     from rld_core import th
-    if self.buffer_size is None or self.buffer_size >= len(self.subjects):
-      subjects = self.subjects
+    if self.buffer_size is None or self.buffer_size >= len(self):
+      subjects = list(range(self.size))
     else:
-      subjects = list(np.random.choice(self.subjects, self.buffer_size,
+      subjects = list(np.random.choice(range(len(self)), self.buffer_size,
                                        replace=False))
-    console.show_status(f'Fetching data from {self.data_dir} ...')
+    console.show_status(f'Fetching data from {th.data_kwargs["dataset"]} ...')
 
-    kwargs = {
-      'norm_types': ['PET'],
-      'suv': th.use_suv,
-      'clip': th.data_clip,
-      'shape': th.data_shape,
-      'norm_margin': th.data_margin if th.train else None,
-      'norm_method': th.norm_method,
+    process_param = {
+      'ct_window': None,
+      'norm': 'min-max',  # only min-max,
+      'shape': th.data_shape[::-1],  # [320, 320, 240]
+      'crop': th.data_margin[::-1],  # [30, 30, 10]
+      'clip': None,  # [1, None]
     }
 
-    types = [
-      ['PET', 'WB', '20S', 'STATIC'],
-      ['PET', 'WB', '30S', 'GATED'],
-      ['PET', 'WB', '40S', 'STATIC'],
-      ['PET', 'WB', '60S', 'GATED'],
-      ['PET', 'WB', '120S', 'STATIC'],
-      ['PET', 'WB', '240S', 'GATED'],
-      ['PET', 'WB', '240S', 'STATIC'],
-      ['CT', 'WB'],
-    ]
+    self.mi_data.process_param = process_param
 
-    types = [types[i] for i in th.data_set] + [types[-1]]
+    if not th.noCT:
+      pass
 
-    if th.noCT:
-      types = types[:-1]
-      f_index = [0]
-      kwargs['noCT'] = True
-    else:
-      f_index = [0, len(types)-1]
-    t_index = [1]
+    features = self.mi_data.images[subjects]
+    targets = self.mi_data.labels[subjects]
 
-    data = self.reader.load_data(subjects, types, methods='train', **kwargs)
-    features, targets = [], []
-    for i in range(len(data)):
-      imgs = np.stack(data[i].images.values())
-      if i in f_index:
-        features.append(imgs)
-      elif i in t_index:
-        targets.append(imgs)
-    self.features = np.concatenate(features, axis=-1)
-    self.targets = np.concatenate(targets, axis=-1)
+    self.features = np.expand_dims(np.stack(features, axis=0), axis=-1)
+    self.targets = np.expand_dims(np.stack(targets, axis=0), axis=-1)
 
+  @property
+  def pid(self):
+    return self.mi_data.pid
 
+  @staticmethod
+  def load_nii(filepath):
+    from xomics.data_io.utils.raw_rw import rd_file
+    return rd_file(filepath)
+
+  @staticmethod
+  def export_nii(data, filepath, **kwargs):
+    from xomics.data_io.utils.raw_rw import wr_file
+    return wr_file(data, filepath, **kwargs)
