@@ -17,11 +17,12 @@ from xomics.data_io.utils.raw_rw import resize_image, resize_image_itk
 
 class Indexer:
 
-  def __init__(self, obj, name='noname', key=None):
+  def __init__(self, obj, name='noname', key=None, img_key=None):
     self._obj: GeneralMI = obj
     self._name = name
     self._key = key
     self._data = self._obj.images_dict[key]
+    self._img_key = img_key
 
   @property
   def data(self):
@@ -81,11 +82,11 @@ class ItkIndexer(Indexer):
     self.process_func = process_func
 
   def get_data(self, item):
-    if self.data['img_itk'][item] is None:
-      self.data['img_itk'][item] = GeneralMI.load_img(self.data['path'][item])
+    if self.data[self._img_key][item] is None:
+      self.data[self._img_key][item] = GeneralMI.load_img(self.data['path'][item])
       if self.process_func is not None:
-        self.data['img_itk'][item] = self.process_func(self.data, self._key, item)
-    return self.data['img_itk'][item]
+        self.data[self._img_key][item] = self.process_func(self.data, self._key, item)
+    return self.data[self._img_key][item]
 
 
 class ImgIndexer(ItkIndexer):
@@ -94,13 +95,18 @@ class ImgIndexer(ItkIndexer):
     super().__init__(*args, **kwargs)
 
   def get_data(self, item):
-    if self.data['img'][item] is None:
+    if self.data[self._img_key][item] is None:
       if self._name == 'images':
-        assert self._obj.images_itk[item]
+        assert self._obj.images_raw.itk[item]
       elif self._name == 'labels':
-        assert self._obj.labels_itk[item]
-      self.data['img'][item] = self.process_func(self.data, self._key, item)
-    return sitk.GetArrayFromImage(self.data['img'][item])
+        assert self._obj.labels_raw.itk[item]
+      self.data[self._img_key][item] = self.process_func(self.data, self._key, item)
+    return sitk.GetArrayFromImage(self.data[self._img_key][item])
+
+  @property
+  def itk(self):
+    return ItkIndexer(self.process_func, self._obj, self._name,
+                      self._key, self._img_key)
 
 
 class GeneralMI:
@@ -150,9 +156,9 @@ class GeneralMI:
       new_img = GeneralMI.suv_transform(new_img,
                                         img['path'][item].replace(self.TYPE, 'pkl'))
       if 'CT' in self.image_key:
-        new_img = resize_image_itk(new_img, self.images_itk[item])
+        new_img = resize_image_itk(new_img, self.images_raw.itk[item])
       elif 'CT' in self.label_key:
-        new_img = resize_image_itk(new_img, self.labels_itk[item])
+        new_img = resize_image_itk(new_img, self.labels_raw.itk[item])
     else:
       if self.process_param['ct_window'] is not None:
         wc = self.process_param['ct_window'][0]
@@ -214,19 +220,23 @@ class GeneralMI:
 
   @property
   def images(self):
-    return ImgIndexer(self.data_process, self, name='images', key=self.image_key)
+    return ImgIndexer(self.data_process, self, img_key='img',
+                      name='images', key=self.image_key)
 
   @property
-  def images_itk(self):
-    return ItkIndexer(self.raw_process, self, key=self.image_key)
+  def images_raw(self):
+    return ImgIndexer(self.raw_process, self, img_key='img_itk',
+                      name='images', key=self.image_key)
 
   @property
   def labels(self):
-    return ImgIndexer(self.data_process, self, name='labels', key=self.label_key)
+    return ImgIndexer(self.data_process, self, img_key='img',
+                      name='labels', key=self.label_key)
 
   @property
-  def labels_itk(self):
-    return ItkIndexer(self.raw_process, self, key=self.label_key)
+  def labels_raw(self):
+    return ImgIndexer(self.raw_process, self, img_key='img_itk',
+                      name='labels', key=self.label_key)
 
   @property
   def image_key(self):
@@ -270,7 +280,7 @@ if __name__ == '__main__':
   for i, type_name in enumerate(types):
     img_path = path_array[:, i]
     img_dict[type_name] = {'path': img_path}
-  test = GeneralMI(img_dict, 'CT', '240G', pid)
+  test = GeneralMI(img_dict, '30G', '240G', pid)
 
   shape = test.images[0].shape + (1,)
   img = test.images[0]

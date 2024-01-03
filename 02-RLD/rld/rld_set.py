@@ -113,9 +113,9 @@ class RLDSet(DataSet):
       for num, sub, pred_i in zip(range(len(self)), self.pid, pred_tmp):
         pred_path = os.path.join(dirpath, f'{num}-{sub}-pred.nii.gz')
         index = self.mi_data.index(sub)
-        pred_i = pred_i * np.max(self.mi_data.images[index]) + \
-                 np.min(self.mi_data.images[index])
-        GeneralMI.write_img(pred_i, pred_path, self.mi_data.images_itk[index])
+        pred_i = pred_i * np.max(self.mi_data.images_raw[index]) + \
+                 np.min(self.mi_data.images_raw[index])
+        GeneralMI.write_img(pred_i, pred_path, self.mi_data.images.itk[index])
         pred.append(pred_i)
       if report_metric:
         metric = model.evaluate_model(self, batch_size=1)
@@ -134,8 +134,8 @@ class RLDSet(DataSet):
         low_path = os.path.join(data_path, f'{pid}-low.nii.gz')
         full_path = os.path.join(data_path, f'{pid}-full.nii.gz')
         index = self.mi_data.index(pid)
-        GeneralMI.write_img(feature, low_path, self.mi_data.images_itk[index])
-        GeneralMI.write_img(target, full_path, self.mi_data.images_itk[index])
+        GeneralMI.write_img(feature, low_path, self.mi_data.images.itk[index])
+        GeneralMI.write_img(target, full_path, self.mi_data.images.itk[index])
 
     print(self.mi_data.images[0].shape, pred[0, ..., 0].shape)
     # Compare results using DrGordon
