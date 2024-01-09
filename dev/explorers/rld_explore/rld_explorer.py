@@ -125,11 +125,11 @@ class RLDViewer(SliceView):
     title = ''
     if self.get('show_metric'):
       show_slice_metric = self.get('show_slice_metric')
-      metrics = ['NRMSE', 'SSIM', 'PSNR']
+      metrics = ['NRMSE', 'SSIM', 'PSNR', 'RELA']
 
-      arr1, arr2 = full_dose_vol[..., 0], selected_vol[..., 0]
+      arr1, arr2 = full_dose_vol, selected_vol
       if show_slice_metric:
-        arr1, arr2 = full_dose_slice[..., 0], image[..., 0]
+        arr1, arr2 = full_dose_slice, image
 
       def _get_title():
         if not show_slice_metric:
@@ -139,9 +139,9 @@ class RLDViewer(SliceView):
         if self.displayed_layer_key == full_key:
           return 'NRMSE: 0, SSIM: 1, PSNR: $\infty$'
 
-        max_val = np.max(selected_vol)
+        max_val = np.max(full_dose_vol)
         return ', '.join([f'{k}: {v:.4f}' for k, v in get_metrics(
-          arr1, arr2, metrics, data_range=max_val).items()])
+          arr1 / max_val, arr2 / max_val, metrics, data_range=1.0).items()])
 
       if show_slice_metric:
         title = _get_title()

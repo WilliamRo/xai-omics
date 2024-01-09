@@ -175,6 +175,37 @@ def resize_image(original_image, target_size, resamplemethod=sitk.sitkLinear):
   resampled_image = resampler.Execute(original_image)
   return resampled_image
 
+def reshape_image(image, target_size):
+  original_size = image.GetSize()
+
+  # 计算填充或裁剪的大小差异
+  size_diff = [target_size[i] - original_size[i] for i in range(3)]
+
+  # 计算填充或裁剪的边界值
+  lower_crop = [-int(size_diff[i] / 2) if size_diff[i] < 0 else 0 for i in range(3)]
+  upper_crop = [-size_diff[i] - lower_crop[i] if size_diff[i] < 0 else 0 for i in range(3)]
+
+  lower_pad = [int(size_diff[i] / 2) if size_diff[i] > 0 else 0 for i in range(3)]
+  upper_pad = [size_diff[i] - lower_pad[i] if size_diff[i] > 0 else 0 for i in range(3)]
+
+  # 针对奇数尺寸的图像进行对称填充
+  # if any(size_diff[i] % 2 != 0 for i in range(3)):
+  #   lower_crop = [int(size_diff[i] / 2) for i in range(3)]
+  #   upper_crop = [size_diff[i] - lower_crop[i] for i in range(3)]
+  #   lower_pad = [lower_crop[i] if size_diff[i] % 2 == 0 else lower_crop[i] + 1
+  #                for i in range(3)]
+  #   upper_pad = [upper_crop[i] if size_diff[i] % 2 == 0 else upper_crop[i] + 1
+  #                for i in range(3)]
+  #
+  # 对图像进行对称填充
+  image = sitk.ConstantPad(image, lower_pad, upper_pad)
+
+  # 对图像进行裁剪
+
+  image = sitk.Crop(image, lower_crop, upper_crop)
+
+  return image
+
 
 
 def resize_image_itk(ori_img, target_img=None,

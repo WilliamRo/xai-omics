@@ -27,6 +27,8 @@ def calc_metric(arr1, arr2, metric='mse', data_range=1.0):
     return np.sqrt(np.sum(np.square(arr1-arr2))/np.sum(np.square(arr1)))
   elif metric == 'pw_rmse':
     return np.sqrt(np.mean(np.square(arr1 - arr2) / (np.square(arr1) + 0.001)))
+  elif metric == 'rela':
+    return np.mean(np.abs(arr1-arr2) / (np.maximum(arr1, arr2) + 1e-8))
   else:
     raise ValueError('Unsupported Metric')
 
