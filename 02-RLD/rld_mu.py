@@ -3,8 +3,8 @@ from rld.layers.layers import *
 from rld.loss.custom_loss import *
 
 custom_loss = {
-  'psnr': get_psnr(),
   'ssim': get_ssim_3D(),
+  'psnr': get_psnr(),
   'nrmse': get_nrmse(),
   'rela': get_relative_loss(),
 }
@@ -53,4 +53,6 @@ def get_unet(arc_string='8-3-4-2-relu-mp', **kwargs):
 def get_unet_list(arc_string='8-3-4-2-relu-mp', **kwargs):
   unet = mu.UNet(3, arc_string=arc_string, **kwargs)
   return unet._get_layers()
+
+
 

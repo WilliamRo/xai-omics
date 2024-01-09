@@ -17,7 +17,7 @@ s.register('rehearse', 0)
 # -----------------------------------------------------------------------------
 # Specify summary file name and GPU ID here
 # -----------------------------------------------------------------------------
-gpu_id = 0
+gpu_id = 1
 summ_name = s.default_summ_name
 
 s.register('gpu_id', gpu_id)
@@ -32,7 +32,6 @@ s.register('patience', 15)
 # s.register('window_size', , 128)
 # s.register('slice_size', 32, 128)
 
-s.register('archi_string', '4-3-3-2-lrelu')
 s.register('lr', 0.0001, 0.03)
 
 s.register('batch_size', 1, 8)

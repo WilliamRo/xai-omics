@@ -33,11 +33,11 @@ s.register('patience', 15)
 # s.register('slice_size', 32, 128)
 
 s.register('archi_string', '4-3-3-2-lrelu')
-s.register('lr', 0.0001, 0.003)
+s.register('lr', 0.0001, 0.03)
 
-s.register('batch_size', 1, 4)
+s.register('batch_size', 1, 8)
 
 
 s.configure_engine(strategy='skopt', criterion='Best PSNR',
                    greater_is_better=True)
-s.run(rehearsal=1)
+s.run(rehearsal=0)

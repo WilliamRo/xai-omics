@@ -2,7 +2,7 @@
 import rld_core as core
 import rld_mu as m
 
-from tframe import console
+from tframe import console, context
 from tframe import tf
 from tframe.utils.misc import date_string
 from tframe.utils.organizer.task_tools import update_job_dir
@@ -42,6 +42,9 @@ def model():
   ]
   edges = '1;11;100;0011;00001;000011'
   model.add(m.mu.ForkMergeDAG(vertices, edges))
+
+  context.depot['unet'] = vertices[2][-1]
+
   return m.finalize(model)
 
 

@@ -190,7 +190,8 @@ class GeneralMI:
 
     return GeneralMI(image_dict, image_keys=self.image_keys,
                      label_keys=self.label_keys,
-                     pid=pid, process_param=self.process_param)
+                     pid=pid, process_param=self.process_param,
+                     img_type=self.img_type)
 
   def index(self, pid):
     index = np.where(self.pid == pid)

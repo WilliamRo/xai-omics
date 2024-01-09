@@ -30,7 +30,7 @@ def model():
 
   unet = m.get_unet_list('4-3-3-2-' + th.activation)
   unet.append(m.mu.HyperConv3D(filters=1, kernel_size=1))
-  unet.append(m.Clip(0, 1.0))
+  # unet.append(m.Clip(0, 1.0))
 
   vertices = [
     m.GaussianPyramid3D(kernel_size=th.kernel_size, sigmas=sigmas),
@@ -49,22 +49,29 @@ def main(_):
   console.start('{} on PET/CT reconstruct task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = 1
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
 
   th.data_config = fr'alpha dataset=02-RLD'
 
-  th.val_size = 5
-  th.test_size = 6
+  th.val_size = 6
+  th.test_size = 5
 
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
   th.data_shape = [256, 440, 440]
-  th.data_set = [1, 3]
-  th.data_margin = [10, 0, 0]
+
+  th.data_set = ['30G', '240G']
+  th.process_param = {
+    'ct_window': None,
+    'norm': 'PET',  # only min-max,
+    'shape': th.data_shape[::-1],  # [320, 320, 240]
+    'crop': [10, 0, 0][::-1],  # [30, 30, 10]
+    'clip': None,  # [1, None]
+  }
 
   th.noCT = True
   if th.noCT:
@@ -88,7 +95,7 @@ def main(_):
   th.model = model
   th.kernel_size = 3
   th.activation = 'lrelu'
-  th.archi_string = '1-3'
+  th.archi_string = '3'
   th.use_bias = True
 
   th.use_sigmoid = False
@@ -102,13 +109,13 @@ def main(_):
   th.patience = 15
   th.probe_cycle = th.updates_per_round
 
-  th.batch_size = 8
+  th.batch_size = 4
   th.batchlet_size = 2
   th.val_batch_size = 2
 
   th.buffer_size = 6
 
-  th.loss_string = 'nrmse'
+  th.loss_string = 'rela'
   th.opt_str = 'adam'
 
   th.optimizer = th.opt_str
@@ -126,7 +133,7 @@ def main(_):
     th.suffix += '_suv'
   th.suffix += '_noCT' if th.noCT else ''
   th.suffix += '_30Gto240G'
-  th.suffix += f'_{th.opt_str}'
+  th.suffix += f'_lr{th.learning_rate}_bs{th.batch_size}_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'
   core.activate()

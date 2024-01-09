@@ -42,6 +42,23 @@ class RLDSet(DataSet):
                           name=self.name + '(slice)')
     return data_set
 
+  def subset(self, pids, name=None):
+    if name is None:
+      name = self.name + '(slice)'
+    sub_ids = []
+    ids = []
+    for i in pids:
+      sub_ids.append(self.mi_data.index(i))
+    for i in range(len(self)):
+      if i not in sub_ids:
+        ids.append(i)
+    return (self.__class__(mi_data=self.mi_data[ids],
+                           buffer_size=self.buffer_size,
+                           name=self.name),
+            self.__class__(mi_data=self.mi_data[sub_ids],
+                           buffer_size=self.buffer_size,
+                           name=name))
+
   @property
   def size(self): return len(self)
 
@@ -113,8 +130,8 @@ class RLDSet(DataSet):
       for num, sub, pred_i in zip(range(len(self)), self.pid, pred_tmp):
         pred_path = os.path.join(dirpath, f'{num}-{sub}-pred.nii.gz')
         index = self.mi_data.index(sub)
-        pred_i = pred_i * np.max(self.mi_data.images_raw[0][index]) + \
-                 np.min(self.mi_data.images_raw[0][index])
+        pred_i = pred_i * np.max([self.mi_data.images_raw[0][index],
+                                  self.mi_data.labels_raw[0][index]])
         GeneralMI.write_img(pred_i, pred_path, self.images.itk[index])
         pred.append(pred_i)
       if report_metric:
@@ -124,10 +141,10 @@ class RLDSet(DataSet):
     pred = np.stack(pred, axis=0)
     pred = np.expand_dims(pred, axis=-1)
 
-    features = self.features[:, ..., 0]
-    targets = self.targets[:, ..., 0]
-    for pid, feature, target in zip(self.pid, features, targets):
-      if th.gen_test_nii:
+    features = self.images_raw
+    targets = self.labels_raw
+    if th.gen_test_nii:
+      for pid, feature, target in zip(self.pid, features, targets):
         data_path = os.path.join(dirpath, 'raw_data/')
         if not os.path.exists(data_path):
           os.makedirs(data_path)
@@ -140,8 +157,8 @@ class RLDSet(DataSet):
     # Compare results using DrGordon
     medical_images = [
       MedicalImage(f'{self.pid[i]}', images={
-        'Input': self.images[i],
-        'Full': self.labels[i],
+        'Input': self.images_raw[i],
+        'Full': self.labels_raw[i],
         'Output': pred[i, ..., 0],
       }) for i in range(self.size)]
 
@@ -153,7 +170,7 @@ class RLDSet(DataSet):
       if os.path.exists(value_path):
         values = load(value_path)
       else:
-        values = model.evaluate(fetchers, self, batch_size=2)
+        values = model.evaluate(fetchers, self, batch_size=1)
         dump(values, value_path)
 
       wms = values[0]
@@ -185,18 +202,17 @@ class RLDSet(DataSet):
                                        replace=False))
     console.show_status(f'Fetching data from {th.data_kwargs["dataset"]} ...')
 
-
-
-    self.mi_data.process_param = th.process_param
-
     features = self.images[subjects]
     targets = self.labels[subjects]
 
+    features = np.expand_dims(np.stack(features, axis=0), axis=-1)
     if not th.noCT:
-      ct = self.mi_data.images['CT']
+      ct = self.mi_data.images['CT'][subjects]
+      cts = np.expand_dims(np.stack(ct, axis=0), axis=-1)
+      # print(cts.shape, features.shape)
+      features = np.concatenate([features, cts], axis=-1)
 
-
-    self.features = np.expand_dims(np.stack(features, axis=0), axis=-1)
+    self.features = features
     self.targets = np.expand_dims(np.stack(targets, axis=0), axis=-1)
 
   @property
@@ -210,6 +226,14 @@ class RLDSet(DataSet):
   @property
   def labels(self):
     return self.mi_data.labels[0]
+
+  @property
+  def images_raw(self):
+    return self.mi_data.images_raw[0]
+
+  @property
+  def labels_raw(self):
+    return self.mi_data.labels_raw[0]
 
   @staticmethod
   def load_nii(filepath):

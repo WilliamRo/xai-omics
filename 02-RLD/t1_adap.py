@@ -42,22 +42,29 @@ def main(_):
   console.start('{} on PET/CT reconstruct task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = 1
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
 
   th.data_config = fr'alpha dataset=02-RLD'
 
-  th.val_size = 5
-  th.test_size = 6
+  th.val_size = 6
+  th.test_size = 5
 
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
   th.data_shape = [256, 440, 440]
-  th.data_set = [2, 4]
-  th.data_margin = [10, 0, 0]
+
+  th.data_set = ['30G', '240G']
+  th.process_param = {
+    'ct_window': None,
+    'norm': 'PET',  # only min-max,
+    'shape': th.data_shape[::-1],  # [320, 320, 240]
+    'crop': [10, 0, 0][::-1],  # [30, 30, 10]
+    'clip': None,  # [1, None]
+  }
 
   th.noCT = True
   if th.noCT:
@@ -94,8 +101,8 @@ def main(_):
   th.patience = 15
   th.probe_cycle = th.updates_per_round
 
-  th.batch_size = 16
-  th.batchlet_size = 4
+  th.batch_size = 4
+  th.batchlet_size = 2
   th.val_batch_size = 2
 
   th.buffer_size = 6

@@ -13,8 +13,12 @@ class RLDAgent(DataAgent):
   def load(cls, data_dir, validate_size, test_size):
     from rld_core import th
     ds: RLDSet = cls.load_as_tframe_data(data_dir)
-    return ds.split(-1, validate_size, test_size,
-                    names=['Train-Set', 'Val-Set', 'Test-Set'])
+    test_pid = ['YHP00011327', 'YHP00012231',
+                'YHP00012016', 'YHP00012417', 'YHP00011840']
+    train, test = ds.subset(test_pid, 'Test-Set')
+    train, valid = train.split(-1, validate_size,
+                               names=['Train-Set', 'Val-Set'])
+    return  train, valid, test
 
   @classmethod
   def load_as_tframe_data(cls, data_dir):
@@ -37,7 +41,14 @@ class RLDAgent(DataAgent):
     else:
       img_keys = [th.data_set[0], 'CT']
 
+    img_type = {
+      'CT': ['CT'],
+      'PET': ['30G', '20S', '40S', '60G', '120S', '240G', '240S'],
+      'MASK': ['mask'],
+      'STD': th.data_set[:1]
+    }
+
     mi = GeneralMI(img_dict, image_keys=img_keys, process_param=th.process_param,
-                   label_keys=[th.data_set[1]], pid=pid)
+                   label_keys=[th.data_set[1]], pid=pid, img_type=img_type)
     return RLDSet(mi_data=mi, buffer_size=th.buffer_size)
 

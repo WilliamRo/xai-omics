@@ -88,13 +88,13 @@ def main(_):
   th.data_set = ['30G', '240G']
   th.process_param = {
     'ct_window': None,
-    'norm': 'min-max',  # only min-max,
+    'norm': 'PET',  # only min-max,
     'shape': th.data_shape[::-1],  # [320, 320, 240]
     'crop': [10, 0, 0][::-1],  # [30, 30, 10]
     'clip': None,  # [1, None]
   }
 
-  th.noCT = True
+  th.noCT = False
   if th.noCT:
     th.input_shape[-1] = 1
   # th.use_suv = False
@@ -129,7 +129,7 @@ def main(_):
   th.probe_cycle = th.updates_per_round
 
   th.batch_size = 4
-  th.batchlet_size = 1
+  th.batchlet_size = 2
   th.val_batch_size = 2
 
   th.buffer_size = 6
@@ -138,7 +138,7 @@ def main(_):
   th.opt_str = 'adam'
 
   th.optimizer = th.opt_str
-  th.learning_rate = 0.0003
+  th.learning_rate = 0.003
   th.val_decimals = 7
 
   th.train = True
