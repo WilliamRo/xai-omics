@@ -21,6 +21,8 @@ class RLDSet(DataSet):
     self.data_fetcher = self.fetch_data
     self.name = name
 
+    self._pred = None
+
     self.data_dict = {} if data_dict is None else data_dict
     # Necessary fields to prevent errors
     self.is_rnn_input = False
@@ -130,29 +132,31 @@ class RLDSet(DataSet):
       for num, sub, pred_i in zip(range(len(self)), self.pid, pred_tmp):
         pred_path = os.path.join(dirpath, f'{num}-{sub}-pred.nii.gz')
         index = self.mi_data.index(sub)
-        pred_i = pred_i * np.max([self.mi_data.images_raw[0][index],
-                                  self.mi_data.labels_raw[0][index]])
+        pred_i = self.mi_data.reverse_norm_suv(pred_i, index)
         GeneralMI.write_img(pred_i, pred_path, self.images.itk[index])
         pred.append(pred_i)
       if report_metric:
         metric = model.evaluate_model(self, batch_size=1)
         dump([pred, metric], cache_path)
 
+    self.pred = pred
     pred = np.stack(pred, axis=0)
     pred = np.expand_dims(pred, axis=-1)
 
     features = self.images_raw
     targets = self.labels_raw
     if th.gen_test_nii:
-      for pid, feature, target in zip(self.pid, features, targets):
+      for pid, feature, target, seg in zip(self.pid, features, targets, self.seg):
         data_path = os.path.join(dirpath, 'raw_data/')
         if not os.path.exists(data_path):
           os.makedirs(data_path)
         low_path = os.path.join(data_path, f'{pid}-low.nii.gz')
         full_path = os.path.join(data_path, f'{pid}-full.nii.gz')
+        seg_path = os.path.join(data_path, f'{pid}-seg.nii.gz')
         index = self.mi_data.index(pid)
         GeneralMI.write_img(feature, low_path, self.images.itk[index])
         GeneralMI.write_img(target, full_path, self.images.itk[index])
+        GeneralMI.write_img(self.seg, seg_path, self.images.itk[index])
 
     # Compare results using DrGordon
     medical_images = [
@@ -161,6 +165,8 @@ class RLDSet(DataSet):
         'Full': self.labels_raw[i],
         'Output': pred[i, ..., 0],
       }) for i in range(self.size)]
+
+    self.evaluate_statistic()
 
     if th.show_weight_map:
       value_path = os.path.join(dirpath, 'wm.pkl')
@@ -215,9 +221,104 @@ class RLDSet(DataSet):
     self.features = features
     self.targets = np.expand_dims(np.stack(targets, axis=0), axis=-1)
 
+  def evaluate_statistic(self):
+    from utils.statistics import calc_suv_statistic, draw_one_bar, set_ax, \
+      get_mean_std_metric, hist_joint, violin_plot, violin_plot_roi
+    import matplotlib.pyplot as plt
+    console.show_status(r'Calculating the Statistica...')
+    fig, axs = plt.subplots(2, 5, figsize=(12, 22))
+    # metrics calc
+    metrics = ['SSIM', 'NRMSE', 'RELA', 'PSNR']
+    input_metric = get_mean_std_metric(self.labels_raw, self.images_raw, metrics)
+    output_metric = get_mean_std_metric(self.labels_raw, self.pred, metrics)
+    # SUV calc
+    roi = [5, 10, 11, 12, 13, 14, 51]
+    suv_max_input, suv_mean_input = calc_suv_statistic(self.images_raw,
+                                                       self.seg, roi)
+    suv_max_pred, suv_mean_pred = calc_suv_statistic(self.pred, self.seg, roi)
+    suv_max_full, suv_mean_full = calc_suv_statistic(self.labels_raw,
+                                                     self.seg, roi)
+    # Pics Draw
+    width = 0.3
+    metric_x = np.arange(len(metrics))
+    region_x = np.arange(len(roi))
+
+    fig.subplots_adjust(hspace=0.5, wspace=0.5)
+    # metric draw
+    axs[0, 0].bar(metric_x[:-1] - width/2, input_metric[0][:-1], width, label='30s Gated')
+    axs[0, 0].errorbar(metric_x[:-1] - width / 2, input_metric[0][:-1],
+                       yerr=input_metric[1][:-1], fmt='.', color='red',
+                       ecolor='black', capsize=6)
+
+    axs[0, 0].bar(metric_x[:-1] + width/2, output_metric[0][:-1], width, label='Predicted')
+    axs[0, 0].errorbar(metric_x[:-1] + width / 2, output_metric[0][:-1],
+                       yerr=output_metric[1][:-1], fmt='.', color='red',
+                       ecolor='black', capsize=6)
+
+    ax_psnr = axs[0, 0].twinx()
+    ax_psnr.bar(metric_x[-1] - width / 2, input_metric[0][-1],
+                width, label='30s Gated')
+    ax_psnr.errorbar(metric_x[-1] - width / 2, input_metric[0][-1],
+                     yerr=input_metric[1][-1],
+                     fmt='.', color='red', ecolor='black', capsize=6)
+
+    ax_psnr.bar(metric_x[-1] + width / 2, output_metric[0][-1],
+                width, label='30s Gated')
+    ax_psnr.errorbar(metric_x[-1] + width / 2, output_metric[0][-1],
+                     yerr=output_metric[1][-1],
+                     fmt='.', color='red', ecolor='black', capsize=6)
+    axs[0, 0].set_xticks(metric_x, metrics)
+    axs[0, 0].set_title('Metrics')
+    # hist joint draw
+    hist_joint(fig, axs[0, 1], self.images_raw, self.labels_raw,
+               '30s Gated', '240s Gated', -3, 3)
+    hist_joint(fig, axs[0, 2], self.pred, self.labels_raw,
+               'Predicted', '240s Gated', -3, 3)
+    # suv draw
+    draw_one_bar(axs[1, 0], region_x - width, suv_max_input, width, roi, '30s Gated')
+    draw_one_bar(axs[1, 0], region_x, suv_max_pred, width, roi, 'Predicted')
+    draw_one_bar(axs[1, 0], region_x + width, suv_max_full, width, roi, '240s Gated')
+
+    draw_one_bar(axs[1, 1], region_x - width, suv_mean_input, width, roi, '30s Gated')
+    draw_one_bar(axs[1, 1], region_x, suv_mean_pred, width, roi, 'Predicted')
+    draw_one_bar(axs[1, 1], region_x + width, suv_mean_full, width, roi, '240s Gated')
+
+    set_ax([axs[1, 0], axs[1, 1]], ['$SUV_{max}$', '$SUV_{mean}$'], region_x, roi)
+    # violin draw
+    violin_plot_roi(axs[1, 2], self.images_raw, self.seg, roi)
+    violin_plot_roi(axs[0, 3], self.labels_raw, self.seg, roi)
+    violin_plot_roi(axs[1, 3], self.pred, self.seg, roi)
+    set_ax([axs[1, 2], axs[0, 3], axs[1, 3]],
+           ['30s Gated', '240s Gated', 'Predicted'],
+           np.arange(1, len(roi) + 1), roi, legend=False)
+
+    violin_plot(axs[0, 4], [self.images_raw, self.pred, self.labels_raw], self.seg,
+                5, ['30s Gated', 'Predicted', '240s Gated'])
+    violin_plot(axs[1, 4], [self.images_raw, self.pred, self.labels_raw], self.seg,
+                51, ['30s Gated', 'Predicted', '240s Gated'])
+
+    fig.show()
+
   @property
   def pid(self):
     return self.mi_data.pid
+
+  @property
+  def seg(self):
+    return self.mi_data.images['CT_seg']
+
+  @property
+  def pred(self):
+    return self._pred
+
+  @pred.setter
+  def pred(self, value):
+    self._pred = value
+
+  @pred.getter
+  def pred(self):
+    assert self._pred is not None
+    return self._pred
 
   @property
   def images(self):

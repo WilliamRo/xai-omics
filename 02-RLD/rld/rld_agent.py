@@ -36,16 +36,15 @@ class RLDAgent(DataAgent):
       img_path = path_array[:, i]
       img_dict[type_name] = {'path': img_path}
 
-    if th.noCT:
-      img_keys = [th.data_set[0]]
-    else:
-      img_keys = [th.data_set[0], 'CT']
+    img_keys = [th.data_set[0], 'CT_seg']
+    if not th.noCT:
+      img_keys += ['CT']
 
     img_type = {
       'CT': ['CT'],
       'PET': ['30G', '20S', '40S', '60G', '120S', '240G', '240S'],
-      'MASK': ['mask'],
-      'STD': th.data_set[:1]
+      'MASK': ['CT_seg'],
+      'STD': th.data_set[:1],
     }
 
     mi = GeneralMI(img_dict, image_keys=img_keys, process_param=th.process_param,
