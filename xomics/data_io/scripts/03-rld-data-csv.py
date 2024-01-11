@@ -12,7 +12,7 @@ def find_list(a, key):
 
 
 if __name__ == '__main__':
-  csvfile = [['pid', 'CT', '20S', '30G', '40S', '60G', '120S', '240G', '240S']]
+  csvfile = [['pid', 'CT', '20S', '30G', '40S', '60G', '120S', '240G', '240S','CT_seg']]
   csv_path = os.path.join(data_dir, 'rld_data.csv')
 
   root_dir = r'D:/projects/xai-omics/data/02-RLD'
@@ -34,6 +34,7 @@ if __name__ == '__main__':
     row.append(func('PET_WB_120'))
     row.append(func('PET_WB_240S_GATED'))
     row.append(func('PET_WB_240S_STATIC'))
+    row.append(func('CT_seg'))
     # print(row)
     csvfile.append(row)
 

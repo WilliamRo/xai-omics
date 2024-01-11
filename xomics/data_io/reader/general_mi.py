@@ -89,10 +89,15 @@ class ItkIndexer(Indexer):
     if self.data[self.key_name][item] is None:
       self.data[self.key_name][item] = GeneralMI.load_img(self.data['path'][item])
       if self.PROCESS_FUNC is not None:
-        self.data[self.key_name][item] = self.PROCESS_FUNC(self.data, self.type_name,
+        self.data[self.key_name][item] = self.PROCESS_FUNC(self.data[self.key_name][item],
+                                                           self.data,
+                                                           self.type_name,
                                                            self.name, item,
                                                            self.type)
-    return self.data[self.key_name][item]
+    tmp = self.data[self.key_name][item]
+    if self._obj.LOW_MEM:
+      self.data[self.key_name][item] = None
+    return tmp
 
   @property
   def type(self):
@@ -111,13 +116,16 @@ class ImgIndexer(ItkIndexer):
   def get_data(self, item):
     if self.data[self.key_name][item] is None:
       if self.name == 'images':
-        assert self._obj.images_raw[self.type_name].itk[item]
+        img = self._obj.images_raw[self.type_name].itk[item]
       elif self.name == 'labels':
-        assert self._obj.labels_raw[self.type_name].itk[item]
-      self.data[self.key_name][item] = self.PROCESS_FUNC(self.data, self.type_name,
-                                                         self.name, item,
-                                                         self.type)
-    return sitk.GetArrayFromImage(self.data[self.key_name][item])
+        img = self._obj.labels_raw[self.type_name].itk[item]
+      self.data[self.key_name][item] = self.PROCESS_FUNC(img, self.data,
+                                                         self.type_name, self.name,
+                                                         item, self.type)
+    tmp = self.data[self.key_name][item]
+    if self._obj.LOW_MEM:
+      self.data[self.key_name][item] = None
+    return sitk.GetArrayFromImage(tmp)
 
   @property
   def itk(self):
@@ -160,6 +168,7 @@ class GeneralMI:
                pid=None, process_param=None, img_type=None):
     self.IMG_TYPE = 'nii.gz'
     self.PRO_TYPE = 'pkl'
+    self.LOW_MEM = False
     self.pid = pid
 
     self._image_keys, self._label_keys = [], []
@@ -167,6 +176,7 @@ class GeneralMI:
     self.image_keys = image_keys
     self.label_keys = label_keys
 
+    self.raw_process = self.pre_process
     self.data_process = self.process
     self.img_type = img_type
     self.process_param = {
@@ -175,6 +185,7 @@ class GeneralMI:
       'shape': None,  # [320, 320, 240]
       'crop': None,  # [30, 30, 10]
       'clip': None,  # [1, None]
+      'percent': None,  # 99.9
     } if process_param is None else process_param
 
   def __len__(self):
@@ -199,21 +210,24 @@ class GeneralMI:
       raise ValueError('pid not found')
     return int(index[0][0])
 
-  def raw_process(self, img, key_name, name, item, type):
-    new_img = img['img_itk'][item]
+  def pre_process(self, img, data, key_name, name, item, type):
+    new_img = img
     if type == 'MASK':
       pass
     elif type == 'PET':
-      new_img = self.suv_transform(new_img, img['path'][item].
+      new_img = self.suv_transform(new_img, data['path'][item].
                                    replace(self.IMG_TYPE, self.PRO_TYPE))
+      if self.process_param.get('percent'):
+        new_img = self.percentile(new_img, self.process_param['percent'])
     elif type == 'CT':
-      if self.process_param['ct_window'] is not None:
+      if self.process_param.get('ct_window'):
         wc = self.process_param['ct_window'][0]
         wl = self.process_param['ct_window'][1]
         new_img = sitk.IntensityWindowing(new_img, wc - wl/2, wc + wl/2, 0, 255)
       else:
         new_img = sitk.RescaleIntensity(new_img, 0, 255)
-      std_type = self.img_type['STD'][0]
+    if type != 'PET':
+      std_type = self.STD_key
       if std_type in self.image_keys:
         new_img = resize_image_itk(new_img, self.images[std_type].itk[0])
       elif std_type in self.label_keys:
@@ -226,8 +240,8 @@ class GeneralMI:
 
     return new_img
 
-  def process(self, img, key_name, name, item, type):
-    new_img: sitk.Image = img['img_itk'][item]
+  def process(self, img, data, key_name, name, item, type):
+    new_img: sitk.Image = img
     if 'MASK' == type:
       pass
     elif 'CT' == type:
@@ -245,13 +259,25 @@ class GeneralMI:
         if name == 'images':
           new_img = sitk.RescaleIntensity(new_img, 0.0, 1.0)
         else:
-          new_img = GeneralMI.normalize(new_img, self.process_param['norm'],
-                                        self.images_raw[0].itk[item])
+          new_img = self.normalize(new_img, self.process_param['norm'],
+                                   self.images_raw[self.STD_key].itk[item])
 
     return new_img
 
   def post_process(self):
     pass
+
+  def reverse_norm_suv(self, img, item):
+    return img * np.max(self.images_raw[self.STD_key][item])
+
+  @staticmethod
+  def percentile(img, percent):
+    arr = sitk.GetArrayFromImage(img)
+    p = np.percentile(arr, percent)
+    arr[arr >= p] = 0
+    modified_image = sitk.GetImageFromArray(arr)
+    modified_image.CopyInformation(img)
+    return modified_image
 
   @staticmethod
   def crop_by_margin(img, margins):
@@ -281,7 +307,7 @@ class GeneralMI:
   def suv_transform(img, path):
     tag = joblib.load(path)
     suv_factor, _, _ = get_suv_factor(tag)
-    return sitk.ShiftScale(img, 100.0, suv_factor)
+    return sitk.ShiftScale(img, 0, suv_factor)
 
   @staticmethod
   def normalize(img, type, refer_pet=None):
@@ -342,6 +368,10 @@ class GeneralMI:
         self.images_dict[key]['type'] = None
     self._label_keys = value
 
+  @property
+  def STD_key(self):
+    return self.img_type['STD'][0]
+
 
 
 
@@ -362,21 +392,23 @@ if __name__ == '__main__':
   img_type = {
     'CT': ['CT'],
     'PET': ['240G'],
-    'MASK': ['mask'],
-    'STD': ['240G']
+    'MASK': ['CT_seg'],
+    'STD': ['30G']
   }
 
-  test = GeneralMI(img_dict, ['CT'], ['240G'], pid, img_type=img_type)
-  test.process_param['norm'] = 'PET'
+  test = GeneralMI(img_dict, ['30G', 'CT', 'CT_seg'], ['240G'], pid, img_type=img_type)
+  # test.process_param['norm'] = 'PET'
   test.process_param['shape'] = [440, 440, 256]
+  test.process_param['percent'] = 99.9
   # test.process_param['ct_window'] = [50, 500]
 
+  # test.LOW_MEM = True
   img = test.images['CT'][0]
   img2 = test.labels['240G'][0]
 
   print(img.shape, img2.shape)
 
-  mi = MedicalImage('test', images={'t1': img, 't2': img2})
+  mi = MedicalImage('test', images={'t1': img, 't2': img2, 'seg':test.images[1][0]})
   re = RLDExplorer([mi])
   re.sv.set('vmin', auto_refresh=False)
   re.sv.set('vmax', auto_refresh=False)
