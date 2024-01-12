@@ -267,6 +267,12 @@ class GeneralMI:
   def post_process(self):
     pass
 
+  def clean_mem(self):
+    for key in self.images_dict.keys():
+      length = len(self.images_dict[key]['path'])
+      self.images_dict[key]['img_itk'] = np.array([None] * length)
+      self.images_dict[key]['img'] = np.array([None] * length)
+
   def reverse_norm_suv(self, img, item):
     return img * np.max(self.images_raw[self.STD_key][item])
 
@@ -371,6 +377,7 @@ class GeneralMI:
   @property
   def STD_key(self):
     return self.img_type['STD'][0]
+
 
 
 

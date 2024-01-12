@@ -4,7 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from utils.statistics import regions, calc_suv_statistic, draw_one_bar, set_ax, \
-  get_mean_std_metric, hist_joint, violin_plot, violin_plot_roi
+  get_mean_std_metric, hist_joint, violin_plot, violin_plot_roi, load_suv_stat, \
+  load_metric_stat
 from xomics.data_io.reader.general_mi import GeneralMI
 
 
@@ -44,14 +45,12 @@ if __name__ == '__main__':
   width = 0.3
 
   roi = [5, 10, 11, 12, 13, 14, 51]
+  path = './'
 
-  if not os.path.exists('tmp.pkl'):
-    suv_max_30, suv_mean_30 = calc_suv_statistic(test.images['30G'], test.images['CT_seg'], roi)
-    suv_max_240, suv_mean_240 = calc_suv_statistic(test.labels['240G'], test.images['CT_seg'], roi)
-    joblib.dump([suv_max_30, suv_mean_30, suv_max_240, suv_mean_240], 'tmp.pkl')
-  else:
-    suv = joblib.load('tmp.pkl')
-    suv_max_30, suv_mean_30, suv_max_240, suv_mean_240 = suv[0], suv[1], suv[2], suv[3]
+  suv_max_30, suv_mean_30 = load_suv_stat(test.images['30G'], test.images['CT_seg'],
+                                          path, test.pid, '30sG')
+  suv_max_240, suv_mean_240 = load_suv_stat(test.labels['240G'], test.images['CT_seg'],
+                                            path, test.pid, '240sG')
 
   x = np.arange(len(roi))
 
@@ -65,9 +64,9 @@ if __name__ == '__main__':
   # draw_one_bar(axs[1][1], x+width, suv_mean_240, width, roi, '240s Gated')
   # set_ax([axs[1][0], axs[1][1]], ['$SUV_{max}$', '$SUV_{mean}$'], x, roi)
   #
-  # metrics = ['SSIM', 'NRMSE', 'RELA', 'PSNR']
-  # input_metric = get_mean_std_metric(test.labels['240G'][:1], test.images['30G'][:1],
-  #                                    metrics)
+  metrics = ['SSIM', 'NRMSE', 'RELA', 'PSNR']
+  input_metric = load_metric_stat(test.labels['240G'][:2], test.images['30G'][:2],
+                                  metrics, path, test.pid[:2], '30sG')
   # metric_x = np.arange(len(metrics))
   # axs[0][0].bar(metric_x[:-1] - width / 2, input_metric[0][:-1], label='30s Gated')
   # axs[0][0].errorbar(metric_x[:-1] - width / 2, input_metric[0][:-1], yerr=input_metric[1][:-1],
@@ -82,7 +81,7 @@ if __name__ == '__main__':
   #            '30s Gated', '240s Gated', -3, 3)
   # fig.colorbar(axs[0, 1])
 
-  # violin_plot_roi(axs[0, 1], test.images['30G'][:2], test.images['CT_seg'][:2], roi)
+  violin_plot_roi(axs[0, 1], test.images['30G'][:2], test.images['CT_seg'][:2], roi)
   violin_plot(axs[1, 1], [test.images['30G'][:2], test.labels['240G'][:2]],
               test.images['CT_seg'][:2], 5, ['30s Gated', '240s Gated'])
   plt.show()

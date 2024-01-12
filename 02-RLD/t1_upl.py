@@ -153,7 +153,7 @@ def main(_):
   if th.use_res:
     th.suffix += '_res'
   th.suffix += '_noCT' if th.noCT else ''
-  th.suffix += '_30Gto240G'
+  th.suffix += f'_{th.data_set[0]}to{th.data_set[1]}'
   th.suffix += f'_lr{th.learning_rate}_bs{th.batch_size}_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'

@@ -9,15 +9,16 @@ del_ids = ['10665', '10488', '10632', '10717']
 
 def rld2npy(datadir, new_dir):
   l1_dirs = sorted(os.listdir(datadir))
+  l1_dirs = ['ZHU_JIN_YU_YHP00012417']
   num = len(l1_dirs)
   ids = 0
   id_180 = 0
   id_del = 0
   for sub, l1 in enumerate(l1_dirs):
-    if "$" in l1: continue
-    if '11544' not in l1: continue
+    # if "$" in l1: continue
+    # if '11544' not in l1: continue
     sub = 0
-    ids = 0
+    ids = 91
     l1_path = os.path.join(datadir, l1)
     l2_dir = os.listdir(l1_path)[0]
     l2_path = os.path.join(l1_path, l2_dir)

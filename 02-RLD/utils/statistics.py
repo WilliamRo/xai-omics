@@ -1,10 +1,12 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from roma import console
 
 
-regions = np.array(['background', 'spleen', 'kidney_right', 'kidney_left', 'gallbladder', 'liver',
+regions = np.array(['others', 'spleen', 'kidney_right', 'kidney_left', 'gallbladder', 'liver',
                     'stomach', 'pancreas', 'adrenal_gland_right', 'adrenal_gland_left',
                     'lung_upper_lobe_left', 'lung_lower_lobe_left', 'lung_upper_lobe_right',
                     'lung_middle_lobe_right', 'lung_lower_lobe_right', 'esophagus',
@@ -47,7 +49,7 @@ def calc_region(img, seg, region):
   return suv_max, suv_mean
 
 
-def calc_suv_statistic(imgs, segs, region, percent=99.9):
+def calc_suv_statistic(imgs, segs, region):
   suv_maxs = []
   suv_means = []
   length = len(imgs)
@@ -57,11 +59,33 @@ def calc_suv_statistic(imgs, segs, region, percent=99.9):
     suv_means.append(suv_mean)
     console.print_progress(i, length)
   console.clear_line()
-  if percent is not None:
-    pass
+  return suv_maxs, suv_means
+
+
+def load_suv_stat(imgs, segs, path, pid, name, region=None):
+  region = list(range(len(regions))) if region is None else region
+  path_max = os.path.join(path, f'{name}_suv_max.csv')
+  path_mean = os.path.join(path, f'{name}_suv_mean.csv')
+  if not os.path.exists(path_max):
+    suv_maxs, suv_means = calc_suv_statistic(imgs, segs, region)
+    header_row = np.insert(regions, 0, "")
+    header_col = pid
+    save_max = add_title_row_col(suv_maxs, header_row, header_col)
+    save_mean = add_title_row_col(suv_means, header_row, header_col)
+    np.savetxt(path_max, save_max, delimiter=',', fmt="%s")
+    np.savetxt(path_mean, save_mean, delimiter=',', fmt="%s")
+  else:
+    suv_maxs = np.loadtxt(path_max, delimiter=',', dtype=np.str_)
+    suv_means = np.loadtxt(path_mean, delimiter=',', dtype=np.str_)
+    suv_maxs = suv_maxs[1:, 1:].astype(np.float64)
+    suv_means = suv_means[1:, 1:].astype(np.float64)
   suv_max = np.mean(suv_maxs, axis=0), np.std(suv_maxs, axis=0)
   suv_mean = np.mean(suv_means, axis=0), np.std(suv_means, axis=0)
   return suv_max, suv_mean
+
+
+def add_title_row_col(data, header_row, header_col):
+    return np.vstack((header_row, np.hstack((header_col.reshape(-1, 1), data))))
 
 
 def draw_one_bar(ax, x, data, width, roi, label):
@@ -85,14 +109,28 @@ def set_ax(axs, titles, x, roi, legend=True):
 def get_mean_std_metric(truths, data, metrics):
   from xomics.data_io.utils.metrics_calc import get_metrics
   metric = np.zeros((len(truths), len(metrics)))
-  for i in range(len(truths)):
+  for progress, i in enumerate(range(len(truths))):
+    console.print_progress(progress, len(truths))
     arr1 = truths[i]
     arr2 = data[i] / np.max(arr1)
     arr1 = arr1 / np.max(arr1)
     s_metrics = get_metrics(arr1, arr2, metrics, data_range=1.0)
     for j, key in enumerate(metrics):
       metric[i, j] = s_metrics[key]
+  return metric
+
+
+def load_metric_stat(truths, data, metrics, path, pid, name):
+  metric_path = os.path.join(path, f'{name}_metrics.csv')
+  if not os.path.exists(metric_path):
+    metric = get_mean_std_metric(truths, data, metrics)
+    save_metric = add_title_row_col(metric, [""]+metrics, pid)
+    np.savetxt(metric_path, save_metric, delimiter=',', fmt="%s")
+  else:
+    metric = np.loadtxt(metric_path, delimiter=',', dtype=np.str_)
+    metric = metric[1:, 1:].astype(np.float64)
   metric_mean, metric_std = np.mean(metric, axis=0), np.std(metric, axis=0)
+  console.clear_line()
   return metric_mean, metric_std
 
 
@@ -119,12 +157,9 @@ def hist_joint(fig, ax, img1, img2, xlable, ylabel, min_val, max_val):
 
 def violin_plot_roi(ax, data, seg, roi, percent=99.9):
   data_list = []
-
+  data = np.vstack(data)
   for rid in roi:
-    tmp = []
-    for i in range(len(data)):
-      tmp.append(data[i]*(seg[i] == rid))
-    img = np.vstack(tmp)
+    img = data*(np.vstack(seg) == rid)
     img = img.flatten()
     img = img[img > 0]
     p1 = np.percentile(img, percent)
@@ -133,14 +168,12 @@ def violin_plot_roi(ax, data, seg, roi, percent=99.9):
   ax.violinplot(dataset=data_list, showmedians=True)
 
 
-
 def violin_plot(ax, data, seg, roi, xlable, percent=99.9):
   data_list = []
+  sl = np.vstack(seg) == roi
   for img in data:
-    tmp = []
-    for i in range(len(seg)):
-      tmp.append(img[i] * (seg[i] == roi))
-    img = np.vstack(tmp)
+    img = np.vstack(img)
+    img = img * sl
     img = img.flatten()
     img = img[img > 0]
     p1 = np.percentile(img, percent)
@@ -148,5 +181,6 @@ def violin_plot(ax, data, seg, roi, xlable, percent=99.9):
     data_list.append(img)
   ax.violinplot(dataset=data_list, showmedians=True)
   ax.set_xticks(np.arange(1, len(data)+1), xlable)
+  ax.set_ylabel('SUV')
   ax.set_title(f'The SUV of {regions[roi]}')
 

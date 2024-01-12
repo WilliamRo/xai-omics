@@ -143,6 +143,11 @@ class RLDSet(DataSet):
     pred = np.stack(pred, axis=0)
     pred = np.expand_dims(pred, axis=-1)
 
+    stat_path = os.path.join(dirpath, 'stat/')
+    if not os.path.exists(stat_path):
+      os.makedirs(stat_path)
+    self.evaluate_statistic(stat_path)
+
     features = self.images_raw
     targets = self.labels_raw
     if th.gen_test_nii:
@@ -166,8 +171,6 @@ class RLDSet(DataSet):
         'Output': pred[i, ..., 0],
       }) for i in range(self.size)]
 
-    self.evaluate_statistic()
-
     if th.show_weight_map:
       value_path = os.path.join(dirpath, 'wm.pkl')
       fetchers = [th.depot['weight_map']]
@@ -190,6 +193,7 @@ class RLDSet(DataSet):
             mi.images[f'Candidate-{c}'] = ca[:, :, :, c:c+1]
 
     re = RLDExplorer(medical_images)
+    self.mi_data.clean_mem()
     re.sv.set('vmin', auto_refresh=False)
     re.sv.set('vmax', auto_refresh=False)
     re.sv.set('full_key', 'Full')
@@ -221,30 +225,37 @@ class RLDSet(DataSet):
     self.features = features
     self.targets = np.expand_dims(np.stack(targets, axis=0), axis=-1)
 
-  def evaluate_statistic(self):
-    from utils.statistics import calc_suv_statistic, draw_one_bar, set_ax, \
-      get_mean_std_metric, hist_joint, violin_plot, violin_plot_roi
+  def evaluate_statistic(self, path):
+    from utils.statistics import load_suv_stat, draw_one_bar, set_ax, \
+      load_metric_stat, hist_joint, violin_plot, violin_plot_roi
     import matplotlib.pyplot as plt
-    console.show_status(r'Calculating the Statistica...')
-    fig, axs = plt.subplots(2, 5, figsize=(12, 22))
+    console.show_status(r'Calculating the Statistics...')
+
     # metrics calc
+    console.supplement(r'Calc the Metrics', level=2)
     metrics = ['SSIM', 'NRMSE', 'RELA', 'PSNR']
-    input_metric = get_mean_std_metric(self.labels_raw, self.images_raw, metrics)
-    output_metric = get_mean_std_metric(self.labels_raw, self.pred, metrics)
+    input_metric = load_metric_stat(self.labels_raw, self.images_raw, metrics,
+                                    path, self.pid, 'low')
+    output_metric = load_metric_stat(self.labels_raw, self.pred, metrics,
+                                     path, self.pid, 'predict')
     # SUV calc
+    console.supplement(r'Calc the SUV', level=2)
     roi = [5, 10, 11, 12, 13, 14, 51]
-    suv_max_input, suv_mean_input = calc_suv_statistic(self.images_raw,
-                                                       self.seg, roi)
-    suv_max_pred, suv_mean_pred = calc_suv_statistic(self.pred, self.seg, roi)
-    suv_max_full, suv_mean_full = calc_suv_statistic(self.labels_raw,
-                                                     self.seg, roi)
+    suv_max_input, suv_mean_input = load_suv_stat(self.images_raw, self.seg,
+                                                  path, self.pid, 'low')
+    suv_max_pred, suv_mean_pred = load_suv_stat(self.pred, self.seg,
+                                                path, self.pid, 'predict')
+    suv_max_full, suv_mean_full = load_suv_stat(self.labels_raw, self.seg,
+                                                path, self.pid, 'full')
     # Pics Draw
     width = 0.3
     metric_x = np.arange(len(metrics))
     region_x = np.arange(len(roi))
-
-    fig.subplots_adjust(hspace=0.5, wspace=0.5)
+    console.show_status(r'Start to draw the figure...')
+    fig, axs = plt.subplots(2, 5, figsize=(32, 12))
+    fig.subplots_adjust(hspace=0.5, wspace=0.2)
     # metric draw
+    console.supplement(r'Draw the Metrics', level=2)
     axs[0, 0].bar(metric_x[:-1] - width/2, input_metric[0][:-1], width, label='30s Gated')
     axs[0, 0].errorbar(metric_x[:-1] - width / 2, input_metric[0][:-1],
                        yerr=input_metric[1][:-1], fmt='.', color='red',
@@ -270,11 +281,13 @@ class RLDSet(DataSet):
     axs[0, 0].set_xticks(metric_x, metrics)
     axs[0, 0].set_title('Metrics')
     # hist joint draw
+    console.supplement(r'Draw the Histogram', level=2)
     hist_joint(fig, axs[0, 1], self.images_raw, self.labels_raw,
                '30s Gated', '240s Gated', -3, 3)
     hist_joint(fig, axs[0, 2], self.pred, self.labels_raw,
                'Predicted', '240s Gated', -3, 3)
     # suv draw
+    console.supplement(r'Draw the SUV', level=2)
     draw_one_bar(axs[1, 0], region_x - width, suv_max_input, width, roi, '30s Gated')
     draw_one_bar(axs[1, 0], region_x, suv_max_pred, width, roi, 'Predicted')
     draw_one_bar(axs[1, 0], region_x + width, suv_max_full, width, roi, '240s Gated')
@@ -285,6 +298,7 @@ class RLDSet(DataSet):
 
     set_ax([axs[1, 0], axs[1, 1]], ['$SUV_{max}$', '$SUV_{mean}$'], region_x, roi)
     # violin draw
+    console.supplement(r'Draw the Violin', level=2)
     violin_plot_roi(axs[1, 2], self.images_raw, self.seg, roi)
     violin_plot_roi(axs[0, 3], self.labels_raw, self.seg, roi)
     violin_plot_roi(axs[1, 3], self.pred, self.seg, roi)
@@ -298,6 +312,7 @@ class RLDSet(DataSet):
                 51, ['30s Gated', 'Predicted', '240s Gated'])
 
     fig.show()
+    fig.savefig(os.path.join(path, 'figures.svg'), dpi=600, format='svg')
 
   @property
   def pid(self):
