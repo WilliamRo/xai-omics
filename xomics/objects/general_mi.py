@@ -387,7 +387,7 @@ if __name__ == '__main__':
   from dev.explorers.rld_explore.rld_explorer import RLDExplorer
 
   img_dict = {}
-  data = np.genfromtxt('../../../data/02-RLD/rld_data.csv', delimiter=',', dtype=str)
+  data = np.genfromtxt('../../data/02-RLD/rld_data.csv', delimiter=',', dtype=str)
   types = data[0][1:]
   pid = data[1:, 0]
   path_array = data[1:, 1:]
