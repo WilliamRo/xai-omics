@@ -7,7 +7,7 @@ from tframe import console
 from tframe import DataSet
 from tframe import Predictor
 from xomics import MedicalImage
-from xomics.data_io.reader.general_mi import GeneralMI
+from xomics.objects.general_mi import GeneralMI
 
 
 class RLDSet(DataSet):
@@ -15,7 +15,6 @@ class RLDSet(DataSet):
   def __init__(self, mi_data, buffer_size=None,
                name='dataset', data_dict=None):
     # super().__init__(**kwargs)
-    from os import listdir
     self.mi_data: GeneralMI = mi_data
     self.buffer_size = buffer_size
     self.data_fetcher = self.fetch_data
@@ -73,8 +72,11 @@ class RLDSet(DataSet):
     features, targets = gen_windows(self.features, self.targets, batch_size,
                                     th.window_size, th.slice_size)
 
-    data_batch = DataSet(features, targets)
-
+    data_dict = {
+      'features': np.array(features),
+      'targets': np.array(targets),
+    }
+    data_batch = DataSet(data_dict=data_dict)
     return data_batch
 
   def gen_batches(self, batch_size, shuffle=False, is_training=False):
@@ -111,7 +113,6 @@ class RLDSet(DataSet):
     from dev.explorers.rld_explore.rld_explorer import RLDExplorer
     from rld_core import th
     from joblib import load, dump
-    from xomics.data_io.utils.metrics_calc import calc_metric
 
     dirpath = os.path.join(th.job_dir, 'checkpoints/', th.mark, 'saves/')
     cache_path = os.path.join(dirpath, 'caches.pkl')
@@ -142,11 +143,12 @@ class RLDSet(DataSet):
     self.pred = pred
     pred = np.stack(pred, axis=0)
     pred = np.expand_dims(pred, axis=-1)
-
-    stat_path = os.path.join(dirpath, 'stat/')
-    if not os.path.exists(stat_path):
-      os.makedirs(stat_path)
-    self.evaluate_statistic(stat_path)
+    # statistics
+    if th.statistics:
+      stat_path = os.path.join(dirpath, 'stat/')
+      if not os.path.exists(stat_path):
+        os.makedirs(stat_path)
+      self.evaluate_statistic(stat_path)
 
     features = self.images_raw
     targets = self.labels_raw
@@ -172,31 +174,60 @@ class RLDSet(DataSet):
       }) for i in range(self.size)]
 
     if th.show_weight_map:
-      value_path = os.path.join(dirpath, 'wm.pkl')
+      wm_dir = os.path.join(dirpath, 'wm/')
+      wm_path = os.path.join(wm_dir, 'wm.pkl')
       fetchers = [th.depot['weight_map']]
       if 'candidate1' in th.depot:
         fetchers.append(th.depot['candidate1'])
-      if os.path.exists(value_path):
-        values = load(value_path)
+      if os.path.exists(wm_dir):
+        wms = load(wm_path)
+        shape = wms.shape[:-1] + (wms.shape[-1] - 1,)
+        values = np.zeros(shape)
+        c = values.shape[-1]
+        c_tmp = 0
+        p_tmp = 0
+        for path in os.listdir(wm_dir):
+          if path.endswith('.nii.gz'):
+            values[p_tmp, ..., c_tmp] = self.load_nii(os.path.join(wm_dir, path))
+            c_tmp = (c_tmp + 1) % c
+            p_tmp = p_tmp+1 if c_tmp == 0 else p_tmp
       else:
-        values = model.evaluate(fetchers, self, batch_size=1)
-        dump(values, value_path)
+        os.makedirs(wm_dir, exist_ok=True)
+        wms, values = model.evaluate(fetchers, self, batch_size=1)
 
-      wms = values[0]
+        max_wms = np.max(wms)
+        min_wms = np.min(wms)
+        wms = 255 * (wms - min_wms) / (max_wms - min_wms)
+        wms = wms.astype(np.uint8)
+
+        dump(wms, wm_path)
+        rev_values = []
+        for index, value in enumerate(values):
+          tmp = []
+          for v in range(1, value.shape[-1]):
+            rev_v = self.mi_data.reverse_norm_suv(value[:, ..., v], index)
+            tmp.append(rev_v)
+            GeneralMI.write_img(rev_v, os.path.join(wm_dir, f'{index}{v}-ca{v}-{self.pid[index]}.nii.gz'),
+                                self.images.itk[index])
+          rev_values.append(np.stack(tmp, axis=-1))
+        values = rev_values
+        values = np.stack(values, axis=0)
+
       # wm.shape = [?, S, H, W, C]
       for wm, mi in zip(wms, medical_images):
         mi.put_into_pocket('weight_map', wm)
 
-      if len(values) > 1:
-        for ca, mi in zip(values[1], medical_images):
-          for c in range(1, ca.shape[-1]):
-            mi.images[f'Candidate-{c}'] = ca[:, :, :, c:c+1]
+      for ca, mi in zip(values, medical_images):
+        for c in range(ca.shape[-1]):
+          mi.images[f'Candidate-{c}'] = ca[:, :, :, c:c+1]
 
     re = RLDExplorer(medical_images)
     self.mi_data.clean_mem()
     re.sv.set('vmin', auto_refresh=False)
     re.sv.set('vmax', auto_refresh=False)
     re.sv.set('full_key', 'Full')
+    re.sv.set('cmap', 'hot')
+    re.sv.set('vmax', 5.0)
     re.show()
 
   @staticmethod
@@ -227,9 +258,13 @@ class RLDSet(DataSet):
 
   def evaluate_statistic(self, path):
     from utils.statistics import load_suv_stat, draw_one_bar, set_ax, \
-      load_metric_stat, hist_joint, violin_plot, violin_plot_roi
+      load_metric_stat, hist_joint, violin_plot, violin_plot_roi, metric_text
     import matplotlib.pyplot as plt
     console.show_status(r'Calculating the Statistics...')
+
+    input_label = '30s Gated'
+    output_label = 'Predicted'
+    true_label = '240s Gated'
 
     # metrics calc
     console.supplement(r'Calc the Metrics', level=2)
@@ -256,45 +291,50 @@ class RLDSet(DataSet):
     fig.subplots_adjust(hspace=0.5, wspace=0.2)
     # metric draw
     console.supplement(r'Draw the Metrics', level=2)
-    axs[0, 0].bar(metric_x[:-1] - width/2, input_metric[0][:-1], width, label='30s Gated')
+    axs[0, 0].bar(metric_x[:-1] - width/2, input_metric[0][:-1], width, label=input_label)
     axs[0, 0].errorbar(metric_x[:-1] - width / 2, input_metric[0][:-1],
                        yerr=input_metric[1][:-1], fmt='.', color='red',
                        ecolor='black', capsize=6)
 
-    axs[0, 0].bar(metric_x[:-1] + width/2, output_metric[0][:-1], width, label='Predicted')
+    axs[0, 0].bar(metric_x[:-1] + width/2, output_metric[0][:-1], width, label=output_label)
     axs[0, 0].errorbar(metric_x[:-1] + width / 2, output_metric[0][:-1],
                        yerr=output_metric[1][:-1], fmt='.', color='red',
                        ecolor='black', capsize=6)
 
     ax_psnr = axs[0, 0].twinx()
     ax_psnr.bar(metric_x[-1] - width / 2, input_metric[0][-1],
-                width, label='30s Gated')
+                width, label=input_label)
     ax_psnr.errorbar(metric_x[-1] - width / 2, input_metric[0][-1],
                      yerr=input_metric[1][-1],
                      fmt='.', color='red', ecolor='black', capsize=6)
 
     ax_psnr.bar(metric_x[-1] + width / 2, output_metric[0][-1],
-                width, label='30s Gated')
+                width, label=output_label)
     ax_psnr.errorbar(metric_x[-1] + width / 2, output_metric[0][-1],
                      yerr=output_metric[1][-1],
                      fmt='.', color='red', ecolor='black', capsize=6)
+
+    metric_text(axs[0, 0], ax_psnr, input_metric, metric_x, width)
+    metric_text(axs[0, 0], ax_psnr, output_metric, metric_x, -width)
+
     axs[0, 0].set_xticks(metric_x, metrics)
+    axs[0, 0].legend()
     axs[0, 0].set_title('Metrics')
     # hist joint draw
     console.supplement(r'Draw the Histogram', level=2)
     hist_joint(fig, axs[0, 1], self.images_raw, self.labels_raw,
-               '30s Gated', '240s Gated', -3, 3)
+               input_label, true_label, -3, 3)
     hist_joint(fig, axs[0, 2], self.pred, self.labels_raw,
-               'Predicted', '240s Gated', -3, 3)
+               output_label, true_label, -3, 3)
     # suv draw
     console.supplement(r'Draw the SUV', level=2)
-    draw_one_bar(axs[1, 0], region_x - width, suv_max_input, width, roi, '30s Gated')
-    draw_one_bar(axs[1, 0], region_x, suv_max_pred, width, roi, 'Predicted')
-    draw_one_bar(axs[1, 0], region_x + width, suv_max_full, width, roi, '240s Gated')
+    draw_one_bar(axs[1, 0], region_x - width, suv_max_input, width, roi, input_label)
+    draw_one_bar(axs[1, 0], region_x, suv_max_pred, width, roi, output_label)
+    draw_one_bar(axs[1, 0], region_x + width, suv_max_full, width, roi, true_label)
 
-    draw_one_bar(axs[1, 1], region_x - width, suv_mean_input, width, roi, '30s Gated')
-    draw_one_bar(axs[1, 1], region_x, suv_mean_pred, width, roi, 'Predicted')
-    draw_one_bar(axs[1, 1], region_x + width, suv_mean_full, width, roi, '240s Gated')
+    draw_one_bar(axs[1, 1], region_x - width, suv_mean_input, width, roi, input_label)
+    draw_one_bar(axs[1, 1], region_x, suv_mean_pred, width, roi, output_label)
+    draw_one_bar(axs[1, 1], region_x + width, suv_mean_full, width, roi, true_label)
 
     set_ax([axs[1, 0], axs[1, 1]], ['$SUV_{max}$', '$SUV_{mean}$'], region_x, roi)
     # violin draw
@@ -303,13 +343,13 @@ class RLDSet(DataSet):
     violin_plot_roi(axs[0, 3], self.labels_raw, self.seg, roi)
     violin_plot_roi(axs[1, 3], self.pred, self.seg, roi)
     set_ax([axs[1, 2], axs[0, 3], axs[1, 3]],
-           ['30s Gated', '240s Gated', 'Predicted'],
+           [input_label, true_label, output_label],
            np.arange(1, len(roi) + 1), roi, legend=False)
 
     violin_plot(axs[0, 4], [self.images_raw, self.pred, self.labels_raw], self.seg,
-                5, ['30s Gated', 'Predicted', '240s Gated'])
+                5, [input_label, output_label, true_label])
     violin_plot(axs[1, 4], [self.images_raw, self.pred, self.labels_raw], self.seg,
-                51, ['30s Gated', 'Predicted', '240s Gated'])
+                51, [input_label, output_label, true_label])
 
     fig.show()
     fig.savefig(os.path.join(path, 'figures.svg'), dpi=600, format='svg')

@@ -12,8 +12,8 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'uadap'
-id = 3
+model_name = 'puadap'
+id = 6
 def model():
   th = core.th
   model = m.get_initial_model()
@@ -52,7 +52,7 @@ def main(_):
   console.start('{} on PET/CT reconstruct task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 1
+  th.rehearse = 0
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -65,14 +65,14 @@ def main(_):
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
-  th.data_shape = [256, 440, 440]
+  th.data_shape = [480, 440, 440]
 
   th.data_set = ['30G', '240G']
   th.process_param = {
     'ct_window': None,
     'norm': 'PET',  # only min-max,
     'shape': th.data_shape[::-1],  # [320, 320, 240]
-    'crop': [10, 0, 0][::-1],  # [30, 30, 10]
+    'crop': [5, 0, 0][::-1],  # [30, 30, 10]
     'clip': None,  # [1, None]
   }
 
@@ -88,7 +88,7 @@ def main(_):
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
   th.suffix = ''
-  th.suffix += f'_w{th.window_size}_s{th.slice_size}'
+  th.suffix += f'_w{th.window_size}_s{th.slice_size}_new'
 
 
   th.visible_gpu_id = 0
@@ -100,6 +100,8 @@ def main(_):
   th.activation = 'lrelu'
   th.archi_string = '3'
   th.use_bias = True
+
+  th.internal_loss = True
 
   th.use_sigmoid = False
   th.clip_off = False
@@ -132,10 +134,8 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.show_weight_map = True
 
-  if th.use_suv:
-    th.suffix += '_suv'
   th.suffix += '_noCT' if th.noCT else ''
-  th.suffix += '_30Gto240G'
+  th.suffix += f'_{th.data_set[0]}to{th.data_set[1]}'
   th.suffix += f'_lr{th.learning_rate}_bs{th.batch_size}_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'

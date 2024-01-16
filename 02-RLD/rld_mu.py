@@ -33,6 +33,9 @@ def finalize(model):
   elif th.clip_off:
     model.add(Clip(0, 1.2))
 
+  if th.internal_loss:
+    context.customized_loss_f_net = get_total_loss
+    th.probe_cycle = th.updates_per_round
 
   # Build model
   metrics = list(custom_loss.values())

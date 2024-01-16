@@ -1,6 +1,6 @@
 from tframe.data.base_classes import DataAgent
 from rld.rld_set import RLDSet
-from xomics.data_io.reader.general_mi import GeneralMI
+from xomics.objects.general_mi import GeneralMI
 
 import os
 import numpy as np
@@ -11,13 +11,15 @@ class RLDAgent(DataAgent):
 
   @classmethod
   def load(cls, data_dir, validate_size, test_size):
-    from rld_core import th
     ds: RLDSet = cls.load_as_tframe_data(data_dir)
-    test_pid = ['YHP00011327', 'YHP00012231',
-                'YHP00012016', 'YHP00012417', 'YHP00011840']
+    test_pid = ['YHP00012417', 'YHP00010651', 'YHP00012231',
+                'YHP00012016', 'YHP00011840']
     train, test = ds.subset(test_pid, 'Test-Set')
     train, valid = train.split(-1, validate_size,
                                names=['Train-Set', 'Val-Set'])
+    # train.mi_data.get_stat()
+    # valid.mi_data.get_stat()
+    # test.mi_data.get_stat()
     return  train, valid, test
 
   @classmethod

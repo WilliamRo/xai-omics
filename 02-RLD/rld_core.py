@@ -26,7 +26,7 @@ from tframe import Predictor
 from rld.rld_config import RLDConfig as Hub
 
 import rld_du as du
-# import rld_tu as tu
+import rld_tu as tu
 
 
 
@@ -84,8 +84,12 @@ def activate():
   #  itself.
   # th.additional_datasets_for_validation.append(some_data_set)
   if th.train:
-    model.train(training_set=train_set, validation_set=val_set,
-                test_set=test_set, trainer_hub=th)
+    if th.internal_loss:
+      model.train(training_set=train_set, validation_set=val_set,
+                  test_set=test_set, trainer_hub=th, probe=tu.probe)
+    else:
+      model.train(training_set=train_set, validation_set=val_set,
+                  test_set=test_set, trainer_hub=th)
   else:
     test_set.evaluate_model(model)
 

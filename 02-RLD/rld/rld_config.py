@@ -32,6 +32,9 @@ class RLDConfig(SmartTrainerHub):
   gen_test_nii = Flag.boolean(False, '...', is_key=None)
   process_param = Flag.whatever({}, 'data relevant parameters', is_key=None)
 
+  internal_loss = Flag.boolean(False, 'use internal loss', is_key=None)
+  statistics = Flag.boolean(False, 'use statistics', is_key=None)
+
   @property
   def data_arg(self) -> Arguments:
     return Arguments.parse(self.data_config)

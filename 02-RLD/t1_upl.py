@@ -94,7 +94,7 @@ def main(_):
     'clip': None,  # [1, None]
   }
 
-  th.noCT = False
+  th.noCT = True
   if th.noCT:
     th.input_shape[-1] = 1
   # th.use_suv = False
