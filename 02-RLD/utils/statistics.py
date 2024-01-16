@@ -134,6 +134,22 @@ def load_metric_stat(truths, data, metrics, path, pid, name):
   return metric_mean, metric_std
 
 
+def metric_text(ax, ax_psnr, metric, x, width):
+  for i, value in enumerate(metric[0][:-1]):
+    if i == 0:
+      value *= 0.5
+    elif i == 1:
+      value *= 1.6
+    else:
+      value *= 1.2
+    ax.annotate(f'{value:.2f}\n±{metric[1][i]:.2f}',
+                       (x[i] - width / 2, value),
+                       ha='center', va='bottom')
+  ax_psnr.annotate(f'{metric[0][-1]:.2f}\n±{metric[1][-1]:.2f}',
+                   (x[-1] - width / 2, metric[0][-1] * 0.5),
+                   ha='center', va='bottom')
+
+
 def hist_joint(fig, ax, img1, img2, xlable, ylabel, min_val, max_val):
   img1, img2 = np.vstack(img1), np.vstack(img2)
   img1, img2 = img1.flatten(), img2.flatten()

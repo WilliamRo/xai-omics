@@ -16,6 +16,7 @@ def normalize(arr: np.array):
 
 
 def windows_choose(distr: np.ndarray, windows_size):
+  assert np.NaN not in distr
   x = np.linspace(0, distr.shape[0] - 1, distr.shape[0])
   result = np.random.choice(x, p=distr)
   result = result - windows_size / 2
@@ -31,26 +32,21 @@ def get_random_window(arr: np.ndarray, window_size=128, slice_size=16,
                       true_rand=False):
   # for Gamma test
   # arr = np.where(arr != 0, 1, arr)
-  s = np.random.randint(arr.shape[1] - slice_size + 1)
+  # s = np.random.randint(arr.shape[1] - slice_size + 1)
   index = np.random.randint(arr.shape[0])
 
-  if true_rand:
-    h = np.random.randint(arr.shape[2] - window_size + 1)
-    w = np.random.randint(arr.shape[3] - window_size + 1)
-  else:
-    arr = arr[index:index+1]
-    arr = np.where(arr != 0, 1, arr)
-  # arr_pro = np.add.reduce(arr, axis=2)
-  # distr_s = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
-    arr = arr[:, s:s+slice_size]
-    arr_pro = np.add.reduce(arr, axis=1)
-    arr_pro = np.add.reduce(arr_pro, axis=3)
-    distr_w = normalize(np.add.reduce(arr_pro, axis=1).reshape((-1)))
-    distr_h = normalize(np.add.reduce(arr_pro, axis=2).reshape((-1)))
-  # print(h,w)
-  # s = windows_choose(distr_s, slice_size)
-    h = windows_choose(distr_h, window_size)
-    w = windows_choose(distr_w, window_size)
+  arr = arr != 0
+  arr = arr[index, :, :, :, 0]
+  s_arr = np.any(arr == 1, axis=(1, 2))
+  h_arr = np.any(arr == 1, axis=(0, 2))
+  w_arr = np.any(arr == 1, axis=(0, 1))
+  distr_s = normalize(s_arr.reshape((-1)))
+  distr_w = normalize(h_arr.reshape((-1)))
+  distr_h = normalize(w_arr.reshape((-1)))
+
+  s = windows_choose(distr_s, slice_size)
+  h = windows_choose(distr_h, window_size)
+  w = windows_choose(distr_w, window_size)
 
   return index, s, h, w
 
@@ -80,14 +76,19 @@ def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
 
 if __name__ == '__main__':
   from xomics import MedicalImage
-  from xomics.data_io.reader.uld_reader import UldReader
+  from xomics.objects.general_mi import GeneralMI
   from xomics.gui.dr_gordon import DrGordon
+  import SimpleITK as sitk
 
-  path = '../'
-  reader = UldReader(path)
-  a = reader.load_data([1, 5, 12], "1-4")
-  b = reader.load_data([1, 5, 12], "Full")
-  num = 25
+  a = GeneralMI.load_img('../06_puadap/raw_data/YHP00012417-low.nii.gz')
+  b = GeneralMI.load_img('../06_puadap/raw_data/YHP00012417-full.nii.gz')
+
+  a = sitk.GetArrayFromImage(a)
+  a = np.expand_dims(a, axis=[-1, 0])
+  b = sitk.GetArrayFromImage(b)
+  b = np.expand_dims(b, axis=[-1, 0])
+
+  num = 4
   img_f, img_t = gen_windows(a, b, num, true_rand=False)
   # print(len(img))
   # print(a.shape, img[0].shape)
