@@ -57,6 +57,10 @@ class RLDViewer(SliceView):
                            'Color map for delta view')
     self.new_settable_attr('delta_vmax', None, float,
                            'Max abs value for delta view')
+    self.new_settable_attr('show_fft', False, bool,
+                           'toggle show fft')
+    self.new_settable_attr('fft_vmax', None, float,
+                           'Max value of fft')
 
 
   def view_slice(self, fig: plt.Figure, ax: plt.Axes, x: int):
@@ -69,7 +73,7 @@ class RLDViewer(SliceView):
     full_dose_vol: np.ndarray = mi.images[full_key][::-1]
 
     ps = [1.65]*2
-    ss = 3.0
+    ss = 1.497
     aspect = ps[1]/ps[0]
     sag_aspect = ps[1] / ss
     cor_aspect = ss / ps[0]
@@ -102,6 +106,9 @@ class RLDViewer(SliceView):
 
       im = ax.imshow(delta, cmap=self.get('delta_cmap'), vmin=-abs_vmax,
                      vmax=abs_vmax)
+    elif self.get('show_fft'):
+      im = ax.imshow(np.abs(np.fft.fftshift(np.fft.fft2(image))), cmap='jet',
+                     vmax=self.get('fft_vmax'))
     else:
       simage = image.copy()
 
@@ -320,7 +327,9 @@ class RLDViewer(SliceView):
     self.register_a_shortcut(
       'x', lambda: pro_move(1),
       'profile down')
-
+    self.register_a_shortcut(
+      'f', lambda: self.flip('show_fft'),
+      'Toggle show fft')
   # endregion: Shortcuts
 
 
