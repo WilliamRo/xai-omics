@@ -16,7 +16,7 @@ def probe(trainer: Trainer):
 
   alpha = 0.9
   if trainer.batch_loss_stats[loss_lesion_slot].running_average/alpha < 0.5:
-    alpha = 0.3
+    alpha = 0.7
   set_region_alpha(alpha)
 
   return f'Current alpha: {alpha}'

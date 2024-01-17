@@ -60,12 +60,19 @@ class Indexer:
       start = item.start if item.start else 0
       stop = item.stop if item.stop else len(self)
       step = item.step if item.step else 1
-      iterator = iter(range(start, stop, step))
+      if start > stop:
+        start, stop = stop+1, start+1
+      if step < 0:
+        iterator = iter(range(start, stop, -step))
+      else:
+        iterator = iter(range(start, stop, step))
       data = []
       for num, i in enumerate(iterator):
         console.print_progress(num, int((stop-start)/step))
         data.append(self.get_data(i))
       console.clear_line()
+      if step < 0:
+        data.reverse()
       return data
     elif isinstance(item, str):
       return self._data[item]
@@ -158,6 +165,19 @@ class Dicter(ImgIndexer):
     return ImgIndexer(self.PROCESS_FUNC, self._obj, key_name=self.key_name,
                       name=self.name, types=item)
 
+  # medical_image compatible
+  def __len__(self):
+    if self.name == 'images':
+      return len(self._obj.image_keys)
+    elif self.name == 'labels':
+      return len(self._obj.label_keys)
+
+  def keys(self):
+    if self.name == 'images':
+      return self._obj.image_keys
+    elif self.name == 'labels':
+      return self._obj.label_keys
+
 
 
 class GeneralMI:
@@ -173,6 +193,7 @@ class GeneralMI:
 
     self._image_keys, self._label_keys = [], []
     self.images_dict = images_dict
+    self.custom_dict = {}
     self.image_keys = image_keys
     self.label_keys = label_keys
 
@@ -192,6 +213,7 @@ class GeneralMI:
     return len(self.pid)
 
   def __getitem__(self, item):
+    assert item is not np.int_
     pid = self.pid[item]
     image_dict = copy.deepcopy(self.images_dict)
     for key in image_dict.keys():
@@ -215,8 +237,7 @@ class GeneralMI:
     if type == 'MASK':
       pass
     elif type == 'PET':
-      new_img = self.suv_transform(new_img, data['path'][item].
-                                   replace(self.IMG_TYPE, self.PRO_TYPE))
+      new_img = self.suv_transform(new_img, self.get_tags(item))
       if self.process_param.get('percent'):
         new_img = self.percentile(new_img, self.process_param['percent'])
     elif type == 'CT':
@@ -304,14 +325,37 @@ class GeneralMI:
       img.SetSpacing(refer_img.GetSpacing())
     sitk.WriteImage(img, filepath)
 
-  @staticmethod
-  def load_img(filepath):
-    assert isinstance(filepath, str)
-    return sitk.ReadImage(filepath)
+  def get_tags(self, item):
+    filepath = self.images_dict['240S']['path'][item].replace(self.IMG_TYPE,
+                                                              self.PRO_TYPE)
+    return joblib.load(filepath)
+
+  def get_stat(self):
+    stat_dict = {
+      'sex': [],
+      'weight': [],
+      'age': [],
+      'dose': []
+    }
+    for i in range(len(self.pid)):
+      tag = self.get_tags(i)
+      stat_dict['sex'].append(tag['PatientSex'])
+      stat_dict['weight'].append(int(tag['PatientWeight']))
+      stat_dict['age'].append(int(tag['PatientAge'][:-1]))
+      stat_dict['dose'].append(int(tag['RadiopharmaceuticalInformationSequence'][0]
+                      ['RadionuclideTotalDose'].value//1000000))
+    return stat_dict
 
   @staticmethod
-  def suv_transform(img, path):
-    tag = joblib.load(path)
+  def load_img(filepath, array=False):
+    assert isinstance(filepath, str)
+    if not array:
+      return sitk.ReadImage(filepath)
+    else:
+      return sitk.GetArrayFromImage(sitk.ReadImage(filepath))
+
+  @staticmethod
+  def suv_transform(img, tag):
     suv_factor, _, _ = get_suv_factor(tag)
     return sitk.ShiftScale(img, 0, suv_factor)
 
@@ -378,6 +422,11 @@ class GeneralMI:
   def STD_key(self):
     return self.img_type['STD'][0]
 
+  # region: medical_image compatible
+
+
+  # region: end
+
 
 
 
@@ -405,7 +454,7 @@ if __name__ == '__main__':
 
   test = GeneralMI(img_dict, ['30G', 'CT', 'CT_seg'], ['240G'], pid, img_type=img_type)
   # test.process_param['norm'] = 'PET'
-  test.process_param['shape'] = [440, 440, 256]
+  test.process_param['shape'] = [440, 440, 480]
   test.process_param['percent'] = 99.9
   # test.process_param['ct_window'] = [50, 500]
 

@@ -33,7 +33,7 @@ def calc_metric(arr1, arr2, metric='mse', data_range=1.0):
     raise ValueError('Unsupported Metric')
 
 
-def get_metrics(arr1, arr2, metrics: list, data_range=1.0):
+def get_metrics(truth, output, metrics: list, data_range=1.0):
   """
   :param arr1: truth
   :param arr2: predict
@@ -43,6 +43,6 @@ def get_metrics(arr1, arr2, metrics: list, data_range=1.0):
   """
   result = {}
   for metric in metrics:
-    result[metric] = calc_metric(arr1, arr2, metric, data_range)
+    result[metric] = calc_metric(truth, output, metric, data_range)
 
   return result

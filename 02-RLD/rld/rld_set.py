@@ -152,18 +152,18 @@ class RLDSet(DataSet):
 
     features = self.images_raw
     targets = self.labels_raw
-    if th.gen_test_nii:
+    if th.gen_test_nii or True:
       for pid, feature, target, seg in zip(self.pid, features, targets, self.seg):
         data_path = os.path.join(dirpath, 'raw_data/')
         if not os.path.exists(data_path):
           os.makedirs(data_path)
-        low_path = os.path.join(data_path, f'{pid}-low.nii.gz')
-        full_path = os.path.join(data_path, f'{pid}-full.nii.gz')
+        # low_path = os.path.join(data_path, f'{pid}-low.nii.gz')
+        # full_path = os.path.join(data_path, f'{pid}-full.nii.gz')
         seg_path = os.path.join(data_path, f'{pid}-seg.nii.gz')
         index = self.mi_data.index(pid)
-        GeneralMI.write_img(feature, low_path, self.images.itk[index])
-        GeneralMI.write_img(target, full_path, self.images.itk[index])
-        GeneralMI.write_img(self.seg, seg_path, self.images.itk[index])
+        # GeneralMI.write_img(feature, low_path, self.images.itk[index])
+        # GeneralMI.write_img(target, full_path, self.images.itk[index])
+        GeneralMI.write_img(seg, seg_path, self.images.itk[index])
 
     # Compare results using DrGordon
     medical_images = [
@@ -226,7 +226,7 @@ class RLDSet(DataSet):
     re.sv.set('vmin', auto_refresh=False)
     re.sv.set('vmax', auto_refresh=False)
     re.sv.set('full_key', 'Full')
-    re.sv.set('cmap', 'hot')
+    re.sv.set('cmap', 'gist_yarg')
     re.sv.set('vmax', 5.0)
     re.show()
 

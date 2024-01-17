@@ -88,7 +88,7 @@ def main(_):
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
   th.suffix = ''
-  th.suffix += f'_w{th.window_size}_s{th.slice_size}_new'
+  th.suffix += f'_w{th.window_size}_s{th.slice_size}'
 
 
   th.visible_gpu_id = 0

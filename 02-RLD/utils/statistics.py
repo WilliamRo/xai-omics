@@ -150,25 +150,49 @@ def metric_text(ax, ax_psnr, metric, x, width):
                    ha='center', va='bottom')
 
 
-def hist_joint(fig, ax, img1, img2, xlable, ylabel, min_val, max_val):
+def hist_joint(fig, ax, img1, img2, xlable, ylabel, min_val, max_val, bins=600):
   img1, img2 = np.vstack(img1), np.vstack(img2)
   img1, img2 = img1.flatten(), img2.flatten()
   epsilon = 1e-10
   img1[img1 <= 0], img2[img2 <= 0] = epsilon, epsilon
+
   # print(img1.shape, img2.shape)
   img1, img2 = np.log(img1), np.log(img2)
-  hist2D, x_edges, y_edges = np.histogram2d(img1, img2, bins=600,
+  hist2D, x_edges, y_edges = np.histogram2d(img1, img2, bins=bins,
                                             range=[[min_val, max_val],
                                                    [min_val, max_val]])
   # print(x_edges, y_edges)
+  pos = np.nonzero(hist2D)
+  x = x_edges[pos[0]]
+  y = y_edges[pos[1]]
+  coefficients = np.polyfit(x, y, 1)
+  k = coefficients[0]
+  b = coefficients[1]
+  x1 = np.arange(-3, 3)
+  y1 = k * x1 + b
+
+  p = np.poly1d(coefficients)
+  y_pred = p(x)  # 预测值
+  residuals = y - y_pred  # 残差
+  ssr = np.sum(residuals ** 2)  # 残差平方和
+  sst = np.sum((y - np.mean(y)) ** 2)  # 总平方和
+  r_squared = 1 - (ssr / sst)  # R方
+
   im = ax.imshow(hist2D.T, origin='lower', cmap='jet',
                  extent=[min_val, max_val, min_val, max_val])
+
+  ax.plot(x1, y1, color='white', linestyle='--')
+  equation = f'$y = {k:.2f}x{b:+.2f}, R^2 = {r_squared:.2f}$'
+  ax.text(-2, 2, equation, color='white')
+
   ax.set_xticks(np.arange(min_val, max_val + 1))
   ax.set_yticks(np.arange(min_val, max_val + 1))
   ax.set_xlabel(xlable)
   ax.set_ylabel(ylabel)
   ax.set_title('Joint Voxel Histogram - Log Scale')
   fig.colorbar(im)
+
+  return coefficients
 
 
 def violin_plot_roi(ax, data, seg, roi, percent=99.9):

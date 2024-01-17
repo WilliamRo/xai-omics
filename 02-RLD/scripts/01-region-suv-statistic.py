@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from utils.statistics import regions, load_suv_stat, \
-  load_metric_stat
+  load_metric_stat, draw_one_bar, set_ax
 from xomics.objects.general_mi import GeneralMI
 
 
@@ -53,12 +53,12 @@ if __name__ == '__main__':
   fig, axs = plt.subplots(2, 2, figsize=(32, 12))
   fig.subplots_adjust(hspace=0.5, wspace=0.5)
 
-  # draw_one_bar(axs[1][0], x, suv_max_30, width, roi, '30s Gated')
-  # draw_one_bar(axs[1][0], x+width, suv_max_240, width, roi, '240s Gated')
-  #
-  # draw_one_bar(axs[1][1], x, suv_mean_30, width, roi, '30s Gated')
-  # draw_one_bar(axs[1][1], x+width, suv_mean_240, width, roi, '240s Gated')
-  # set_ax([axs[1][0], axs[1][1]], ['$SUV_{max}$', '$SUV_{mean}$'], x, roi)
+  draw_one_bar(axs[1][0], x, suv_max_30, width, roi, '30s Gated')
+  draw_one_bar(axs[1][0], x+width, suv_max_240, width, roi, '240s Gated')
+
+  draw_one_bar(axs[1][1], x, suv_mean_30, width, roi, '30s Gated')
+  draw_one_bar(axs[1][1], x+width, suv_mean_240, width, roi, '240s Gated')
+  set_ax([axs[1][0], axs[1][1]], ['$SUV_{max}$', '$SUV_{mean}$'], x, roi)
   #
   metrics = ['SSIM', 'NRMSE', 'RELA', 'PSNR']
   input_metric = load_metric_stat(test.labels['240G'][:2], test.images['30G'][:2],
