@@ -12,8 +12,8 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'uadap'
-id = 3
+model_name = 'segua'
+id = 8
 def model():
   th = core.th
   model = m.get_initial_model()
@@ -33,6 +33,7 @@ def model():
   # unet.append(m.Clip(0, 1.0))
 
   vertices = [
+    m.ChannelSplit(0),
     m.GaussianPyramid3D(kernel_size=th.kernel_size, sigmas=sigmas),
     m.mu.Merge.Concat(),
     unet,
@@ -40,7 +41,13 @@ def model():
     weights,
     m.WeightedSum(),
   ]
-  edges = '1;11;100;0011;00001;000011'
+  edges = '1;' \
+          '01;' \
+          '011;' \
+          '1000;' \
+          '00011;' \
+          '000001;' \
+          '0000011'
   model.add(m.mu.ForkMergeDAG(vertices, edges))
   return m.finalize(model)
 
@@ -73,8 +80,10 @@ def main(_):
     'clip': None,  # [1, None]
   }
 
+  th.use_seg = [5, 10, 11, 12, 13, 14, 51]
+
   th.noCT = True
-  if th.noCT:
+  if th.noCT and not th.use_seg:
     th.input_shape[-1] = 1
   # th.use_suv = False
 
@@ -85,7 +94,7 @@ def main(_):
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
   th.suffix = ''
-  th.suffix += f'_w{th.window_size}_s{th.slice_size}'
+  th.suffix += f'_w{th.window_size}_s{th.slice_size}_new'
 
 
   th.visible_gpu_id = 0

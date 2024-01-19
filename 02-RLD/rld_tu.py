@@ -15,8 +15,8 @@ def probe(trainer: Trainer):
   assert isinstance(loss_lesion_slot, TensorSlot)
 
   alpha = 0.9
-  if trainer.batch_loss_stats[loss_lesion_slot].running_average/alpha < 0.5:
-    alpha = 0.7
+  if trainer.batch_loss_stats[loss_lesion_slot].running_average/alpha < 0.4:
+    alpha = 0.3
   set_region_alpha(alpha)
 
   return f'Current alpha: {alpha}'

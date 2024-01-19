@@ -65,7 +65,7 @@ def main(_):
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
-  th.data_shape = [480, 440, 440]
+  th.data_shape = [560, 440, 440]
 
   th.data_set = ['30G', '240G']
   th.process_param = {

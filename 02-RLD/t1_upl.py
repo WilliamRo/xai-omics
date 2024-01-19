@@ -81,7 +81,7 @@ def main(_):
   th.window_size = 128
   th.slice_size = 128
   # th.eval_window_size = 128
-  th.data_shape = [256, 440, 440]
+  th.data_shape = [560, 440, 440]
   # th.input_shape = th.data_shape + [2]
 
 
