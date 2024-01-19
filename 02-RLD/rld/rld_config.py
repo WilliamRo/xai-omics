@@ -35,6 +35,8 @@ class RLDConfig(SmartTrainerHub):
   internal_loss = Flag.boolean(False, 'use internal loss', is_key=None)
   statistics = Flag.boolean(False, 'use statistics', is_key=None)
 
+  use_seg = Flag.whatever(None, 'use segmentation', is_key=None)
+
   @property
   def data_arg(self) -> Arguments:
     return Arguments.parse(self.data_config)

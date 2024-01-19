@@ -15,3 +15,17 @@ class Clip(Layer):
   def _link(self, x: tf.Tensor, **kwargs):
     y = tf.clip_by_value(x, self.min, self.max)
     return y
+
+
+class ChannelSplit(Layer):
+
+  def __init__(self, channel: int):
+    self.channel = channel
+
+    self.full_name = f'Channel_{channel}_Split'
+    self.abbreviation = self.full_name
+
+  @single_input
+  def _link(self, x: tf.Tensor, **kwargs):
+    return x[:, ..., self.channel:self.channel + 1]
+

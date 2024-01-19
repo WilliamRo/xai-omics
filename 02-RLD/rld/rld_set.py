@@ -245,8 +245,17 @@ class RLDSet(DataSet):
 
     features = self.images[subjects]
     targets = self.labels[subjects]
+    segs = self.seg[subjects]
 
     features = np.expand_dims(np.stack(features, axis=0), axis=-1)
+
+    if th.use_seg is not None:
+      onehot = np.zeros_like(features, dtype=bool)
+      for i, seg in enumerate(segs):
+        onehot[i] = np.expand_dims(self.mi_data.mask2onehot(seg, th.use_seg),
+                                   axis=-1)
+      features = np.concatenate([features, onehot], axis=-1)
+
     if not th.noCT:
       ct = self.mi_data.images['CT'][subjects]
       cts = np.expand_dims(np.stack(ct, axis=0), axis=-1)
