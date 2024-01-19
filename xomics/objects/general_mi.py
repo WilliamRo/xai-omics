@@ -6,7 +6,8 @@ import joblib
 from roma import console
 from xomics import MedicalImage
 from xomics.data_io.utils.preprocess import get_suv_factor
-from xomics.data_io.utils.raw_rw import reshape_image, resize_image_itk
+from xomics.data_io.utils.raw_rw import reshape_image, resize_image_itk, \
+  resample_image_by_spacing
 
 
 #  images_dict =
@@ -234,9 +235,13 @@ class GeneralMI:
 
   def pre_process(self, img, data, key_name, name, item, type):
     new_img = img
+
     if type == 'MASK':
-      pass
-    elif type == 'PET':
+      new_img = resample_image_by_spacing(new_img, (1.0, 1.0, 1.0), sitk.sitkNearestNeighbor)
+    else:
+      new_img = resample_image_by_spacing(new_img, (1.0, 1.0, 1.0))
+
+    if type == 'PET':
       new_img = self.suv_transform(new_img, self.get_tags(item))
       if self.process_param.get('percent'):
         new_img = self.percentile(new_img, self.process_param['percent'])
@@ -253,7 +258,6 @@ class GeneralMI:
         new_img = resize_image_itk(new_img, self.images[std_type].itk[0])
       elif std_type in self.label_keys:
         new_img = resize_image_itk(new_img, self.labels[std_type].itk[0])
-
     if self.process_param.get('crop'):
       new_img = GeneralMI.crop_by_margin(new_img, self.process_param['crop'])
     if self.process_param.get('shape'):
@@ -369,6 +373,12 @@ class GeneralMI:
       img = sitk.DivideReal(img, float(refer_max))
     return img
 
+  @staticmethod
+  def mask2onehot(seg, labels: list):
+    onehot = np.zeros_like(seg, dtype=bool)
+    onehot[np.isin(seg, labels)] = True
+    return onehot
+
   @property
   def images(self):
     return Dicter(self.data_process, self, key_name='img', name='images')
@@ -422,6 +432,29 @@ class GeneralMI:
   def STD_key(self):
     return self.img_type['STD'][0]
 
+  @classmethod
+  def get_test_sample(cls, csv_path):
+    img_dict = {}
+    data = np.genfromtxt(csv_path, delimiter=',',
+                         dtype=str)
+    types = data[0][1:]
+    pid = data[1:, 0]
+    path_array = data[1:, 1:]
+
+    for i, type_name in enumerate(types):
+      img_path = path_array[:, i]
+      img_dict[type_name] = {'path': img_path}
+
+    img_type = {
+      'CT': ['CT'],
+      'PET': ['30G', '240G'],
+      'MASK': ['CT_seg'],
+      'STD': ['30G']
+    }
+    test = cls(img_dict, ['30G', 'CT', 'CT_seg'], ['240G'], pid,
+               img_type=img_type)
+    return test
+
   # region: medical_image compatible
 
 
@@ -434,37 +467,23 @@ class GeneralMI:
 
 if __name__ == '__main__':
   from dev.explorers.rld_explore.rld_explorer import RLDExplorer
+  csv_path = r'../../data/02-RLD/rld_data.csv'
 
-  img_dict = {}
-  data = np.genfromtxt('../../data/02-RLD/rld_data.csv', delimiter=',', dtype=str)
-  types = data[0][1:]
-  pid = data[1:, 0]
-  path_array = data[1:, 1:]
-
-  for i, type_name in enumerate(types):
-    img_path = path_array[:, i]
-    img_dict[type_name] = {'path': img_path}
-
-  img_type = {
-    'CT': ['CT'],
-    'PET': ['240G'],
-    'MASK': ['CT_seg'],
-    'STD': ['30G']
-  }
-
-  test = GeneralMI(img_dict, ['30G', 'CT', 'CT_seg'], ['240G'], pid, img_type=img_type)
+  test = GeneralMI.get_test_sample(csv_path)
   # test.process_param['norm'] = 'PET'
-  test.process_param['shape'] = [440, 440, 480]
-  test.process_param['percent'] = 99.9
+  test.process_param['shape'] = [440, 440, 560]
+  # test.process_param['percent'] = 99.9
   # test.process_param['ct_window'] = [50, 500]
 
   # test.LOW_MEM = True
-  img = test.images['CT'][0]
-  img2 = test.labels['240G'][0]
+  num = 90
+  img = test.images['CT'][num]
+  img2 = test.labels['240G'][num]
 
+  # onehot = test.mask2onehot(test.images['CT_seg'][0], [5, 10, 11, 12, 13, 14, 51])
   print(img.shape, img2.shape)
 
-  mi = MedicalImage('test', images={'t1': img, 't2': img2, 'seg':test.images[1][0]})
+  mi = MedicalImage(test.pid[num], images={'t1': img, 't2': img2,})
   re = RLDExplorer([mi])
   re.sv.set('vmin', auto_refresh=False)
   re.sv.set('vmax', auto_refresh=False)

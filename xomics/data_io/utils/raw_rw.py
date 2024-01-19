@@ -149,6 +149,32 @@ def itk_norm(data, vmax, vmin=0):
   filters.SetOutputMinimum(vmin)
   return filters.Execute(data)
 
+def resample_image_by_spacing(image, new_spacing, method=sitk.sitkLinear):
+  original_spacing = image.GetSpacing()
+  original_size = image.GetSize()
+
+  # 计算缩放因子
+  spacing_ratio = [osp / nsp for osp, nsp in
+                   zip(original_spacing, new_spacing)]
+  new_size = [int(osz * sr) for osz, sr in zip(original_size, spacing_ratio)]
+
+  # 创建一个Resample滤波器
+  resample = sitk.ResampleImageFilter()
+  resample.SetOutputSpacing(new_spacing)
+  resample.SetSize(new_size)
+  resample.SetOutputOrigin(image.GetOrigin())
+  resample.SetOutputDirection(image.GetDirection())
+
+  if method == sitk.sitkNearestNeighbor:
+    resample.SetOutputPixelType(sitk.sitkUInt8)  # 近邻插值用于mask的，保存uint8
+  else:
+    resample.SetOutputPixelType(sitk.sitkFloat32)
+  resample.SetInterpolator(method)
+  # 执行重采样
+  resampled_image = resample.Execute(image)
+
+  return resampled_image
+
 
 def resize_image(original_image, target_size, resamplemethod=sitk.sitkLinear):
   original_spacing = original_image.GetSpacing()

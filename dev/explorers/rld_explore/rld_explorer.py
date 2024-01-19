@@ -72,12 +72,12 @@ class RLDViewer(SliceView):
     full_key = self.get('full_key')
     full_dose_vol: np.ndarray = mi.images[full_key][::-1]
 
-    ps = [1.65]*2
-    ss = 1.497
+    ps = [1.0]*2
+    ss = 1.0
     aspect = ps[1]/ps[0]
     sag_aspect = ps[1] / ss
     cor_aspect = ss / ps[0]
-
+    # todo: title bug
     if self.get('view_point') == 'cor':
       selected_vol = selected_vol.swapaxes(0, 1)
       full_dose_vol = full_dose_vol.swapaxes(0, 1)
