@@ -22,12 +22,12 @@ for _ in range(DIR_DEPTH):
   if sys.path[0] != ROOT: sys.path.insert(0, ROOT)
 # =============================================================================
 from tframe import console
-from tframe import Predictor
+from tframe import Classifier
 
-from eso.eso_config import ESOConfig as Hub
+from fc.fc_config import FCConfig as Hub
 
-import eso_du as du
-import eso_tu as tu
+import fc_du as du
+import fc_tu as tu
 
 
 # -----------------------------------------------------------------------------
@@ -35,7 +35,7 @@ import eso_tu as tu
 # -----------------------------------------------------------------------------
 th = Hub(as_global=True)
 th.config_dir()
-th.data_dir = os.path.join(ROOT, '25-ESO/data')
+th.data_dir = os.path.join(ROOT, '27-FC/data')
 
 # -----------------------------------------------------------------------------
 # Device configuration
@@ -46,15 +46,13 @@ th.gpu_memory_fraction = 0.8
 # -----------------------------------------------------------------------------
 # Data configuration
 # -----------------------------------------------------------------------------
-th.ratio_of_dataset = '80:10:18'
-th.window = [-300, 400]
-th.crop_size = [128, 512, 512]
-# th.input_shape = [None, None, None, 3]
-th.input_shape = [128, 256, 256, 3]
-
-th.random_flip = True
-th.random_rotation = True
-th.random_noise = True
+th.input_shape = [1051, 2]
+th.input_shape = [12]
+if th.label_type in ['trg_01_23', 'trg_012_3']:
+  th.num_classes = 2
+else:
+  th.num_classes = 3
+th.dim = 1
 # -----------------------------------------------------------------------------
 # Set common trainer configs
 # -----------------------------------------------------------------------------
@@ -62,7 +60,7 @@ th.early_stop = True
 th.patience = 5
 
 th.print_cycle = 2
-th.updates_per_round = 20
+th.updates_per_round = 50
 th.validation_per_round = 1
 
 th.export_tensors_upon_validation = True
@@ -81,7 +79,7 @@ def activate():
   # Build model
   assert callable(th.model)
   model = th.model()
-  assert isinstance(model, Predictor)
+  assert isinstance(model, Classifier)
 
   print(f'th.archi_string: {th.archi_string}\n')
   # Rehearse if required
@@ -93,7 +91,15 @@ def activate():
     structure = model.structure_detail[0]
     element = structure.split('\n')
     parameter_total = 0
-    pattern = r' \d+x\d+x\d+x\d+ '
+    if th.dim == 3:
+      pattern = r' \d+x\d+x\d+x\d+ '
+    elif th.dim == 2:
+      pattern = r' \d+x\d+x\d+ '
+    elif th.dim == 1:
+      pattern = r' \d+x\d+ '
+    else:
+      assert TypeError('dim is wrong !!!')
+
     import re
     from functools import reduce
 
@@ -123,16 +129,20 @@ def activate():
     model.train(training_set=train_set, validation_set=val_set,
                 test_set=test_set, trainer_hub=th, probe=tu.probe,
                 evaluate=tu.evaluate)
-  else:
-    from eso.eso_set import ESOSet
-    assert isinstance(test_set, ESOSet)
-    test_set.test_model(model)
-    val_set.test_model(model)
-    train_set.test_model(model)
-    # test_set.get_pred_mask_as_nii(model)
-    # val_set.get_pred_mask_as_nii(model)
-    # train_set.get_pred_mask_as_nii(model)
 
+    model.agent.load()
+  else:
+    from fc.fc_set import FCSet
+    assert isinstance(test_set, FCSet)
+    test_set.test_model(model)
+    # val_set.test_model(model)
+    # train_set.test_model(model)
+
+  for ds in (train_set, val_set, test_set):
+    model.evaluate_pro(
+      ds, batch_size=1, show_class_detail=True, export_false=True,
+      show_confusion_matrix=True)
+  test_set.test_model(model)
 
   # End
   model.shutdown()

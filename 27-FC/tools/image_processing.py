@@ -64,7 +64,7 @@ def crop_3d(input_data: list, crop_size: list,
     output_data.append(
       arr[bottom[0]:top[0], bottom[1]:top[1], bottom[2]:top[2]])
 
-  return output_data, bottom, [r - t for r, t in zip(raw_shape, top)]
+  return output_data
 
 
 def get_bottom_top(max_indices, min_indices,

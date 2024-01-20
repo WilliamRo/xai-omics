@@ -4,6 +4,7 @@ import numpy as np
 import math
 import os
 import tensorflow as tf
+import SimpleITK as sitk
 
 from tframe import DataSet
 from roma import console
@@ -41,7 +42,7 @@ class ESOSet(DataSet):
 
 
           # Data Augmentation
-          cropped_data = image_processing.crop_3d(
+          cropped_data, _, _ = image_processing.crop_3d(
             [ct, pet, target, region_mask], crop_size,
             th.random_crop, [target])
 
@@ -95,7 +96,7 @@ class ESOSet(DataSet):
           region_mask = feature[:, :, :, 2]
 
           # Data Augmentation
-          cropped_data = image_processing.crop_3d(
+          cropped_data, _, _ = image_processing.crop_3d(
             [ct, pet, target, region_mask], crop_size, False, [target])
 
           ct, pet, target, region_mask = (cropped_data[0], cropped_data[1],
@@ -150,7 +151,7 @@ class ESOSet(DataSet):
       pet = f[..., 1]
       region_mask = f[..., 2]
 
-      cropped_data = image_processing.crop_3d(
+      cropped_data, _, _ = image_processing.crop_3d(
         [ct, pet, t, region_mask], crop_size, False, [t])
 
       ct, pet, t, region_mask = (
@@ -173,6 +174,34 @@ class ESOSet(DataSet):
     dg.slice_view.set('vmax', auto_refresh=False)
     dg.slice_view.set('vmin', auto_refresh=False)
     dg.show()
+
+  def get_pred_mask_as_nii(self, model):
+    from tframe import Predictor
+    assert isinstance(model, Predictor)
+
+    print(f'Test Model in {self.name}')
+    crop_size = [128, 256, 256]
+
+    pids = self.data_dict['pids'].tolist()
+    crop_info = self.data_dict['crop_info']
+    features = np.squeeze(self.features)
+    targets = np.squeeze(self.targets)
+    targets = targets.astype(np.float32)
+
+    assert len(features) == len(pids)
+    crop_info_dict = {}
+    for f, t, k, c in zip(features, targets, pids, crop_info):
+      ct = f[..., 0]
+      pet = f[..., 1]
+
+      ss = image_processing.crop_3d([ct, pet, t], crop_size, False, [t])
+      crop_info_dict[k] = [c.tolist() + [ss[-2], ss[-1]]]
+
+    import pickle
+    save_path = r'E:\xai-omics\data\02-PET-CT-Y1\results\25-ESO\nii\1126_(25-ESO)_unet(4-5-4-1-relu-mp)_Sc_11mask'
+    save_name = f'crop_info_{self.name}.pkl'
+    with open(os.path.join(save_path, save_name), 'wb') as pickle_file:
+      pickle.dump(crop_info_dict, pickle_file)
 
 
   def dice_accuarcy(self, ground_truth, prediction):
