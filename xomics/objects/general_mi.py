@@ -127,9 +127,12 @@ class ImgIndexer(ItkIndexer):
         img = self._obj.images_raw[self.type_name].itk[item]
       elif self.name == 'labels':
         img = self._obj.labels_raw[self.type_name].itk[item]
-      self.data[self.key_name][item] = self.PROCESS_FUNC(img, self.data,
-                                                         self.type_name, self.name,
-                                                         item, self.type)
+      if self.PROCESS_FUNC is None:
+        self.data[self.key_name][item] = img
+      else:
+        self.data[self.key_name][item] = self.PROCESS_FUNC(img, self.data,
+                                                           self.type_name, self.name,
+                                                           item, self.type)
     tmp = self.data[self.key_name][item]
     if self._obj.LOW_MEM:
       self.data[self.key_name][item] = None
@@ -385,7 +388,7 @@ class GeneralMI:
 
   @property
   def images_raw(self):
-    return Dicter(self.raw_process, self, key_name='img_itk', name='images')
+    return Dicter(None, self, key_name='img_itk', name='images')
 
   @property
   def labels(self):
@@ -393,7 +396,7 @@ class GeneralMI:
 
   @property
   def labels_raw(self):
-    return Dicter(self.raw_process, self, key_name='img_itk', name='labels')
+    return Dicter(None, self, key_name='img_itk', name='labels')
 
   @property
   def image_keys(self):
@@ -447,11 +450,11 @@ class GeneralMI:
 
     img_type = {
       'CT': ['CT'],
-      'PET': ['30G', '240G'],
+      'PET': ['30G', '40S', '60G', '240G'],
       'MASK': ['CT_seg'],
       'STD': ['30G']
     }
-    test = cls(img_dict, ['30G', 'CT', 'CT_seg'], ['240G'], pid,
+    test = cls(img_dict, ['30G', '60G', '40S', 'CT', 'CT_seg'], ['240G'], pid,
                img_type=img_type)
     return test
 
@@ -470,15 +473,15 @@ if __name__ == '__main__':
   csv_path = r'../../data/02-RLD/rld_data.csv'
 
   test = GeneralMI.get_test_sample(csv_path)
-  # test.process_param['norm'] = 'PET'
+  test.process_param['norm'] = 'PET'
   test.process_param['shape'] = [440, 440, 560]
   # test.process_param['percent'] = 99.9
   # test.process_param['ct_window'] = [50, 500]
 
   # test.LOW_MEM = True
   num = 90
-  img = test.images['CT'][num]
-  img2 = test.labels['240G'][num]
+  img = test.images['60G'][num]
+  img2 = test.images_raw['60G'][num]
 
   # onehot = test.mask2onehot(test.images['CT_seg'][0], [5, 10, 11, 12, 13, 14, 51])
   print(img.shape, img2.shape)
