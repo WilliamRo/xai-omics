@@ -53,8 +53,7 @@ def relative_loss(truth, output):
   return res
 
 
-alpha = tf.get_variable('internal_alpha', dtype=tf.float32,
-                        initializer=0.9, trainable=False)
+
 
 def get_relative_loss(name='Rela-Loss'):
   from tframe import tf
@@ -65,7 +64,7 @@ def get_relative_loss(name='Rela-Loss'):
     a = tf.abs(truth - output) / (tf.maximum(truth, output) + 1e-8)
     res = tf.reduce_mean(a, axis=axis)
     if th.internal_loss:
-      res = tf.multiply(1-alpha, res)
+      res = tf.multiply(1-th.alpha, res)
     return res
 
   return Quantity(out_relative_loss, tf.reduce_mean, name=name,
@@ -83,6 +82,8 @@ def get_internal_rela_loss(model):
   # tf.add_to_collection(pedia.default_feed_dict, y_true)
   y_true = model._targets._op
 
+  alpha = tf.get_variable('internal_alpha', dtype=tf.float32,
+                          initializer=th.alpha, trainable=False)
   def set_internal_alpha(value):
     v_plchd = tf.placeholder(dtype=tf.float32, name='alpha_place_holder')
     op = tf.assign(alpha, v_plchd)

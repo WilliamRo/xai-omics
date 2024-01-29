@@ -150,19 +150,29 @@ class RLDSet(DataSet):
         os.makedirs(stat_path)
       self.evaluate_statistic(stat_path)
 
-    features = self.images_raw
-    targets = self.labels_raw
-    if th.gen_test_nii or True:
-      for pid, feature, target, seg in zip(self.pid, features, targets, self.seg):
+    if th.gen_test_nii:
+      self.mi_data.image_keys = ['30G', '240G', '40S', '60G', '240S', 'CT_seg']
+      for pid, seg in zip(self.pid, self.seg):
         data_path = os.path.join(dirpath, 'raw_data/')
         if not os.path.exists(data_path):
           os.makedirs(data_path)
-        # low_path = os.path.join(data_path, f'{pid}-low.nii.gz')
-        # full_path = os.path.join(data_path, f'{pid}-full.nii.gz')
+        path_30G = os.path.join(data_path, f'{pid}-30G.nii.gz')
+        path_240G = os.path.join(data_path, f'{pid}-240G.nii.gz')
+        path_40S = os.path.join(data_path, f'{pid}-40S.nii.gz')
+        path_60G = os.path.join(data_path, f'{pid}-60G.nii.gz')
+        path_240S = os.path.join(data_path, f'{pid}-240S.nii.gz')
         seg_path = os.path.join(data_path, f'{pid}-seg.nii.gz')
         index = self.mi_data.index(pid)
-        # GeneralMI.write_img(feature, low_path, self.images.itk[index])
-        # GeneralMI.write_img(target, full_path, self.images.itk[index])
+        GeneralMI.write_img(self.mi_data.images_raw['30G'][index],
+                            path_30G, self.images.itk[index])
+        GeneralMI.write_img(self.mi_data.images_raw['60G'][index],
+                            path_60G, self.images.itk[index])
+        GeneralMI.write_img(self.mi_data.images_raw['240G'][index],
+                            path_240G, self.images.itk[index])
+        GeneralMI.write_img(self.mi_data.images_raw['40S'][index],
+                            path_40S, self.images.itk[index])
+        GeneralMI.write_img(self.mi_data.images_raw['240S'][index],
+                            path_240S, self.images.itk[index])
         GeneralMI.write_img(seg, seg_path, self.images.itk[index])
 
     # Compare results using DrGordon
@@ -219,7 +229,7 @@ class RLDSet(DataSet):
 
       for ca, mi in zip(values, medical_images):
         for c in range(ca.shape[-1]):
-          mi.images[f'Candidate-{c}'] = ca[:, :, :, c:c+1]
+          mi.images[f'Candidate-{c}'] = ca[:, :, :, c]
 
     re = RLDExplorer(medical_images)
     self.mi_data.clean_mem()
@@ -243,11 +253,18 @@ class RLDSet(DataSet):
                                        replace=False))
     console.show_status(f'Fetching data from {th.data_kwargs["dataset"]} ...')
 
-    features = self.images[subjects]
+    if len(th.extra_data) > 0:
+      features = [self.images[subjects]]
+      features += [self.mi_data.images[k][subjects] for k in th.extra_data]
+      features = [np.expand_dims(np.stack(feature, axis=0), axis=-1)
+                  for feature in features]
+      features = np.concatenate(features, axis=-1)
+    else:
+      features = self.images[subjects]
+      features = np.expand_dims(np.stack(features, axis=0), axis=-1)
+
     targets = self.labels[subjects]
     segs = self.seg[subjects]
-
-    features = np.expand_dims(np.stack(features, axis=0), axis=-1)
 
     if th.use_seg is not None:
       onehot = np.zeros_like(features, dtype=bool)
@@ -261,6 +278,8 @@ class RLDSet(DataSet):
       cts = np.expand_dims(np.stack(ct, axis=0), axis=-1)
       # print(cts.shape, features.shape)
       features = np.concatenate([features, cts], axis=-1)
+
+
 
     self.features = features
     self.targets = np.expand_dims(np.stack(targets, axis=0), axis=-1)

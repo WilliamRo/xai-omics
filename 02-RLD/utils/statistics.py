@@ -162,9 +162,12 @@ def hist_joint(fig, ax, img1, img2, xlable, ylabel, min_val, max_val, bins=600):
                                             range=[[min_val, max_val],
                                                    [min_val, max_val]])
   # print(x_edges, y_edges)
-  pos = np.nonzero(hist2D)
-  x = x_edges[pos[0]]
-  y = y_edges[pos[1]]
+  hist2D = hist2D.T.astype(np.int64)
+  nonzero_coords = np.transpose(np.nonzero(hist2D))
+  pos = np.repeat(nonzero_coords,
+                  hist2D[nonzero_coords[:, 0], nonzero_coords[:, 1]], axis=0)
+  x = x_edges[pos[:, 0]]
+  y = y_edges[pos[:, 1]]
   coefficients = np.polyfit(x, y, 1)
   k = coefficients[0]
   b = coefficients[1]
@@ -178,7 +181,7 @@ def hist_joint(fig, ax, img1, img2, xlable, ylabel, min_val, max_val, bins=600):
   sst = np.sum((y - np.mean(y)) ** 2)  # 总平方和
   r_squared = 1 - (ssr / sst)  # R方
 
-  im = ax.imshow(hist2D.T, origin='lower', cmap='jet',
+  im = ax.imshow(hist2D, origin='lower', cmap='jet',
                  extent=[min_val, max_val, min_val, max_val])
 
   ax.plot(x1, y1, color='white', linestyle='--')

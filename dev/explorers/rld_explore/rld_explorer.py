@@ -146,9 +146,9 @@ class RLDViewer(SliceView):
         if self.displayed_layer_key == full_key:
           return 'NRMSE: 0, SSIM: 1, PSNR: $\infty$'
 
-        max_val = np.max(full_dose_vol)
+        # max_val = np.max(mi.images['Input'])
         return ', '.join([f'{k}: {v:.4f}' for k, v in get_metrics(
-          arr1 / max_val, arr2 / max_val, metrics, data_range=1.0).items()])
+          arr1, arr2, metrics, data_range=np.max([arr1, arr2])).items()])
 
       if show_slice_metric:
         title = _get_title()
@@ -191,18 +191,19 @@ class RLDViewer(SliceView):
     from roma import console
 
     mi: MedicalImage = self.selected_medical_image
+    vmax = np.max(mi.images['Input'])
     full = mi.images['Full']
 
     image_keys = [k for k in mi.images.keys() if k != 'Full']
-    max_vals = {k: np.max(mi.images[k]) for k in image_keys}
+    max_vals = {k: np.max([mi.images[k], full]) for k in image_keys}
 
     metric_keys = ['NRMSE', 'SSIM', 'PSNR']
     metrics = {k: {ik: [] for ik in image_keys} for k in metric_keys}
     for i in range(full.shape[0]):
       console.print_progress(i, full.shape[0])
-
       for ik in image_keys:
-        md = get_metrics(full[i][..., 0], mi.images[ik][i][..., 0],
+
+        md = get_metrics(full[i], mi.images[ik][i],
                          metric_keys, max_vals[ik])
         for k, v in md.items(): metrics[k][ik].append(v)
 

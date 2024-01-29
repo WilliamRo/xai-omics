@@ -2,7 +2,7 @@
 import rld_core as core
 import rld_mu as m
 
-from tframe import console, context
+from tframe import console
 from tframe import tf
 from tframe.utils.misc import date_string
 from tframe.utils.organizer.task_tools import update_job_dir
@@ -12,14 +12,15 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'puadap'
-id = 6
+model_name = 'gsadap'
+id = 9
 def model():
   th = core.th
   model = m.get_initial_model()
 
   sigmas = [int(s) for s in th.archi_string.split('-')]
-  N = len(sigmas) + 2
+  # N = len(sigmas) + 2
+  N = 3
   # Construct DAG
   weights = [
     m.mu.HyperConv3D(N, kernel_size=int(ks), activation=th.activation)
@@ -33,18 +34,17 @@ def model():
   # unet.append(m.Clip(0, 1.0))
 
   vertices = [
-    m.GaussianPyramid3D(kernel_size=th.kernel_size, sigmas=sigmas),
-    m.mu.Merge.Concat(),
+    # m.GaussianPyramid3D(kernel_size=th.kernel_size, sigmas=sigmas),
+    # m.mu.Merge.Concat(),
+    m.ChannelSplit(0),
     unet,
+    m.ChannelSplit(1),
     m.mu.Merge.Concat(),
     weights,
     m.WeightedSum(),
   ]
-  edges = '1;11;100;0011;00001;000011'
+  edges = '1;01;100;0111;00001;000011'
   model.add(m.mu.ForkMergeDAG(vertices, edges))
-
-  context.depot['unet'] = vertices[2][-1]
-
   return m.finalize(model)
 
 
@@ -76,9 +76,11 @@ def main(_):
     'clip': None,  # [1, None]
   }
 
+  th.extra_data = ['40S']
   th.noCT = True
-  if th.noCT:
+  if th.noCT and len(th.extra_data) < 1:
     th.input_shape[-1] = 1
+
   # th.use_suv = False
 
   # ---------------------------------------------------------------------------
@@ -88,7 +90,7 @@ def main(_):
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
   th.suffix = ''
-  th.suffix += f'_w{th.window_size}_s{th.slice_size}'
+  th.suffix += f'_w{th.window_size}_s{th.slice_size}_new'
 
 
   th.visible_gpu_id = 0
@@ -100,9 +102,6 @@ def main(_):
   th.activation = 'lrelu'
   th.archi_string = '3'
   th.use_bias = True
-
-  th.alpha = 0.75
-  th.internal_loss = True
 
   th.use_sigmoid = False
   th.clip_off = False
@@ -125,7 +124,7 @@ def main(_):
   th.opt_str = 'adam'
 
   th.optimizer = th.opt_str
-  th.learning_rate = 0.003
+  th.learning_rate = 0.0003
   th.val_decimals = 7
 
   th.train = True
@@ -135,8 +134,10 @@ def main(_):
   # ---------------------------------------------------------------------------
   th.show_weight_map = True
 
+  if th.use_suv:
+    th.suffix += '_suv'
   th.suffix += '_noCT' if th.noCT else ''
-  th.suffix += f'_{th.data_set[0]}to{th.data_set[1]}_alpha{th.alpha}'
+  th.suffix += '_30GSto240G'
   th.suffix += f'_lr{th.learning_rate}_bs{th.batch_size}_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'

@@ -64,7 +64,7 @@ def main(_):
   # th.eval_window_size = 128
   th.data_shape = [560, 440, 440]
 
-  th.data_set = ['30G', '240G']
+  th.data_set = ['60G', '240G']
   th.process_param = {
     'ct_window': None,
     'norm': 'PET',  # only min-max,
@@ -119,7 +119,7 @@ def main(_):
   th.opt_str = 'adam'
 
   th.optimizer = th.opt_str
-  th.learning_rate = 0.0003
+  th.learning_rate = 0.002
   th.val_decimals = 7
 
   th.train = True
@@ -132,7 +132,7 @@ def main(_):
   if th.use_suv:
     th.suffix += '_suv'
   th.suffix += '_noCT' if th.noCT else ''
-  th.suffix += '_30Gto240G'
+  th.suffix += f'_{th.data_set[0]}to{th.data_set[1]}'
   th.suffix += f'_lr{th.learning_rate}_bs{th.batch_size}_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'

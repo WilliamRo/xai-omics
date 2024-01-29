@@ -33,6 +33,7 @@ s.register('patience', 15)
 # s.register('slice_size', 32, 128)
 
 s.register('lr', 0.0001, 0.1)
+s.register('alpha', 0.01, 0.99)
 
 # s.register('batch_size', 1, 8)
 

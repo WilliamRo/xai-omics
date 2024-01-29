@@ -42,6 +42,8 @@ class RLDAgent(DataAgent):
     if not th.noCT:
       img_keys += ['CT']
 
+    img_keys += th.extra_data
+
     img_type = {
       'CT': ['CT'],
       'PET': ['30G', '20S', '40S', '60G', '120S', '240G', '240S'],
