@@ -16,55 +16,24 @@ model_name = 'gan'
 id = 7
 def model():
   th = core.th
-  option = th.archi_string.split('-')
+  gan = m.get_container()
 
-  model = m.get_initial_model()
+  m.mu.UNet(3, arc_string=th.archi_string).add_to(gan.G)
 
-  conv = lambda n: m.mu.HyperConv3D(filters=n, kernel_size=int(option[1]),
-                                    activation=option[-1])
-  deconv = lambda n: m.mu.HyperDeconv3D(filters=n, kernel_size=int(option[1]), strides=2)
+  H, N = 8, 4
+  for _ in range(N):
+    gan.D.add(m.mu.HyperConv3D(H, 3, use_batchnorm=True, activation='lrelu'))
+    H *= 2
+  gan.D.add(m.mu.Dense(H*2, activation='lrelu'))
 
-  unet = []
-  floors = []
-  filters = int(option[0])
-  for height in range(int(option[2])):
-    for thickness in range(int(option[3])):
-      unet.append(conv(filters))
-    floors.append(unet[-1])
-    unet.append(m.mu.MaxPool3D(2, 2))
-    filters *= 2
-
-  for thickness in range(int(option[3])):
-    unet.append(conv(filters))
-
-  for height in range(int(option[2])):
-    filters //= 2
-    unet.append(deconv(filters))
-    unet.append(m.mu.Bridge(floors[int(option[2]) - height - 1]))
-    for thickness in range(int(option[3])):
-      unet.append(conv(filters))
-
-  discr = [conv(4), conv(8), conv(16), conv(32),
-           m.mu.Flatten(), m.mu.Dense(64, activation=option[-1]), m.mu.Dense(1)]
-
-  unet.append(m.mu.HyperConv3D(filters=1, kernel_size=1))
-
-  vertices = [
-    unet,
-  ]
-
-
-  edges = '1'
-  model.add(m.mu.ForkMergeDAG(vertices, edges, auto_merge=False))
-
-  return m.finalize(model)
+  return m.gan_finalize(gan)
 
 
 def main(_):
   console.start('{} on PET/CT reconstruct task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = 1
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -110,6 +79,7 @@ def main(_):
   # 2. model setup
   # ---------------------------------------------------------------------------
   th.model = model
+  th.gan = True
   th.archi_string = '4-3-3-2-lrelu'
 
   th.use_sigmoid = False
@@ -142,12 +112,6 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
-  if th.use_sigmoid:
-    th.suffix += '_sig'
-  # if th.use_suv:
-  #   th.suffix += '_suv'
-  if th.use_res:
-    th.suffix += '_res'
   th.suffix += '_noCT' if th.noCT else ''
   th.suffix += f'_{th.data_set[0]}to{th.data_set[1]}'
   th.suffix += f'_lr{th.learning_rate}_bs{th.batch_size}_{th.opt_str}'

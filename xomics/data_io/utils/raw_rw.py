@@ -32,7 +32,11 @@ def rd_file(filepath, nii_param=False):
 
 
 def rd_series_itk(dirpath):
+  # todo: dirpath must be an absolute path
   series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(dirpath)
+  if not series_file_names:
+    series_file_names = [os.path.join(dirpath, _) for _ in
+                         os.listdir(dirpath)]
   series_reader = sitk.ImageSeriesReader()
   series_reader.SetFileNames(series_file_names)
   image3D = series_reader.Execute()
