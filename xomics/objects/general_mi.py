@@ -205,15 +205,11 @@ class Dicter(ImgIndexer):
   # endregion: medical_image compatible
 
 
-
-class GeneralMI:
-  """
-  a general data framework for pet/ct
-  """
+class AbstractGeneralMI:
   def __init__(self, images_dict, image_keys=None, label_keys=None,
                pid=None, process_param=None, img_type=None):
-    self.IMG_TYPE = 'nii.gz'
-    self.PRO_TYPE = 'pkl'
+    self.IMG_TYPE = 'nii.gz'  # image raw file type
+    self.PRO_TYPE = 'pkl'  # metadata file type of image
     self.LOW_MEM = False
     self.pid = pid
 
@@ -223,8 +219,9 @@ class GeneralMI:
     self.image_keys = image_keys
     self.label_keys = label_keys
 
-    self.raw_process = self.pre_process
-    self.data_process = self.process
+    self.raw_process = lambda x: x
+    self.data_process = lambda x: x
+    self.post_process = lambda x: x
     self.img_type = img_type
     self.process_param = {
       'ct_window': None,
@@ -235,7 +232,7 @@ class GeneralMI:
       'percent': None,  # 99.9
     } if process_param is None else process_param
 
-  # region: class relevant
+  # region: basic function
 
   def __len__(self):
     return len(self.pid)
@@ -249,10 +246,10 @@ class GeneralMI:
       if key in self.image_keys or key in self.label_keys:
         image_dict[key]['img_itk'] = self.images_dict[key]['img_itk'][item]
 
-    return GeneralMI(image_dict, image_keys=self.image_keys,
-                     label_keys=self.label_keys,
-                     pid=pid, process_param=self.process_param,
-                     img_type=self.img_type)
+    return self.__class__(image_dict, image_keys=self.image_keys,
+                          label_keys=self.label_keys,
+                          pid=pid, process_param=self.process_param,
+                          img_type=self.img_type)
 
   def index(self, pid):
     index = np.where(self.pid == pid)
@@ -299,7 +296,121 @@ class GeneralMI:
       self.images_dict[key]['img_itk'] = np.array([None] * length)
       self.images_dict[key]['img'] = np.array([None] * length)
 
-  # endregion: class relevant
+  # endregion: basic function
+
+  # region: special properties
+
+  @property
+  def images(self):
+    return Dicter(self.data_process, self, key_name='img', name='images')
+
+  @property
+  def images_raw(self):
+    return Dicter(None, self, key_name='img_itk', name='images')
+
+  @property
+  def labels(self):
+    return Dicter(self.data_process, self, key_name='img', name='labels')
+
+  @property
+  def labels_raw(self):
+    return Dicter(None, self, key_name='img_itk', name='labels')
+
+  @property
+  def image_keys(self):
+    return self._image_keys
+
+  @image_keys.setter
+  def image_keys(self, value):
+    if value is None:
+      return
+    for key in value:
+      assert key in self.images_dict.keys()
+      if key not in self.image_keys and key not in self.label_keys:
+        length = len(self.images_dict[key]['path'])
+        self.images_dict[key]['img_itk'] = np.array([None] * length)
+        self.images_dict[key]['img'] = np.array([None] * length)
+    self._image_keys = value
+
+  @property
+  def label_keys(self):
+    return self._label_keys
+
+  @label_keys.setter
+  def label_keys(self, value):
+    if value is None:
+      return
+    for key in value:
+      assert key in self.images_dict.keys()
+      if key not in self.image_keys and key not in self.label_keys:
+        length = len(self.images_dict[key]['path'])
+        self.images_dict[key]['img_itk'] = np.array([None]*length)
+        self.images_dict[key]['img'] = np.array([None]*length)
+        self.images_dict[key]['type'] = None
+    self._label_keys = value
+
+  @property
+  def STD_key(self):
+    return self.img_type['STD'][0]
+
+  # endregion: special properties
+
+  # region: static functions
+
+  @staticmethod
+  def load_img(filepath, array=False):
+    assert isinstance(filepath, str)
+    if not array:
+      return sitk.ReadImage(filepath)
+    else:
+      return sitk.GetArrayFromImage(sitk.ReadImage(filepath))
+
+  @staticmethod
+  def percentile(img, percent):
+    arr = sitk.GetArrayFromImage(img)
+    p = np.percentile(arr, percent)
+    arr[arr >= p] = 0
+    modified_image = sitk.GetImageFromArray(arr)
+    modified_image.CopyInformation(img)
+    return modified_image
+
+  @staticmethod
+  def crop_by_margin(img, margins):
+    ori_size = img.GetSize()
+    start_index = [i for i in margins]
+    size = [size - 2 * margin for size, margin in zip(ori_size, margins)]
+    new_img = sitk.RegionOfInterest(img, size, start_index)
+    return new_img
+
+  @staticmethod
+  def write_img(img, filepath, refer_img=None):
+    assert isinstance(filepath, str)
+    if not isinstance(img, sitk.Image):
+      img = sitk.GetImageFromArray(img)
+    if refer_img is not None:
+      img.SetOrigin(refer_img.GetOrigin())
+      img.SetDirection(refer_img.GetDirection())
+      img.SetSpacing(refer_img.GetSpacing())
+    sitk.WriteImage(img, filepath)
+
+  @staticmethod
+  def mask2onehot(seg, labels: list):
+    onehot = np.zeros_like(seg, dtype=bool)
+    onehot[np.isin(seg, labels)] = True
+    return onehot
+
+  # endregion: static functions
+
+
+class GeneralMI(AbstractGeneralMI):
+  """
+  a general data framework for pet/ct
+  """
+  def __init__(self, *args, process_param=None, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.raw_process = self.pre_process
+    self.data_process = self.process
+    self.post_process = self.post_process
 
   # region: data process
 
@@ -375,42 +486,6 @@ class GeneralMI:
   # region: static functions
 
   @staticmethod
-  def load_img(filepath, array=False):
-    assert isinstance(filepath, str)
-    if not array:
-      return sitk.ReadImage(filepath)
-    else:
-      return sitk.GetArrayFromImage(sitk.ReadImage(filepath))
-
-  @staticmethod
-  def percentile(img, percent):
-    arr = sitk.GetArrayFromImage(img)
-    p = np.percentile(arr, percent)
-    arr[arr >= p] = 0
-    modified_image = sitk.GetImageFromArray(arr)
-    modified_image.CopyInformation(img)
-    return modified_image
-
-  @staticmethod
-  def crop_by_margin(img, margins):
-    ori_size = img.GetSize()
-    start_index = [i for i in margins]
-    size = [size - 2 * margin for size, margin in zip(ori_size, margins)]
-    new_img = sitk.RegionOfInterest(img, size, start_index)
-    return new_img
-
-  @staticmethod
-  def write_img(img, filepath, refer_img=None):
-    assert isinstance(filepath, str)
-    if not isinstance(img, sitk.Image):
-      img = sitk.GetImageFromArray(img)
-    if refer_img is not None:
-      img.SetOrigin(refer_img.GetOrigin())
-      img.SetDirection(refer_img.GetDirection())
-      img.SetSpacing(refer_img.GetSpacing())
-    sitk.WriteImage(img, filepath)
-
-  @staticmethod
   def suv_transform(img, tag):
     suv_factor, _, _ = get_suv_factor(tag)
     return sitk.ShiftScale(img, 0, suv_factor)
@@ -425,70 +500,7 @@ class GeneralMI:
       img = sitk.DivideReal(img, float(refer_max))
     return img
 
-  @staticmethod
-  def mask2onehot(seg, labels: list):
-    onehot = np.zeros_like(seg, dtype=bool)
-    onehot[np.isin(seg, labels)] = True
-    return onehot
-
   # endregion: static functions
-
-  # region: special properties
-
-  @property
-  def images(self):
-    return Dicter(self.data_process, self, key_name='img', name='images')
-
-  @property
-  def images_raw(self):
-    return Dicter(None, self, key_name='img_itk', name='images')
-
-  @property
-  def labels(self):
-    return Dicter(self.data_process, self, key_name='img', name='labels')
-
-  @property
-  def labels_raw(self):
-    return Dicter(None, self, key_name='img_itk', name='labels')
-
-  @property
-  def image_keys(self):
-    return self._image_keys
-
-  @image_keys.setter
-  def image_keys(self, value):
-    if value is None:
-      return
-    for key in value:
-      assert key in self.images_dict.keys()
-      if key not in self.image_keys and key not in self.label_keys:
-        length = len(self.images_dict[key]['path'])
-        self.images_dict[key]['img_itk'] = np.array([None] * length)
-        self.images_dict[key]['img'] = np.array([None] * length)
-    self._image_keys = value
-
-  @property
-  def label_keys(self):
-    return self._label_keys
-
-  @label_keys.setter
-  def label_keys(self, value):
-    if value is None:
-      return
-    for key in value:
-      assert key in self.images_dict.keys()
-      if key not in self.image_keys and key not in self.label_keys:
-        length = len(self.images_dict[key]['path'])
-        self.images_dict[key]['img_itk'] = np.array([None]*length)
-        self.images_dict[key]['img'] = np.array([None]*length)
-        self.images_dict[key]['type'] = None
-    self._label_keys = value
-
-  @property
-  def STD_key(self):
-    return self.img_type['STD'][0]
-
-  # endregion: special properties
 
   # region: test functions
 
@@ -544,10 +556,9 @@ class GeneralMI:
 
 
 
-
 if __name__ == '__main__':
   from dev.explorers.rld_explore.rld_explorer import RLDExplorer
-  csv_path = r'../../data/02-RLD-0226/rld_data.csv'
+  csv_path = r'../../data/02-RLD/rld_data.csv'
 
   test = GeneralMI.get_test_sample(csv_path)
   test.process_param['norm'] = 'PET'
@@ -556,7 +567,8 @@ if __name__ == '__main__':
   # test.process_param['ct_window'] = [50, 500]
 
   # test.LOW_MEM = True
-  num = 1
+  num = 0
+  test = test[1:2]
   img1 = test.images['60G-2'][num]
   img2 = test.images['60G-3'][num]
 

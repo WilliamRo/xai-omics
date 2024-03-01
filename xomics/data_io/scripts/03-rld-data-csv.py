@@ -96,7 +96,7 @@ def gen_csv(data_dir, csvfile):
 if __name__ == '__main__':
   csvfile = [['pid']+list(match_dict.keys())]
 
-  data_dir = 'D:/projects/xai-omics/data/02-RLD-0226'
+  data_dir = 'D:/projects/xai-omics/data/02-RLD'
   # data_dir = r'\\192.168.5.99/xai/xai-omics/data/02-RLD-0226'
   # data_dir = r'/z3/home/xai_test/xai-omics/data/02-RLD'
   csv_path = os.path.join(data_dir, 'rld_data.csv')
