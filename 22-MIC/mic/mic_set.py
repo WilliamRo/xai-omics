@@ -20,17 +20,12 @@ class MICSet(DataSet):
     from mic_core import th
 
     features, labels, patient_ids = [], [], []
-    mi_file_list = self.data_dict['features'].tolist()
 
-    for file in mi_file_list:
-      console.show_status(
-        'Loading `{}`  from {}'.format(file, self.name))
-      mi = MedicalImage.load(file)
-
+    for mi in self.features.tolist():
       # Data Preprocessing
       mi.window('ct', th.window[0], th.window[1])
-      mi.normalization(['ct'])
-      mi.crop(th.crop_size, False)
+      mi.normalization(['ct'], 'z_score')
+      mi.crop(th.crop_size, False, ['label-0'])
 
       labels.append(mi.labels['label-0'])
       patient_ids.append(mi.key)
@@ -62,8 +57,7 @@ class MICSet(DataSet):
     round_len = self.get_round_length(batch_size, training=is_training)
 
     if is_training:
-      data_num = 30
-      mi_list, labels = self.fetch_data(data_num=data_num)
+      mi_list, labels = self.features.tolist(), self.targets
 
       for i in range(round_len):
         features, targets = [], []
@@ -73,8 +67,8 @@ class MICSet(DataSet):
           # Data Preprocessing
           mi: MedicalImage = copy(mi_list[num])
           mi.window('ct', th.window[0], th.window[1])
-          mi.crop(th.crop_size, th.random_translation)
-          mi.normalization(['ct'])
+          mi.crop(th.crop_size, th.random_translation, ['label-0'])
+          mi.normalization(['ct'], 'z_score')
 
           # Data Augmentation
           if th.random_flip:
@@ -100,8 +94,7 @@ class MICSet(DataSet):
                              targets=np.array(targets), name=name)
         yield data_batch
     elif 'Train' in self.name or 'train' in self.name:
-      data_num = 10
-      mi_list, labels = self.fetch_data(data_num=data_num)
+      mi_list, labels = self.features.tolist(), self.targets
 
       number = list(range(len(mi_list)))
       number_list = [number[i:i+th.val_batch_size]
@@ -114,8 +107,8 @@ class MICSet(DataSet):
 
           # Data Preprocessing
           mi.window('ct', th.window[0], th.window[1])
-          mi.normalization(['ct'])
-          mi.crop(th.crop_size, False)
+          mi.crop(th.crop_size, False, ['label-0'])
+          mi.normalization(['ct'], 'z_score')
 
           if th.use_mask:
             features.append(

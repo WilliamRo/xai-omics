@@ -33,6 +33,10 @@ class MICAgent(DataAgent):
       datasets = mic_set.split(
         ratio[0], ratio[1], ratio[2],
         names=['TrainSet', 'ValSet', 'TestSet'], over_classes=True)
+
+      for ds in datasets:
+        mi_list = [MedicalImage.load(f) for f in ds.features.tolist()]
+        ds.features = np.array(mi_list, dtype=object)
     else:
       # TODO
       train_val_set, test_set = mic_set.split(

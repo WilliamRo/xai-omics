@@ -73,9 +73,6 @@ def activate():
   if 'deactivate' in th.developer_code: return
 
   # Load datas
-  train_set, val_set, test_set = du.load_data()
-  val_set = val_set.dataset_for_eval
-  test_set = test_set.dataset_for_eval
 
   # Build model
   assert callable(th.model)
@@ -91,13 +88,40 @@ def activate():
   # Train or evaluate. Note that, although both validation and evaluation use
   #  data_set.data_for_validation, evaluate_denoiser is called by data_set
   #  itself.
+
+  train_set, val_set, test_set = du.load_data()
+  val_set = val_set.dataset_for_eval
+  test_set = test_set.dataset_for_eval
   if th.train:
     model.train(training_set=train_set, validation_set=val_set,
                 test_set=test_set, trainer_hub=th)
   else:
     # data_set.evaluate_denoiser(model)
     # test_set.test_model(model)
-    val_set.test_model(model)
+    # val_set.test_model(model)
+    # train_set.test_model(model)
+
+    from sklearn.metrics import roc_curve, auc
+    import matplotlib.pyplot as plt
+
+    # 'AUC'
+    datasets = (train_set, val_set, test_set)
+    for ds in datasets:
+      ds = val_set
+      results = model.predict(ds, th.eval_batch_size)
+      fpr, tpr, thresholds = roc_curve(ds.targets[:, 1], results[:, 1])
+      roc_auc = auc(fpr, tpr)
+      plt.figure()
+      plt.plot(fpr, tpr, color='darkorange', lw=2,
+               label='ROC curve (AUC = {:.2f})'.format(roc_auc))
+      plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+      plt.xlim([0.0, 1.0])
+      plt.ylim([0.0, 1.05])
+      plt.xlabel('False Positive Rate')
+      plt.ylabel('True Positive Rate')
+      plt.title(f'Receiver Operating Characteristic Curve -- {ds.name}')
+      plt.legend(loc='lower right')
+      plt.show()
 
   # model.agent.load()
   # for ds in (train_set, val_set, test_set):

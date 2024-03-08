@@ -58,13 +58,13 @@ def read_nii_with_medpy(file):
 
 
 if __name__ == '__main__':
-  input_dir = r'../../data/BA & MIA/radioimage'
+  input_dir = r'../../data/03-BA & MIA/radioimage'
   input_types = ['BA', 'MIA']
 
   for input_type in input_types:
     ct_dir = os.path.join(input_dir, input_type)
     label_dir = os.path.join(ct_dir, 'labels')
-    save_dir = os.path.join('../../data/BA & MIA/mi', input_type)
+    save_dir = os.path.join('../../data/03-BA & MIA/mi', input_type)
 
     wc = -600.0
     ww = 1200.0

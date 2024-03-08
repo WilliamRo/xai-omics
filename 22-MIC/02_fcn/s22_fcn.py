@@ -30,16 +30,16 @@ s.register('train', True)
 s.register('epoch', 2000)
 s.register('patience', 10)
 
-s.register('lr', 0.0001, 0.001, 0.01)
-s.register('batch_size', 64, 128, 256)
-s.register('archi_string', 'fcn-1', 'fcn-2')
+s.register('lr', 0.0005625248714883541)
+s.register('batch_size', 32)
+s.register('archi_string', 'fcn-4')
 
-s.register('random_translation', s.true_and_false)
-s.register('random_flip', s.true_and_false)
-s.register('random_rotation', s.true_and_false)
-s.register('random_noise', s.true_and_false)
+s.register('random_translation', False)
+s.register('random_flip', False)
+s.register('random_rotation', False)
+s.register('random_noise', False)
 
-# s.configure_engine(times=2)
-s.configure_engine(strategy='skopt', criterion='Test Accuracy',
-                   greater_is_better=True, add_script_suffix=True)
+s.configure_engine(times=10, add_script_suffix=True)
+# s.configure_engine(strategy='skopt', criterion='Test Accuracy',
+#                    greater_is_better=True, add_script_suffix=True)
 s.run(rehearsal=False)
