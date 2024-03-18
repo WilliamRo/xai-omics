@@ -39,6 +39,8 @@ class RLDConfig(SmartTrainerHub):
   use_seg = Flag.whatever(None, 'use segmentation', is_key=None)
   extra_data = Flag.whatever([], 'extra data for feature', is_key=None)
 
+  gan = Flag.boolean(False, 'use the gan model', is_key=None)
+
   @property
   def data_arg(self) -> Arguments:
     return Arguments.parse(self.data_config)

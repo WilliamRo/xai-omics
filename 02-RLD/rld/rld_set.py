@@ -74,7 +74,7 @@ class RLDSet(DataSet):
 
     data_dict = {
       'features': np.array(features),
-      'targets': np.array(targets),
+      'targets': np.array(targets)
     }
     data_batch = DataSet(data_dict=data_dict)
     return data_batch

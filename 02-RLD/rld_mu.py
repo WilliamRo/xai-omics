@@ -1,4 +1,5 @@
-from tframe import mu
+from rld.models.rld_gan import *
+from tframe import mu, pedia
 from rld.layers.layers import *
 from rld.loss.custom_loss import *
 
@@ -16,6 +17,14 @@ def get_initial_model():
   model.add(mu.Input(sample_shape=th.input_shape))
   return model
 
+def get_container(flatten_D_input=False) -> mu.GAN:
+  gan = PETGAN(
+    mark=th.mark, G_input_shape=th.input_shape,
+    D_input_shape=th.input_shape)
+
+  if flatten_D_input: gan.D.add(mu.Flatten())
+
+  return gan
 
 def finalize(model):
   from rld_core import th
@@ -44,6 +53,18 @@ def finalize(model):
   else:
     model.build(loss=custom_loss[th.loss_string], metric=metrics)
   return model
+
+
+def gan_finalize(gan):
+  assert isinstance(gan, mu.GAN)
+
+  gan.G.add(mu.HyperConv3D(filters=1, kernel_size=1))
+  gan.D.add(mu.HyperDense(1, activation='lrelu'))
+  gan.D.add(mu.Activation('sigmoid', set_logits=True))
+
+  gan.build(loss=pedia.cross_entropy)
+
+  return gan
 
 
 def get_unet(arc_string='8-3-4-2-relu-mp', **kwargs):

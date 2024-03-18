@@ -18,16 +18,17 @@ def get_ssim_3D():
   return Quantity(ssim, tf.reduce_mean, name='SSIM', lower_is_better=False)
 
 
+def nrmse(truth, output):
+  # [bs, num_slides, 440, 440, 1]
+  axis = list(range(1, len(truth.shape)))
+  a = tf.reduce_sum(tf.square(truth - output), axis=axis)
+  b = tf.reduce_sum(tf.square(truth), axis=axis)
+  return tf.sqrt(a / b)
+
+
 def get_nrmse():
   """SET th.[e]val_batch_size=1"""
   from tframe import tf
-
-  def nrmse(truth, output):
-    # [bs, num_slides, 440, 440, 1]
-    axis = list(range(1, len(truth.shape)))
-    a = tf.reduce_sum(tf.square(truth - output), axis=axis)
-    b = tf.reduce_sum(tf.square(truth), axis=axis)
-    return tf.sqrt(a / b)
 
   return Quantity(nrmse, tf.reduce_mean, name='NRMSE', lower_is_better=True)
 

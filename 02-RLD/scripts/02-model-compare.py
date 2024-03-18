@@ -270,9 +270,12 @@ if __name__ == '__main__':
   raw_dir = f'../raw_data'
   raw = ['low', 'full', 'seg']
   raw_name = ['30G', '240G', 'seg']
-  models = ['05_upl', '03_uadap', '06_puadap']
-  models_label = ['U-Net', 'VA-Net 1', 'VA-Net 2']
-  select_check = [2, 1, 1]
+  models = ['01_unet', '07_gan', '02_va']
+  models_label = ['U-Net', 'GAN', 'VA-Net']
+  select_check = [0, 0, 0]
+
+  if not os.path.exists(tmp_dir):
+    os.mkdir(tmp_dir)
 
   # data load
   for i, model in enumerate(models):
@@ -304,7 +307,7 @@ if __name__ == '__main__':
   # Draw
   width = 0.2
   fig, axs = plt.subplots(2, 2, figsize=(12, 12))
-  func = ['metric', 'roi_metric', 'suv_dis', 'suv', 'hist'][2:3]
+  func = ['metric', 'roi_metric', 'suv_dis', 'suv', 'hist'][:1]
 
   # Metric
   if 'metric' in func:

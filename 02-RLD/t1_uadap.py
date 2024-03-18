@@ -64,7 +64,7 @@ def main(_):
   # th.eval_window_size = 128
   th.data_shape = [560, 440, 440]
 
-  th.data_set = ['60G', '240G']
+  th.data_set = ['90G', '240G']
   th.process_param = {
     'ct_window': None,
     'norm': 'PET',  # only min-max,

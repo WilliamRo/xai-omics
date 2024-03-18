@@ -1,3 +1,4 @@
+from roma import console
 from tframe.data.base_classes import DataAgent
 from rld.rld_set import RLDSet
 from xomics.objects.general_mi import GeneralMI
@@ -20,7 +21,7 @@ class RLDAgent(DataAgent):
     # train.mi_data.get_stat()
     # valid.mi_data.get_stat()
     # test.mi_data.get_stat()
-    return  train, valid, test
+    return train, valid, test
 
   @classmethod
   def load_as_tframe_data(cls, data_dir):
@@ -46,12 +47,17 @@ class RLDAgent(DataAgent):
 
     img_type = {
       'CT': ['CT'],
-      'PET': ['30G', '20S', '40S', '60G', '120S', '240G', '240S'],
+      'PET': ['30G', '20S', '40S',
+              '60G-1', '60G-2', '60G-3',
+              '90G', '120S', '120G', '240G', '240S'],
       'MASK': ['CT_seg'],
       'STD': th.data_set[:1],
     }
 
     mi = GeneralMI(img_dict, image_keys=img_keys, process_param=th.process_param,
                    label_keys=[th.data_set[1]], pid=pid, img_type=img_type)
+    total_data = len(mi)
+    mi.rm_void_data()
+    console.show_status(f'Loaded {len(mi)}/{total_data} data')
     return RLDSet(mi_data=mi, buffer_size=th.buffer_size)
 

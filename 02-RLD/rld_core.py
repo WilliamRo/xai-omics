@@ -24,7 +24,7 @@ for _ in range(DIR_DEPTH):
 from tframe import console
 from tframe import Predictor
 from rld.rld_config import RLDConfig as Hub
-
+from tframe.models import GAN
 import rld_du as du
 import rld_tu as tu
 
@@ -68,7 +68,9 @@ def activate():
   # Build model
   assert callable(th.model)
   model = th.model()
-  assert isinstance(model, Predictor)
+  predictor = Predictor
+  if th.gan: predictor = GAN
+  assert isinstance(model, predictor)
 
   # Load data
   train_set, val_set, test_set = du.load_data()
@@ -89,7 +91,7 @@ def activate():
     #               test_set=test_set, trainer_hub=th, probe=tu.probe)
     # else:
     model.train(training_set=train_set, validation_set=val_set,
-                test_set=test_set, trainer_hub=th)
+                test_set=test_set, trainer_hub=th, probe=tu.save_img)
   else:
     test_set.evaluate_model(model)
 

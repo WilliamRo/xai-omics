@@ -406,7 +406,7 @@ class GeneralMI(AbstractGeneralMI):
   """
   a general data framework for pet/ct
   """
-  def __init__(self, *args, process_param=None, **kwargs):
+  def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.raw_process = self.pre_process
     self.data_process = self.process

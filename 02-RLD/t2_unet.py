@@ -12,21 +12,11 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'gan'
-id = 7
+model_name = 'unet'
+id = 1
 def model():
   th = core.th
-  gan = m.get_container()
-
-  m.mu.UNet(3, arc_string=th.archi_string).add_to(gan.G)
-
-  H, N = 8, 4
-  for _ in range(N):
-    gan.D.add(m.mu.HyperConv3D(H, 3, use_batchnorm=True, activation='lrelu'))
-    H *= 2
-  gan.D.add(m.mu.Dense(H, activation='lrelu'))
-
-  return m.gan_finalize(gan)
+  return m.get_unet(arc_string=th.archi_string)
 
 
 def main(_):
@@ -49,7 +39,7 @@ def main(_):
   th.data_shape = [560, 440, 440]
   # th.input_shape = th.input_shape[1:]
 
-  th.gan = True
+  th.gan = False
 
   th.data_set = ['30G', '240G']
   th.process_param = {
@@ -84,7 +74,7 @@ def main(_):
 
   th.use_sigmoid = False
   th.clip_off = False
-  th.output_conv = False
+  th.output_conv = True
   # th.use_res = True
   # ---------------------------------------------------------------------------
   # 3. trainer setup
@@ -92,9 +82,6 @@ def main(_):
   th.epoch = 1000
   th.early_stop = True
   th.patience = 15
-  th.probe_cycle = 50
-  th.save_mode = SaveMode.NAIVE
-  th.validation_per_round = 0
 
   th.batch_size = 4
   th.batchlet_size = 2

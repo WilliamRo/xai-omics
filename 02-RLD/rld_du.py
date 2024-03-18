@@ -1,11 +1,12 @@
 from rld.rld_agent import RLDAgent, RLDSet
 from roma import console
+from tframe import pedia
 
 
 def load_data():
   from rld_core import th
 
-  datasets = RLDAgent.load(th.data_dir, th.val_size, th.test_size)
+  datasets: list[RLDSet] = RLDAgent.load(th.data_dir, th.val_size, th.test_size)
 
   # Report data shape
   console.show_info('Data details')
@@ -17,4 +18,6 @@ def load_data():
     else:
       console.supplement(f'{ds.name}: {len(ds)}', level=2)
 
+  if th.gan:
+    datasets[0].data_dict[pedia.D_input] = datasets[0].targets
   return datasets

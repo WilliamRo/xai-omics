@@ -12,21 +12,34 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'gan'
-id = 7
+model_name = 'va'
+id = 2
 def model():
   th = core.th
-  gan = m.get_container()
+  model = m.get_initial_model()
 
-  m.mu.UNet(3, arc_string=th.archi_string).add_to(gan.G)
+  sigmas = [3]
+  N = len(sigmas) + 2
+  # Construct DAG
+  weights = [m.mu.HyperConv3D(N, kernel_size=3, activation=th.activation)]
+  # if th.beta > 0: weights.insert(0, m.Highlighter(th.beta))
+  weights.append(m.mu.HyperConv3D(N, kernel_size=1, use_bias=th.use_bias,
+                                  activation='softmax'))
 
-  H, N = 8, 4
-  for _ in range(N):
-    gan.D.add(m.mu.HyperConv3D(H, 3, use_batchnorm=True, activation='lrelu'))
-    H *= 2
-  gan.D.add(m.mu.Dense(H, activation='lrelu'))
+  unet = m.get_unet_list(th.archi_string)
+  unet.append(m.mu.HyperConv3D(filters=1, kernel_size=1))
 
-  return m.gan_finalize(gan)
+  vertices = [
+    m.GaussianPyramid3D(kernel_size=3, sigmas=sigmas),
+    m.mu.Merge.Concat(),
+    unet,
+    m.mu.Merge.Concat(),
+    weights,
+    m.WeightedSum(),
+  ]
+  edges = '1;11;100;0011;00001;000011'
+  model.add(m.mu.ForkMergeDAG(vertices, edges))
+  return m.finalize(model)
 
 
 def main(_):
@@ -49,7 +62,7 @@ def main(_):
   th.data_shape = [560, 440, 440]
   # th.input_shape = th.input_shape[1:]
 
-  th.gan = True
+  th.gan = False
 
   th.data_set = ['30G', '240G']
   th.process_param = {
@@ -92,9 +105,6 @@ def main(_):
   th.epoch = 1000
   th.early_stop = True
   th.patience = 15
-  th.probe_cycle = 50
-  th.save_mode = SaveMode.NAIVE
-  th.validation_per_round = 0
 
   th.batch_size = 4
   th.batchlet_size = 2
