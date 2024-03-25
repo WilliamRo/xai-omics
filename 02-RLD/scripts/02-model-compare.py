@@ -284,7 +284,7 @@ if __name__ == '__main__':
       console.supplement(f'[{j}] {checkpoints.split("/")[-2]}', level=2)
       if select_check[i] == j:
         compare_dir.append(checkpoints)
-  imgs, pid = load_imgs(compare_dir, raw_dir, raw, models, raw_name, fake=True)
+  imgs, pid = load_imgs(compare_dir, raw_dir, raw, models, raw_name, fake=False)
 
   roi = [5, [10, 11], [12, 13, 14], 51]
   roi_label = ['liver', 'left lung', 'right lung', 'heart']
@@ -307,7 +307,7 @@ if __name__ == '__main__':
   # Draw
   width = 0.2
   fig, axs = plt.subplots(2, 2, figsize=(12, 12))
-  func = ['metric', 'roi_metric', 'suv_dis', 'suv', 'hist'][:1]
+  func = ['metric', 'roi_metric', 'suv_dis', 'suv', 'hist'][4:]
 
   # Metric
   if 'metric' in func:
@@ -366,11 +366,12 @@ if __name__ == '__main__':
     # axs[1, 0].set_ylim(0, 5)
 
   if 'suv' in func:
-    mod = raw[0:1] + models + raw[-2:-1]
-    model_x = np.arange(len(mod))
-    roi_x = np.arange(len(roi_label))
-    x1 = model_x
-    x2 = roi_x
+    mod = raw_name[0:1] + models_label + raw_name[-2:-1]
+    unit = 1.25
+    model_x = np.arange(len(mod)*unit, step=unit)
+    roi_x = np.arange(len(roi_label)*unit, step=unit)
+    x1 = model_x - 0.5 + 1 / len(roi_label) / 2
+    x2 = roi_x - 0.5 + 1 / len(mod) / 2
 
     s_max = np.mean(suv_max, axis=1)
     s_mean = np.mean(suv_mean, axis=1)
@@ -399,18 +400,18 @@ if __name__ == '__main__':
                '240s Gated', '30s Gated', -3, 3)
     axs[0, 0].set_title(f'Joint Voxel Histogram - Log Scale '
                         f'(NRMSE = {metric_arr[0][0][2]:.2f})')
-    hist_joint(fig, axs[0, 1], imgs['full'][0], imgs['05_upl'][0],
+    hist_joint(fig, axs[0, 1], imgs['full'][0], imgs['01_unet'][0],
                '240s Gated', 'U-Net', -3, 3)
     axs[0, 1].set_title(f'Joint Voxel Histogram - Log Scale '
                         f'(NRMSE = {metric_arr[1][0][2]:.2f})')
-    hist_joint(fig, axs[1, 0], imgs['full'][0], imgs['03_uadap'][0],
-               '240s Gated', 'VA-Net 1', -3, 3)
-    axs[1, 0].set_title(f'Joint Voxel Histogram - Log Scale '
-                        f'(NRMSE = {metric_arr[2][0][2]:.2f})')
-    hist_joint(fig, axs[1, 1], imgs['full'][0], imgs['06_puadap'][0],
-               '240s Gated', 'VA-Net 2', -3, 3)
+    hist_joint(fig, axs[1, 1], imgs['full'][0], imgs['07_gan'][0],
+               '240s Gated', 'GAN', -3, 3)
     axs[1, 1].set_title(f'Joint Voxel Histogram - Log Scale '
                         f'(NRMSE = {metric_arr[2][0][3]:.2f})')
+    hist_joint(fig, axs[1, 0], imgs['full'][0], imgs['02_va'][0],
+               '240s Gated', 'VA-Net', -3, 3)
+    axs[1, 0].set_title(f'Joint Voxel Histogram - Log Scale '
+                        f'(NRMSE = {metric_arr[2][0][2]:.2f})')
   plt.show()
 
 

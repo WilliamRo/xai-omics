@@ -92,9 +92,8 @@ def main(_):
   th.epoch = 1000
   th.early_stop = True
   th.patience = 15
-  th.probe_cycle = 50
-  th.save_mode = SaveMode.NAIVE
-  th.validation_per_round = 0
+  th.probe_cycle = 0
+  # th.validation_per_round = 50
 
   th.batch_size = 4
   th.batchlet_size = 2

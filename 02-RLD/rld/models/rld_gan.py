@@ -4,12 +4,15 @@ import numpy as np
 
 from rld.loss.custom_loss import nrmse
 from roma import console
+from tframe.core import TensorSlot, with_graph
+from tframe.core.quantity import Quantity
 from tframe.layers.common import Input
-from tframe import DataSet, pedia, tf, context
-from tframe.models import GAN
+from tframe import DataSet, pedia, tf, context, hub
+from tframe.models import GAN, Feedforward
 from tframe import hub as th
-from tframe.utils import misc
+from tframe.utils import misc, checker
 from tframe.utils.display.progress_bar import ProgressBar
+
 
 
 class PETGAN(GAN):
@@ -17,19 +20,28 @@ class PETGAN(GAN):
   def __init__(self, mark, G_input_shape, D_input_shape):
     super().__init__(mark, G_input_shape, D_input_shape)
 
-  def evaluate(self, data, batch_size=None, **kwargs):
-    self.launch_model()
-    if batch_size is None:
-      return self.generate(data.features)
-    outputs = []
-    for num in range(0, len(data), batch_size):
-      outputs.append(self.generate(data.features[num:num + batch_size]))
+    #
+    self._targets = TensorSlot(self, 'targets')
 
-    return np.concatenate(outputs, axis=0)
-
+  @with_graph
   def predict(self, data, batch_size=None, **kwargs):
-    return self.evaluate(data, batch_size=batch_size, **kwargs)
+    # self.launch_model()
+    return self.evaluate(self.val_outputs.tensor, data,
+                         batch_size=batch_size, **kwargs)
+
   # region : Overwriting
+
+  def _evaluate_batch(self, fetch_list, data_batch, **kwargs):
+    # Sanity check
+    assert isinstance(fetch_list, list)
+    checker.check_fetchable(fetch_list)
+    assert isinstance(data_batch, DataSet)
+
+    # Run session
+    feed_dict = self._get_default_feed_dict(data_batch, is_training=False)
+    batch_outputs = self.session.run(fetch_list, feed_dict)
+
+    return batch_outputs
 
   def generate(self, z=None, **kwargs):
     # Check model and session
@@ -43,9 +55,19 @@ class PETGAN(GAN):
     return samples
 
   def _build(self, optimizer=None, loss=pedia.cross_entropy,
-             G_optimizer=None, D_optimizer=None, **kwargs):
+             G_optimizer=None, D_optimizer=None, metric=None, **kwargs):
     # Link generator
     self._G_output = self.Generator()
+
+    # Initiate targets and add it to collection
+    shape = self._G_output.shape.as_list()
+    target_tensor = tf.placeholder(hub.dtype, shape, name='targets')
+    self._targets.plug(target_tensor, collection=pedia.default_feed_dict)
+    self._val_targets = self._targets
+
+    # Create val_output tensor
+    val_output = self._G_output
+    self.val_outputs.plug(val_output)
 
     # Plug self._G_output to GAN.output slot
     self.outputs.plug(self._G_output)
@@ -74,6 +96,14 @@ class PETGAN(GAN):
       with tf.name_scope('D_train_step'):
         self._train_step_D.plug(D_optimizer.minimize(
           loss=self._loss_D.tensor, var_list=self.D.parameters))
+
+    if metric is not None:
+      checker.check_type_v2(metric, (str, Quantity))
+
+      with tf.name_scope('Metric'):
+        self._metrics_manager.initialize(
+          metric, False, self._val_targets.tensor,
+          self.val_outputs.tensor, **kwargs)
 
   def _define_losses(self, loss, alpha):
     """To add extra losses, e.g., regularization losses, this method should be
@@ -137,9 +167,9 @@ class PETGAN(GAN):
 
     return results
 
-  def validate_model(self, data_set, batch_size=None, allow_sum=False,
-                     verbose=False, seq_detail=False, num_steps=None):
-    pass
+  # def validate_model(self, **kwargs):
+  #   return
+
   # endregion : Overwriting
 
 

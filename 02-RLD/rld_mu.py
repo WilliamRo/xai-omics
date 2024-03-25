@@ -62,7 +62,8 @@ def gan_finalize(gan):
   gan.D.add(mu.HyperDense(1, activation='lrelu'))
   gan.D.add(mu.Activation('sigmoid', set_logits=True))
 
-  gan.build(loss=pedia.cross_entropy)
+  gan.build(loss=pedia.cross_entropy,
+            metric=list(custom_loss.values()))
 
   return gan
 

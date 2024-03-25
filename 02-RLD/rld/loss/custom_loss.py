@@ -11,6 +11,7 @@ def get_ssim_3D():
     # [bs, num_slides, 440, 440, 1]
     from rld_core import th
     shape = [-1] + th.data_shape + [1]
+    # shape = [-1] + [32, 64, 64] + [1]
     truth, output = [tf.reshape(x, shape) for x in (truth, output)]
 
     return tf.image.ssim(truth, output, max_val=1.0)

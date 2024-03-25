@@ -20,4 +20,6 @@ def load_data():
 
   if th.gan:
     datasets[0].data_dict[pedia.D_input] = datasets[0].targets
+    for i in range(len(datasets)):
+      datasets[i].data_dict[pedia.G_input] = datasets[i].targets
   return datasets

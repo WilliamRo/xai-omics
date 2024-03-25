@@ -3,7 +3,7 @@ import os.path
 import numpy as np
 
 
-from tframe import console
+from tframe import console, pedia
 from tframe import DataSet
 from tframe import Predictor
 from xomics import MedicalImage
@@ -40,7 +40,7 @@ class RLDSet(DataSet):
 
     data_set = type(self)(mi_data=self.mi_data[item],
                           buffer_size=self.buffer_size,
-                          name=self.name + '(slice)')
+                          name=self.name + '(slice)', data_dict=self.data_dict)
     return data_set
 
   def subset(self, pids, name=None):
@@ -55,10 +55,10 @@ class RLDSet(DataSet):
         ids.append(i)
     return (self.__class__(mi_data=self.mi_data[ids],
                            buffer_size=self.buffer_size,
-                           name=self.name),
+                           name=self.name, data_dict=self.data_dict),
             self.__class__(mi_data=self.mi_data[sub_ids],
                            buffer_size=self.buffer_size,
-                           name=name))
+                           name=name, data_dict=self.data_dict))
 
   @property
   def size(self): return len(self)
@@ -76,24 +76,42 @@ class RLDSet(DataSet):
       'features': np.array(features),
       'targets': np.array(targets)
     }
+    if th.gan:
+      data_dict[pedia.G_input] = data_dict.get('features')
+      data_dict[pedia.D_input] = data_dict.get('targets')
     data_batch = DataSet(data_dict=data_dict)
     return data_batch
 
   def gen_batches(self, batch_size, shuffle=False, is_training=False):
+    from rld_core import th
     if not is_training:
       if self.name == 'Test-Set':
         # assert self.size % batch_size == 0
         for i in range(self.size//batch_size+(self.size % batch_size)):
           features = self.features[i*batch_size:(i+1)*batch_size]
           targets = self.targets[i*batch_size:(i+1)*batch_size]
-          eval_set = DataSet(features, targets, name=self.name)
+          data_dict = {
+            'features': features,
+            'targets': targets
+          }
+          if th.gan:
+            data_dict[pedia.G_input] = data_dict.get('features')
+            data_dict[pedia.D_input] = data_dict.get('targets')
+          eval_set = DataSet(name=self.name, data_dict=data_dict)
           yield eval_set
         return
       else:
         index = list(np.random.choice(list(range(self.features.shape[0])),
                                       batch_size, replace=False))
         features, targets = self.features[index], self.targets[index]
-      eval_set = DataSet(features, targets, name=self.name)
+        data_dict = {
+          'features': features,
+          'targets': targets
+        }
+        if th.gan:
+          data_dict[pedia.G_input] = data_dict.get('features')
+          data_dict[pedia.D_input] = data_dict.get('targets')
+      eval_set = DataSet(name=self.name, data_dict=data_dict)
       yield eval_set
       return
     elif callable(self.data_fetcher):
@@ -115,34 +133,30 @@ class RLDSet(DataSet):
     from joblib import load, dump
 
     dirpath = os.path.join(th.job_dir, 'checkpoints/', th.mark, 'saves/')
-    cache_path = os.path.join(dirpath, 'caches.pkl')
     pred = []
     if not update_saves and os.path.exists(dirpath):
-      if report_metric:
-        metric = load(cache_path)
-        console.supplement(f'Metric:{metric}', level=2)
       for path in os.listdir(dirpath):
-        if path.endswith('.nii.gz'):
+        if path.endswith(r".nii.gz"):
           pred.append(RLDSet.load_nii(os.path.join(dirpath, path)))
     else:
       os.makedirs(dirpath, exist_ok=True)
       pred = []
-      pred_tmp = model.predict(self, batch_size=1)[:, ..., -1]
-      # pred_tmp = np.zeros((5, 263, 440, 440, 1))
-      print(pred_tmp.shape)
-      for num, sub, pred_i in zip(range(len(self)), self.pid, pred_tmp):
+      pred_raw = model.predict(self, batch_size=1)[:, ..., -1]
+      # pred_raw = np.zeros((5, 263, 440, 440, 1))
+      print(pred_raw.shape)
+      # Remove negative values
+      pred_raw[pred_raw < 0] = 0
+      for num, sub, pred_i in zip(range(len(self)), self.pid, pred_raw):
         pred_path = os.path.join(dirpath, f'{num}-{sub}-pred.nii.gz')
         index = self.mi_data.index(sub)
         pred_i = self.mi_data.reverse_norm_suv(pred_i, index)
         GeneralMI.write_img(pred_i, pred_path, self.images.itk[index])
         pred.append(pred_i)
-      if report_metric:
-        metric = model.evaluate_model(self, batch_size=1)
-        dump([pred, metric], cache_path)
 
     self.pred = pred
     pred = np.stack(pred, axis=0)
     pred = np.expand_dims(pred, axis=-1)
+
     # statistics
     if th.statistics:
       stat_path = os.path.join(dirpath, 'stat/')
@@ -151,29 +165,8 @@ class RLDSet(DataSet):
       self.evaluate_statistic(stat_path)
 
     if th.gen_test_nii:
-      self.mi_data.image_keys = ['30G', '240G', '40S', '60G', '240S', 'CT_seg']
-      for pid, seg in zip(self.pid, self.seg):
-        data_path = os.path.join(dirpath, 'raw_data/')
-        if not os.path.exists(data_path):
-          os.makedirs(data_path)
-        path_30G = os.path.join(data_path, f'{pid}-30G.nii.gz')
-        path_240G = os.path.join(data_path, f'{pid}-240G.nii.gz')
-        path_40S = os.path.join(data_path, f'{pid}-40S.nii.gz')
-        path_60G = os.path.join(data_path, f'{pid}-60G.nii.gz')
-        path_240S = os.path.join(data_path, f'{pid}-240S.nii.gz')
-        seg_path = os.path.join(data_path, f'{pid}-seg.nii.gz')
-        index = self.mi_data.index(pid)
-        GeneralMI.write_img(self.mi_data.images_raw['30G'][index],
-                            path_30G, self.images.itk[index])
-        GeneralMI.write_img(self.mi_data.images_raw['60G'][index],
-                            path_60G, self.images.itk[index])
-        GeneralMI.write_img(self.mi_data.images_raw['240G'][index],
-                            path_240G, self.images.itk[index])
-        GeneralMI.write_img(self.mi_data.images_raw['40S'][index],
-                            path_40S, self.images.itk[index])
-        GeneralMI.write_img(self.mi_data.images_raw['240S'][index],
-                            path_240S, self.images.itk[index])
-        GeneralMI.write_img(seg, seg_path, self.images.itk[index])
+      test_keys = ['30G', '240G', '40S', '60G', '240S', 'CT_seg']
+      self.gen_test_data(dirpath, test_keys)
 
     # Compare results using DrGordon
     medical_images = [
@@ -283,6 +276,19 @@ class RLDSet(DataSet):
 
     self.features = features
     self.targets = np.expand_dims(np.stack(targets, axis=0), axis=-1)
+
+  def gen_test_data(self, dirpath, keys):
+      self.mi_data.image_keys = keys
+      for pid, seg in zip(self.pid, self.seg):
+        data_path = os.path.join(dirpath, 'raw_data/')
+        if not os.path.exists(data_path):
+          os.makedirs(data_path)
+        for name in self.mi_data.image_keys:
+          img_path = os.path.join(data_path, f'{pid}-{name}.nii.gz')
+          if os.path.exists(img_path): continue
+          index = self.mi_data.index(pid)
+          GeneralMI.write_img(self.mi_data.images_raw[name][index],
+                              img_path, self.images.itk[index])
 
   def evaluate_statistic(self, path):
     from utils.statistics import load_suv_stat, draw_one_bar, set_ax, \
