@@ -7,8 +7,30 @@ from scipy.stats import mannwhitneyu, ttest_ind
 
 
 if __name__ == "__main__":
+  '''
+  Single factor analysis and multiple factor analysis
+  Input form of data: xlsx file or csv file
+  data ->
+    lab feature1  feature2  feature3  feature4  ......
+    0   xxx       xxx       xxx       xxx       ......
+    1   xxx       xxx       xxx       xxx       ......
+    0   xxx       xxx       xxx       xxx       ......
+    0   xxx       xxx       xxx       xxx       ......
+    1   xxx       xxx       xxx       xxx       ......
+    1   xxx       xxx       xxx       xxx       ......
+    0   xxx       xxx       xxx       xxx       ......
+    ... ...       ...       ...       ...       ......
+   
+  '''
+  # Input data
   data = pd.read_csv("f_new305.csv")
 
+  # Parameter Setting
+  threshold_mul_p = 0.1
+  result_dict = {}
+  multivariable_features = []
+
+  # Start
   label = data['lab']
   label0_index = np.where(label == 0)[0]
   label1_index = np.where(label == 1)[0]
@@ -16,14 +38,11 @@ if __name__ == "__main__":
   df_features = data[data.columns[1:]]
   feature_names = df_features.columns
 
-  threshold_mul_p = 0.1
-
-  result_dict = {}
-  multivariable_features = []
+  # Single factor analysis
   for f in feature_names:
-    feature = df_features[f]
-    feature_label0 = feature[label0_index]
-    feature_label1 = feature[label1_index]
+    feature_data = df_features[f]
+    feature_label0 = feature_data[label0_index]
+    feature_label1 = feature_data[label1_index]
 
     if 'tPSA' == f:
       statistic, p_value = mannwhitneyu(feature_label0, feature_label1)
@@ -33,9 +52,9 @@ if __name__ == "__main__":
         feature_label0, feature_label1, equal_var=False)
       result_dict[f] = ['mean', p_value]
 
-    if p_value < threshold_mul_p: multivariable_features.append(f)
+    if p_value <= threshold_mul_p: multivariable_features.append(f)
 
-  # Multifactor analysis
+  # Multiple factor analysis
   data['intercept'] = 1
   model = sm.GLM(
     data['lab'], data[multivariable_features + ['intercept']],
