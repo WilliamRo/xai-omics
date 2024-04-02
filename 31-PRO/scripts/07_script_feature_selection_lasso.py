@@ -53,7 +53,7 @@ def get_data(data_path, data_linc_path, label_name):
 	return df_img_1, df_img_0, df_img_merge
 
 
-def t_test_feature(df_img_1, df_img_0, df_merge):
+def t_test(df_img_1, df_img_0, df_merge):
 	feature_t = []
 	for colNames in df_merge.columns[2:]:
 		if 0.05 < stats.levene(df_img_0[colNames], df_img_1[colNames])[1]:
@@ -62,24 +62,11 @@ def t_test_feature(df_img_1, df_img_0, df_merge):
 			t, p = stats.ttest_ind(df_img_0[colNames], df_img_1[colNames], equal_var=False)
 		if p < 0.05:
 			feature_t.append(colNames)
-	print(f'T-test: {len(feature_t)}')
+	print(f'[*] T-test: {len(feature_t)}')
 	return feature_t
 
 
-def t_test_feature2(df_img_1, df_img_0, df_merge):
-	feature_t = []
-	for colNames in df_merge.columns[2:]:
-		if 0.05 < stats.levene(df_img_0[colNames], df_img_1[colNames])[1]:
-			if stats.ttest_ind(df_img_0[colNames], df_img_1[colNames])[1] < 0.05:
-				feature_t.append(colNames)
-	else:
-		if stats.ttest_ind(df_img_0[colNames], df_img_1[colNames], equal_var=False)[1] < 0.05:
-			feature_t.append(colNames)
-	print(f'T-test2: {len(feature_t)}')
-	return feature_t
-
-
-def lasso_test_feature(df_img_1, df_img_0, feature_t):
+def lasso_test(df_img_1, df_img_0, feature_t):
 	if 'lab' not in feature_t:
 		feature_t = ['lab'] + feature_t
 	df_feature_0 = df_img_0[feature_t]
@@ -99,19 +86,15 @@ def lasso_test_feature(df_img_1, df_img_0, feature_t):
 	x_lasso = pd.DataFrame(x_lasso)
 	x_lasso.columns = lasso_col_names
 
-	x_lasso_drew = x_lasso
-	y_lasso_drew = y_lasso
-
 	alphas_select = np.logspace(-3, 10, 50)
 	model_lasso_cv = LassoCV(alphas=alphas_select, cv=5, max_iter=100000).fit(x_lasso, y_lasso)
-	print(f'Best alpha: {model_lasso_cv.alpha_: .6f}')
+	print(f'[*] Best alpha: {model_lasso_cv.alpha_: .6f}')
 
-	# 最佳alpha值下名称及系数
 	coef = pd.Series(model_lasso_cv.coef_, index=x_lasso.columns)
-	print(f"Finally get {len(coef[coef != 0]): .0f} features")
-	index = coef[coef != 0].index
-	x_lasso = x_lasso[index]
-	return x_lasso, y_lasso, x_lasso_drew, y_lasso_drew  # 返回lasso
+	print(f"[*] Finally get {len(coef[coef != 0]): .0f} features")
+	feature_names = coef[coef != 0].index
+
+	return feature_names
 
 
 def calculate_macro_f1(y_true, y_pred):
@@ -291,7 +274,7 @@ def traditional_method_cv(x, y, n_splits=1, auc_threshold=0.75, model_type='lr')
 		acc = log.score(x_test, y_test)
 		revised_acc = calculate_revised_accuracy(y_test, y_probability)
 
-		# Calculate F1 Score
+		# Calculate F1 Score and Revised F1 Score
 		f1 = calculate_macro_f1(y_test, y_pred)
 		revised_f1 = calculate_revised_f1(y_test, y_probability)
 
@@ -401,7 +384,7 @@ if __name__ == '__main__':
 	'''
 	# Input
 	work_dir = r'../data'
-	data_file = r'features_clinic_305.xlsx'
+	data_file = r'features_radiomics_305.xlsx'
 	label_file = r'label_305.xlsx'
 	data_path = os.path.join(work_dir, data_file)
 	label_path = os.path.join(work_dir, label_file)
@@ -422,61 +405,59 @@ if __name__ == '__main__':
 	data_label1, data_label0, raw_data = get_data(data_path, label_path, label_name)
 
 	mean_list_dict, std_list_dict = {}, {}
-	for t in range(2):
-		t_test_method = [t_test_feature, t_test_feature2][t]
-		for model_type in ['lr', 'xgb', 'svm', 'rf']:
-			for s_index in range(selection_repeat):
-				metric_all_list = None
+	for model_type in ['lr', 'xgb', 'svm', 'rf']:
+		for s_index in range(selection_repeat):
+			metric_all_list = None
+			# Feature Selection
+			t_feature = t_test(data_label1, data_label0, raw_data)
+			while 1:
+				feature_names = lasso_test(data_label1, data_label0, t_feature)
+				if len(feature_names) > 0: break
+			x_selected = raw_data.filter(items=feature_names)
+			y_selected = raw_data['lab']
 
-				# Feature Selection
-				t_feature = t_test_method(data_label1, data_label0, raw_data)
-				while 1:
-					x_selected, y_selected, _, _ = lasso_test_feature(
-						data_label1, data_label0, t_feature)
-					feature_names = list(x_selected.columns.values)
-					if len(feature_names) > 0: break
-				x_selected = raw_data.filter(items=feature_names)
-				y_selected = raw_data['lab']
+			# Test Features in Different Models
+			metric_lists, acc_lists = [], []
+			# threshold_lists = None
+			for m_index in range(model_repeat):
+				_, _, metric_list, acc_list, threshold_list = traditional_method_cv(
+					x_selected, y_selected, n_fold, auc_threshold, model_type)
+				# if threshold_lists is None: threshold_lists = threshold_list
+				acc_lists.append(acc_list)
+				metric_lists.append(metric_list)
+				print(f'[Selection Round: {s_index + 1} / {selection_repeat}]')
+				print(f'[Model Round: {m_index + 1} / {model_repeat}]')
+				print('\n')
 
-				# Test Features in Different Models
-				metric_lists, acc_lists = [], []
-				# threshold_lists = None
-				for i in range(model_repeat):
-					_, _, metric_list, acc_list, threshold_list = traditional_method_cv(
-						x_selected, y_selected, n_fold, auc_threshold, model_type)
-					# if threshold_lists is None: threshold_lists = threshold_list
-					acc_lists.append(acc_list)
-					metric_lists.append(metric_list)
-					print(f'[{i + 1} / {model_repeat}]')
+			metric_lists = np.array(metric_lists)
+			means, stds = np.mean(metric_lists, axis=0), np.std(metric_lists, axis=0)
+			print(f'[{model_type} --- Repeat number: {model_repeat}]')
+			print('Mean AUC\t\t\tF1\t\t\tRevised F1\t\t\tAcc\t\t\tRevised Acc')
+			print('\t\t\t'.join([f'{m: .4f}' for m in means]))
+			print('\t\t\t'.join([f'{s: .4f}' for s in stds]))
+			print('\t\t\t'.join([f'{m: .4f} ±{s: .4f}' for m, s in zip(means, stds)]))
+			print('\n')
+			metric_all_list = metric_lists if metric_all_list is None else metric_all_list + metric_lists
 
-				metric_lists = np.array(metric_lists)
-				means, stds = np.mean(metric_lists, axis=0), np.std(metric_lists, axis=0)
-				print(f'[{model_type} --- Repeat number: {model_repeat}]')
-				print('Mean AUC\t\t\tF1\t\t\tRevised F1\t\t\tAcc\t\t\tRevised Acc')
-				print('\t\t\t'.join([f'{m: .4f}' for m in means]))
-				print('\t\t\t'.join([f'{s: .4f}' for s in stds]))
-				print('\t\t\t'.join([f'{m: .4f} ±{s: .4f}' for m, s in zip(means, stds)]))
-				metric_all_list = metric_lists if metric_all_list is None else metric_all_list + metric_lists
+		mean_list_dict[f'{model_type}'] = np.mean(metric_all_list, axis=0)
+		std_list_dict[f'{model_type}'] = np.std(metric_all_list, axis=0)
 
-			mean_list_dict[f'{t}-{model_type}'] = np.mean(metric_all_list, axis=0)
-			std_list_dict[f'{t}-{model_type}'] = np.std(metric_all_list, axis=0)
-
-		for key in mean_list_dict:
-			print(key + '\t\t\t'.join([f'{m: .4f} ±{s: .4f}' for m, s in zip(
-				mean_list_dict[key], std_list_dict[key])]))
+	for key in mean_list_dict:
+		print(key + '\t\t\t'.join([f'{m: .4f} ±{s: .4f}' for m, s in zip(
+			mean_list_dict[key], std_list_dict[key])]))
 
 	# Saving as Excel file
-	# workbook = openpyxl.Workbook()
-	# sheet = workbook.active
-	# title = [
-	# 	't_test-select_method-model_type', 'Mean AUC', 'F1',
-	# 	'Revised F1', 'Acc', 'Revised Acc']
-	# sheet.append(title)
-	#
-	# for key in mean_list_dict:
-	# 	sheet.append([key] + [f'{m: .4f} ±{s: .4f}' for m, s in zip(mean_list_dict[key], std_list_dict[key])])
-	#
-	# workbook.save(save_path)
-	#
-	# end_time = time.time()
-	# print(end_time - start_time, "s")
+	workbook = openpyxl.Workbook()
+	sheet = workbook.active
+	title = [
+		'select_method-model_type', 'Mean AUC', 'F1',
+		'Revised F1', 'Acc', 'Revised Acc']
+	sheet.append(title)
+
+	for key in mean_list_dict:
+		sheet.append([key] + [f'{m: .4f} ±{s: .4f}' for m, s in zip(mean_list_dict[key], std_list_dict[key])])
+
+	workbook.save(save_path)
+
+	end_time = time.time()
+	print(end_time - start_time, "s")
