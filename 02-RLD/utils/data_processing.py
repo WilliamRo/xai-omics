@@ -28,48 +28,50 @@ def windows_choose(distr: np.ndarray, windows_size):
   return int(result)
 
 
-def get_random_window(arr: np.ndarray, window_size=128, slice_size=16,
-                      true_rand=False):
-  # for Gamma test
-  # arr = np.where(arr != 0, 1, arr)
-  # s = np.random.randint(arr.shape[1] - slice_size + 1)
-  index = np.random.randint(arr.shape[0])
+def get_random_window(arr: np.ndarray, windows_size, true_rand=False):
+  # todo: true random
+  assert len(arr.shape) == len(windows_size) + 1
 
   arr = arr != 0
-  arr = arr[index, :, :, :, 0]
+  arr = arr[:, ..., 0]
 
-  s_arr = np.any(arr, axis=(1, 2))
-  h_arr = np.any(arr, axis=(0, 2))
-  w_arr = np.any(arr, axis=(0, 1))
+  dimension = len(arr.shape)
+  sub_arr = []
+  for i in range(dimension):
+    sub_arr.append(np.any(arr, axis=tuple([j for j in range(dimension) if j != i])))
 
-  distr_s = normalize(s_arr.ravel())
-  distr_w = normalize(h_arr.ravel())
-  distr_h = normalize(w_arr.ravel())
+  dist_list = []
+  for s_arr in sub_arr:
+    dist_list.append(normalize(s_arr.ravel()))
 
-  s = windows_choose(distr_s, slice_size)
-  h = windows_choose(distr_h, window_size)
-  w = windows_choose(distr_w, window_size)
+  pos = []
+  for i, dist in enumerate(dist_list):
+    pos.append(windows_choose(dist, windows_size[i]))
 
-  return index, s, h, w
+  return pos
 
 
-def get_sample(arr: np.ndarray, index, s, h, w,
-               windows_size=128, slice_size=16):
+def get_sample(arr: np.ndarray, pos, windows_size):
+  assert len(pos) == len(windows_size)
 
-  return arr[index:index+1, s:s+slice_size,
-             h:h+windows_size, w:w+windows_size, :]
+  for i, p, s in zip(range(len(pos)), pos, windows_size):
+    arr = np.take(arr, range(p, p + s), axis=i)
+  return arr
 
 
 def gen_windows(arr1: np.ndarray, arr2: np.ndarray, batch_size,
-                windows_size=128, slice_size=16, true_rand=False):
+                windows_size, **kwargs):
   features = []
   targets = []
-  for _ in range(batch_size):
-    index, s, h, w = get_random_window(arr1, windows_size, slice_size, true_rand)
-    features.append(get_sample(arr1, index, s, h, w, windows_size, slice_size))
-    targets.append(get_sample(arr2, index, s, h, w, windows_size, slice_size))
-  features = np.concatenate(features)
-  targets = np.concatenate(targets)
+  index = np.random.choice(range(arr1.shape[0]), batch_size)
+  arr1, arr2 = arr1[index], arr2[index]
+
+  for i in range(batch_size):
+    pos = get_random_window(arr1[i], windows_size, **kwargs)
+    features.append(get_sample(arr1[i], pos, windows_size))
+    targets.append(get_sample(arr2[i], pos, windows_size))
+  features = np.stack(features)
+  targets = np.stack(targets)
 
   return features, targets
 
@@ -87,7 +89,7 @@ def nonlocal_mean(image, h=10, patch_size=7, patch_dis=21):
 
 if __name__ == '__main__':
   from xomics import MedicalImage
-  from xomics.objects.general_mi import GeneralMI
+  from xomics.objects.jutils.general_mi import GeneralMI
   from dev.explorers.rld_explore.rld_explorer import RLDExplorer
   import datetime
 
@@ -97,15 +99,15 @@ if __name__ == '__main__':
   test.process_param['shape'] = [440, 440, 480]
   test.process_param['norm'] = 'PET'
 
-  a = test.images['30G'][0]
-  b = test.labels['240G'][0]
+  a = test.images['CT'][0]
+  b = test.labels['60G-3'][0]
   if test_gen_win:
     a = np.expand_dims(a, axis=[-1, 0])
     b = np.expand_dims(b, axis=[-1, 0])
 
     num = 16
     time1 = datetime.datetime.now()
-    img_f, img_t = gen_windows(a, b, num, true_rand=False)
+    img_f, img_t = gen_windows(a, b, num, [1, 128, 128], true_rand=False)
     time2 = datetime.datetime.now()
     print("time:", time2 - time1)
     di_f = {}

@@ -56,9 +56,9 @@ def main(_):
   th.val_size = 4
   th.test_size = 5
 
-  th.window_size = 64
-  th.slice_size = 32
-  # th.eval_window_size = 128
+  th.windows_size = [1, 64, 64]
+  # th.eval_windows_size = [1, 128, 128]
+
   th.data_shape = [560, 440, 440]
   # th.input_shape = th.input_shape[1:]
 

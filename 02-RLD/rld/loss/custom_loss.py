@@ -36,11 +36,13 @@ def get_nrmse():
 
 def get_psnr():
   from tframe import tf
+  from rld_core import th
 
   def psnr(truth, output):
     # [bs, num_slides, 440, 440, 1]
-    truth = tf.reduce_mean(truth, axis=1)
-    output = tf.reduce_mean(output, axis=1)
+    if th.dimension == 3:
+      truth = tf.reduce_mean(truth, axis=1)
+      output = tf.reduce_mean(output, axis=1)
     return tf.image.psnr(truth, output, 1)
 
   return Quantity(psnr, tf.reduce_mean, name='PSNR', lower_is_better=False)

@@ -23,19 +23,19 @@ def main(_):
   console.start('{} on PET/CT reconstruct task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = 1
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
   th.visible_gpu_id = 1
   th.data_config = fr'alpha dataset=02-RLD'
 
-  th.val_size = 4
+  th.val_size = 4                                                              
   th.test_size = 5
 
-  th.window_size = 64
-  th.slice_size = 32
-  # th.eval_window_size = 128
+  th.windows_size = [1, 64, 64]
+  # th.eval_windows_size = [1, 128, 128]
+
   th.data_shape = [560, 440, 440]
   # th.input_shape = th.input_shape[1:]
 
@@ -62,7 +62,7 @@ def main(_):
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
   th.suffix = ''
-  th.suffix += f'_w{th.window_size}_s{th.slice_size}'
+  th.suffix += f'_win{th.windows_size}'
 
 
   th.visible_gpu_id = 0

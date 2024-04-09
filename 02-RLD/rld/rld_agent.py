@@ -1,7 +1,7 @@
 from roma import console
 from tframe.data.base_classes import DataAgent
 from rld.rld_set import RLDSet
-from xomics.objects.general_mi import GeneralMI
+from xomics.objects.jutils.general_mi import GeneralMI
 
 import os
 import numpy as np

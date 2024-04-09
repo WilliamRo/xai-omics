@@ -1,6 +1,7 @@
 
 import rld_core as core
 import rld_mu as m
+import rld_tu as tu
 
 from tframe import console, SaveMode
 from tframe import tf
@@ -12,21 +13,15 @@ from tframe.utils.organizer.task_tools import update_job_dir
 # -----------------------------------------------------------------------------
 # Define model here
 # -----------------------------------------------------------------------------
-model_name = 'gan'
-id = 7
+model_name = 'ddpm'
+id = 10
 def model():
   th = core.th
-  gan = m.get_gan_container()
+  model = m.get_ddpm_container(time_steps=th.time_step, time_dim=th.time_dim)
+  unet = m.TimeUNet(th.archi_string, model, th.dimension)
+  unet.add_to(model)
 
-  m.mu.UNet(3, arc_string=th.archi_string).add_to(gan.G)
-
-  H, N = 8, 4
-  for _ in range(N):
-    gan.D.add(m.mu.HyperConv3D(H, 3, use_batchnorm=True, activation='lrelu'))
-    H *= 2
-  gan.D.add(m.mu.Dense(H, activation='lrelu'))
-
-  return m.gan_finalize(gan)
+  return m.finalize(model)
 
 
 def main(_):
@@ -37,19 +32,23 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.visible_gpu_id = 1
+  th.visible_gpu_id = 0
   th.data_config = fr'alpha dataset=02-RLD'
 
   th.val_size = 4
   th.test_size = 5
 
-  th.windows_size = [1, 64, 64]
+  th.windows_size = [64, 64]
   # th.eval_windows_size = [1, 128, 128]
-
   th.data_shape = [560, 440, 440]
-  # th.input_shape = th.input_shape[1:]
 
-  th.gan = True
+  th.dimension = 2
+  if th.dimension == 2:
+    th.input_shape = th.input_shape[1:]
+
+  th.gan = False
+  th.probe_func = tu.ddpm_probe
+  th.probe_per_round = 0.1
 
   th.data_set = ['30G', '240G']
   th.process_param = {
@@ -71,8 +70,8 @@ def main(_):
   update_job_dir(id, model_name)
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
-  th.suffix = ''
-  th.suffix += f'_w{th.window_size}_s{th.slice_size}'
+  th.suffix = '_new'
+  th.suffix += f'_win{tuple(th.windows_size)}'
 
 
   th.visible_gpu_id = 0
@@ -80,32 +79,35 @@ def main(_):
   # 2. model setup
   # ---------------------------------------------------------------------------
   th.model = model
-  th.archi_string = '4-3-3-2-lrelu'
+  th.archi_string = '32-3-3-2-lrelu'
+
+  th.ddpm = True
+  th.time_step = 100
+  th.time_dim = 128
 
   th.use_sigmoid = False
   th.clip_off = False
-  th.output_conv = False
+  th.output_conv = True
   # th.use_res = True
   # ---------------------------------------------------------------------------
   # 3. trainer setup
   # ---------------------------------------------------------------------------
   th.epoch = 1000
-  th.early_stop = True
+  th.early_stop = False
   th.patience = 15
-  th.probe_cycle = 0
-  # th.validation_per_round = 50
+  th.validation_per_round = 0
 
-  th.batch_size = 4
-  th.batchlet_size = 2
+  th.batch_size = 512
+  th.batchlet_size = 64
   th.val_batch_size = 2
 
-  th.buffer_size = 6
+  th.buffer_size = 32
 
-  th.loss_string = 'nrmse'
+  th.loss_string = 'rmse'
   th.opt_str = 'adam'
 
   th.optimizer = th.opt_str
-  th.learning_rate = 0.003
+  th.learning_rate = 0.0003
   th.val_decimals = 7
 
   th.train = True
@@ -114,7 +116,7 @@ def main(_):
   # 4. other stuff and activate
   # ---------------------------------------------------------------------------
   th.suffix += '_noCT' if th.noCT else ''
-  th.suffix += f'_{th.data_set[0]}to{th.data_set[1]}'
+  th.suffix += f'_{th.dimension}D_{th.data_set[0]}to{th.data_set[1]}'
   th.suffix += f'_lr{th.learning_rate}_bs{th.batch_size}_{th.opt_str}'
   th.mark = '{}({})'.format(model_name, th.archi_string)
   th.gather_summ_name = th.prefix + summ_name + '.sum'

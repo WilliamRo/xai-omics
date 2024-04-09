@@ -3,7 +3,7 @@ from roma import console
 from tframe import pedia
 
 
-def load_data():
+def load_data(model):
   from rld_core import th
 
   datasets: list[RLDSet] = RLDAgent.load(th.data_dir, th.val_size, th.test_size)
@@ -11,6 +11,8 @@ def load_data():
   # Report data shape
   console.show_info('Data details')
   for ds in datasets:
+    if hasattr(model, 'batch_preprocessor'):
+      ds.batch_preprocessor = model.batch_preprocessor
     assert isinstance(ds, RLDSet)
     if not th.rehearse and (ds.name != 'Train-Set' and th.train or ds.name == 'Test-Set'):
       ds.fetch_data(ds)

@@ -7,7 +7,7 @@ from tframe import console, pedia
 from tframe import DataSet
 from tframe import Predictor
 from xomics import MedicalImage
-from xomics.objects.general_mi import GeneralMI
+from xomics.objects.jutils.general_mi import GeneralMI
 
 
 class RLDSet(DataSet):
@@ -25,6 +25,7 @@ class RLDSet(DataSet):
     self.data_dict = {} if data_dict is None else data_dict
     # Necessary fields to prevent errors
     self.is_rnn_input = False
+    self.properties = {}
 
   def __len__(self): return len(self.mi_data)
 
@@ -70,7 +71,7 @@ class RLDSet(DataSet):
 
     # self.features/targets.shape = [N, S, H, W, 1]
     features, targets = gen_windows(self.features, self.targets, batch_size,
-                                    th.window_size, th.slice_size)
+                                    th.windows_size)
 
     data_dict = {
       'features': np.array(features),
@@ -97,7 +98,10 @@ class RLDSet(DataSet):
           if th.gan:
             data_dict[pedia.G_input] = data_dict.get('features')
             data_dict[pedia.D_input] = data_dict.get('targets')
+
           eval_set = DataSet(name=self.name, data_dict=data_dict)
+          if self.batch_preprocessor is not None:
+            eval_set = self.batch_preprocessor(eval_set, is_training)
           yield eval_set
         return
       else:
@@ -112,6 +116,8 @@ class RLDSet(DataSet):
           data_dict[pedia.G_input] = data_dict.get('features')
           data_dict[pedia.D_input] = data_dict.get('targets')
       eval_set = DataSet(name=self.name, data_dict=data_dict)
+      if self.batch_preprocessor is not None:
+        eval_set = self.batch_preprocessor(eval_set, is_training)
       yield eval_set
       return
     elif callable(self.data_fetcher):
@@ -122,10 +128,24 @@ class RLDSet(DataSet):
     #    is on
     for i in range(round_len):
       data_batch = self.gen_random_window(batch_size)
+      if self.batch_preprocessor is not None:
+        data_batch = self.batch_preprocessor(data_batch, is_training)
       # Yield data batch
       yield data_batch
     # Clear dynamic_round_len if necessary
     if is_training: self._clear_dynamic_round_len()
+
+  def generate_demo(self, model, **kwargs):
+    from pictor import Pictor
+    from tframe.utils import imtool
+
+    def plot(fig, x): imtool.gan_grid_plot(x, fig=fig)
+
+    p = Pictor('DDPM Demo')
+    p.add_plotter(plot)
+    p.objects = model.generate(delta_t=0, x_T=self.targets[200:201],
+                               return_all_images=True, **kwargs)
+    p.show()
 
   def evaluate_model(self, model: Predictor, report_metric=False, update_saves=False):
     from dev.explorers.rld_explore.rld_explorer import RLDExplorer
@@ -142,6 +162,8 @@ class RLDSet(DataSet):
       os.makedirs(dirpath, exist_ok=True)
       pred = []
       pred_raw = model.predict(self, batch_size=1)[:, ..., -1]
+      if th.dimension == 2:
+        pred_raw = np.reshape(pred_raw, [-1]+th.data_shape)
       # pred_raw = np.zeros((5, 263, 440, 440, 1))
       print(pred_raw.shape)
       # Remove negative values
@@ -276,6 +298,16 @@ class RLDSet(DataSet):
 
     self.features = features
     self.targets = np.expand_dims(np.stack(targets, axis=0), axis=-1)
+
+    if th.dimension == 2:
+      self.features = np.reshape(self.features, [-1]+th.data_shape[1:])
+      self.targets = np.reshape(self.targets, [-1]+th.data_shape[1:])
+      self.features = np.expand_dims(self.features, axis=-1)
+      self.targets = np.expand_dims(self.targets, axis=-1)
+
+    if th.ddpm:
+      self.features, self.targets = self.targets, self.features
+
 
   def gen_test_data(self, dirpath, keys):
       self.mi_data.image_keys = keys

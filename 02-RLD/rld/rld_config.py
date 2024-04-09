@@ -5,10 +5,9 @@ from tframe.configs.config_base import Flag
 
 class RLDConfig(SmartTrainerHub):
 
-  window_size = Flag.integer(128, 'Window size during training', is_key=None)
-  eval_window_size = Flag.integer(128, 'Window size for validation', is_key=None)
+  windows_size = Flag.integer(128, 'Window size during training', is_key=None)
+  eval_windows_size = Flag.integer(128, 'Window size for validation', is_key=None)
 
-  slice_size = Flag.integer(16, 'Slice size during training', is_key=None)
   buffer_size = Flag.integer(6, 'Number of subject groups loaded per round',
                              is_key=None)
 
@@ -40,6 +39,11 @@ class RLDConfig(SmartTrainerHub):
   extra_data = Flag.whatever([], 'extra data for feature', is_key=None)
 
   gan = Flag.boolean(False, 'use the gan model', is_key=None)
+  ddpm = Flag.boolean(False, 'use the ddpm model', is_key=None)
+  time_step = Flag.integer(1000, 'time step for DDPM', is_key=None)
+  time_dim = Flag.integer(128, 'time dimension for DDPM', is_key=None)
+
+  dimension = Flag.integer(3, 'dimension of the data', is_key=None)
 
   @property
   def data_arg(self) -> Arguments:
