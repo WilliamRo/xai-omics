@@ -1,3 +1,6 @@
 [submodule "xai-kit"]
 	path = xai-kit
 	url = https://github.com/WilliamRo/xai-kit
+[submodule "xomics/objects/jutils"]
+	path = xomics/objects/jutils
+	url = https://github.com/Jimmy-312/jutils.git
