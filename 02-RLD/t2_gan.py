@@ -43,7 +43,7 @@ def main(_):
   th.val_size = 4
   th.test_size = 5
 
-  th.windows_size = [1, 64, 64]
+  th.windows_size = [64, 64, 64]
   # th.eval_windows_size = [1, 128, 128]
 
   th.data_shape = [560, 440, 440]
@@ -72,7 +72,7 @@ def main(_):
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
   th.suffix = ''
-  th.suffix += f'_w{th.window_size}_s{th.slice_size}'
+  th.suffix += f'_win{tuple(th.windows_size)}'
 
 
   th.visible_gpu_id = 0

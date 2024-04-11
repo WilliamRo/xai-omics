@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
     num = 16
     time1 = datetime.datetime.now()
-    img_f, img_t = gen_windows(a, b, num, [1, 128, 128], true_rand=False)
+    img_f, img_t = gen_windows(a, b, num, [1, 360, 360], true_rand=False)
     time2 = datetime.datetime.now()
     print("time:", time2 - time1)
     di_f = {}

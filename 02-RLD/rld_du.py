@@ -14,10 +14,14 @@ def load_data(model):
     if hasattr(model, 'batch_preprocessor'):
       ds.batch_preprocessor = model.batch_preprocessor
     assert isinstance(ds, RLDSet)
+
     if not th.rehearse and (ds.name != 'Train-Set' and th.train or ds.name == 'Test-Set'):
+      ds.mi_data.pre_load(16)
       ds.fetch_data(ds)
       console.supplement(f'{ds.name}: {ds.features.shape}', level=2)
     else:
+      if th.train and not th.rehearse:
+        ds.mi_data.pre_load(48)
       console.supplement(f'{ds.name}: {len(ds)}', level=2)
 
   if th.gan:

@@ -27,13 +27,13 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.visible_gpu_id = 1
+  th.visible_gpu_id = 0
   th.data_config = fr'alpha dataset=02-RLD'
 
   th.val_size = 4                                                              
   th.test_size = 5
 
-  th.windows_size = [1, 64, 64]
+  th.windows_size = [64, 64, 64]
   # th.eval_windows_size = [1, 128, 128]
 
   th.data_shape = [560, 440, 440]
@@ -62,7 +62,7 @@ def main(_):
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
   th.suffix = ''
-  th.suffix += f'_win{th.windows_size}'
+  th.suffix += f'_win{tuple(th.windows_size)}'
 
 
   th.visible_gpu_id = 0

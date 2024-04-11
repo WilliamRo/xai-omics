@@ -1,6 +1,5 @@
-import os.path
-
 import numpy as np
+import os
 
 
 from tframe import console, pedia
@@ -11,6 +10,8 @@ from xomics.objects.jutils.general_mi import GeneralMI
 
 
 class RLDSet(DataSet):
+
+  # region: Basic methods
 
   def __init__(self, mi_data, buffer_size=None,
                name='dataset', data_dict=None):
@@ -64,14 +65,23 @@ class RLDSet(DataSet):
   @property
   def size(self): return len(self)
 
+  # endregion: Basic methods
+
+  # region: Data batch relevant methods
+
   def gen_random_window(self, batch_size):
     from rld_core import th
     from utils.data_processing import gen_windows
     # Randomly sample [S, S, S] pair from features and targets
 
     # self.features/targets.shape = [N, S, H, W, 1]
-    features, targets = gen_windows(self.features, self.targets, batch_size,
-                                    th.windows_size)
+    if th.windows_size is not None:
+      features, targets = gen_windows(self.features, self.targets, batch_size,
+                                      th.windows_size)
+    else:
+      index = np.random.choice(list(range(self.features.shape[0])), batch_size,
+                               replace=False)
+      features, targets = self.features[index], self.targets[index]
 
     data_dict = {
       'features': np.array(features),
@@ -135,6 +145,10 @@ class RLDSet(DataSet):
     # Clear dynamic_round_len if necessary
     if is_training: self._clear_dynamic_round_len()
 
+  # endregion: Data batch relevant methods
+
+  # region: Evaluation methods
+
   def generate_demo(self, model, **kwargs):
     from pictor import Pictor
     from tframe.utils import imtool
@@ -172,29 +186,22 @@ class RLDSet(DataSet):
         pred_path = os.path.join(dirpath, f'{num}-{sub}-pred.nii.gz')
         index = self.mi_data.index(sub)
         pred_i = self.mi_data.reverse_norm_suv(pred_i, index)
-        GeneralMI.write_img(pred_i, pred_path, self.images.itk[index])
+        GeneralMI.write_img(pred_i, pred_path, self.itk_imgs[th.data_set[0]][index])
         pred.append(pred_i)
 
     self.pred = pred
     pred = np.stack(pred, axis=0)
     pred = np.expand_dims(pred, axis=-1)
 
-    # statistics
-    if th.statistics:
-      stat_path = os.path.join(dirpath, 'stat/')
-      if not os.path.exists(stat_path):
-        os.makedirs(stat_path)
-      self.evaluate_statistic(stat_path)
-
     if th.gen_test_nii:
-      test_keys = ['30G', '240G', '40S', '60G', '240S', 'CT_seg']
+      test_keys = self.mi_data.image_keys
       self.gen_test_data(dirpath, test_keys)
 
     # Compare results using DrGordon
     medical_images = [
       MedicalImage(f'{self.pid[i]}', images={
-        'Input': self.images_raw[i],
-        'Full': self.labels_raw[i],
+        'Input': self.raw_images[th.data_set[0]][i],
+        'Full': self.raw_images[th.data_set[1]][i],
         'Output': pred[i, ..., 0],
       }) for i in range(self.size)]
 
@@ -233,7 +240,7 @@ class RLDSet(DataSet):
             rev_v = self.mi_data.reverse_norm_suv(value[:, ..., v], index)
             tmp.append(rev_v)
             GeneralMI.write_img(rev_v, os.path.join(wm_dir, f'{index}{v}-ca{v}-{self.pid[index]}.nii.gz'),
-                                self.images.itk[index])
+                                self.images[th.data_set[0]].itk[index])
           rev_values.append(np.stack(tmp, axis=-1))
         values = rev_values
         values = np.stack(values, axis=0)
@@ -255,6 +262,24 @@ class RLDSet(DataSet):
     re.sv.set('vmax', 5.0)
     re.show()
 
+  def gen_test_data(self, dirpath, keys):
+    from rld_core import th
+    self.mi_data.image_keys = keys
+    for pid in self.pid:
+      data_path = os.path.join(dirpath, 'raw_data/')
+      if not os.path.exists(data_path):
+        os.makedirs(data_path)
+      for name in self.mi_data.image_keys:
+        img_path = os.path.join(data_path, f'{pid}-{name}.nii.gz')
+        if os.path.exists(img_path): continue
+        index = self.mi_data.index(pid)
+        GeneralMI.write_img(self.raw_images[name][index],
+                            img_path, self.itk_imgs[th.data_set[0]][index])
+
+  # endregion: Evaluation methods
+
+  # region: Data Fetch methods
+
   @staticmethod
   def fetch_data(self):
     return self._fetch_data()
@@ -269,19 +294,19 @@ class RLDSet(DataSet):
     console.show_status(f'Fetching data from {th.data_kwargs["dataset"]} ...')
 
     if len(th.extra_data) > 0:
-      features = [self.images[subjects]]
-      features += [self.mi_data.images[k][subjects] for k in th.extra_data]
+      features = [self.images[th.data_set[0]][subjects]]
+      features += [self.images[k][subjects] for k in th.extra_data]
       features = [np.expand_dims(np.stack(feature, axis=0), axis=-1)
                   for feature in features]
       features = np.concatenate(features, axis=-1)
     else:
-      features = self.images[subjects]
+      features = self.images[th.data_set[0]][subjects]
       features = np.expand_dims(np.stack(features, axis=0), axis=-1)
 
-    targets = self.labels[subjects]
-    segs = self.seg[subjects]
+    targets = self.images[th.data_set[1]][subjects]
 
     if th.use_seg is not None:
+      segs = self.seg[subjects]
       onehot = np.zeros_like(features, dtype=bool)
       for i, seg in enumerate(segs):
         onehot[i] = np.expand_dims(self.mi_data.mask2onehot(seg, th.use_seg),
@@ -289,7 +314,7 @@ class RLDSet(DataSet):
       features = np.concatenate([features, onehot], axis=-1)
 
     if not th.noCT:
-      ct = self.mi_data.images['CT'][subjects]
+      ct = self.images['CT'][subjects]
       cts = np.expand_dims(np.stack(ct, axis=0), axis=-1)
       # print(cts.shape, features.shape)
       features = np.concatenate([features, cts], axis=-1)
@@ -308,117 +333,9 @@ class RLDSet(DataSet):
     if th.ddpm:
       self.features, self.targets = self.targets, self.features
 
+  # endregion: Data Fetch methods
 
-  def gen_test_data(self, dirpath, keys):
-      self.mi_data.image_keys = keys
-      for pid, seg in zip(self.pid, self.seg):
-        data_path = os.path.join(dirpath, 'raw_data/')
-        if not os.path.exists(data_path):
-          os.makedirs(data_path)
-        for name in self.mi_data.image_keys:
-          img_path = os.path.join(data_path, f'{pid}-{name}.nii.gz')
-          if os.path.exists(img_path): continue
-          index = self.mi_data.index(pid)
-          GeneralMI.write_img(self.mi_data.images_raw[name][index],
-                              img_path, self.images.itk[index])
-
-  def evaluate_statistic(self, path):
-    from utils.statistics import load_suv_stat, draw_one_bar, set_ax, \
-      load_metric_stat, hist_joint, violin_plot, violin_plot_roi, metric_text
-    import matplotlib.pyplot as plt
-    console.show_status(r'Calculating the Statistics...')
-
-    input_label = '30s Gated'
-    output_label = 'Predicted'
-    true_label = '240s Gated'
-
-    # metrics calc
-    console.supplement(r'Calc the Metrics', level=2)
-    metrics = ['SSIM', 'NRMSE', 'RELA', 'PSNR']
-    input_metric = load_metric_stat(self.labels_raw, self.images_raw, metrics,
-                                    path, self.pid, 'low')
-    output_metric = load_metric_stat(self.labels_raw, self.pred, metrics,
-                                     path, self.pid, 'predict')
-    # SUV calc
-    console.supplement(r'Calc the SUV', level=2)
-    roi = [5, 10, 11, 12, 13, 14, 51]
-    suv_max_input, suv_mean_input = load_suv_stat(self.images_raw, self.seg,
-                                                  path, self.pid, 'low')
-    suv_max_pred, suv_mean_pred = load_suv_stat(self.pred, self.seg,
-                                                path, self.pid, 'predict')
-    suv_max_full, suv_mean_full = load_suv_stat(self.labels_raw, self.seg,
-                                                path, self.pid, 'full')
-    # Pics Draw
-    width = 0.3
-    metric_x = np.arange(len(metrics))
-    region_x = np.arange(len(roi))
-    console.show_status(r'Start to draw the figure...')
-    fig, axs = plt.subplots(2, 5, figsize=(32, 12))
-    fig.subplots_adjust(hspace=0.5, wspace=0.2)
-    # metric draw
-    console.supplement(r'Draw the Metrics', level=2)
-    axs[0, 0].bar(metric_x[:-1] - width/2, input_metric[0][:-1], width, label=input_label)
-    axs[0, 0].errorbar(metric_x[:-1] - width / 2, input_metric[0][:-1],
-                       yerr=input_metric[1][:-1], fmt='.', color='red',
-                       ecolor='black', capsize=6)
-
-    axs[0, 0].bar(metric_x[:-1] + width/2, output_metric[0][:-1], width, label=output_label)
-    axs[0, 0].errorbar(metric_x[:-1] + width / 2, output_metric[0][:-1],
-                       yerr=output_metric[1][:-1], fmt='.', color='red',
-                       ecolor='black', capsize=6)
-
-    ax_psnr = axs[0, 0].twinx()
-    ax_psnr.bar(metric_x[-1] - width / 2, input_metric[0][-1],
-                width, label=input_label)
-    ax_psnr.errorbar(metric_x[-1] - width / 2, input_metric[0][-1],
-                     yerr=input_metric[1][-1],
-                     fmt='.', color='red', ecolor='black', capsize=6)
-
-    ax_psnr.bar(metric_x[-1] + width / 2, output_metric[0][-1],
-                width, label=output_label)
-    ax_psnr.errorbar(metric_x[-1] + width / 2, output_metric[0][-1],
-                     yerr=output_metric[1][-1],
-                     fmt='.', color='red', ecolor='black', capsize=6)
-
-    metric_text(axs[0, 0], ax_psnr, input_metric, metric_x, width)
-    metric_text(axs[0, 0], ax_psnr, output_metric, metric_x, -width)
-
-    axs[0, 0].set_xticks(metric_x, metrics)
-    axs[0, 0].legend()
-    axs[0, 0].set_title('Metrics')
-    # hist joint draw
-    console.supplement(r'Draw the Histogram', level=2)
-    hist_joint(fig, axs[0, 1], self.images_raw, self.labels_raw,
-               input_label, true_label, -3, 3)
-    hist_joint(fig, axs[0, 2], self.pred, self.labels_raw,
-               output_label, true_label, -3, 3)
-    # suv draw
-    console.supplement(r'Draw the SUV', level=2)
-    draw_one_bar(axs[1, 0], region_x - width, suv_max_input, width, roi, input_label)
-    draw_one_bar(axs[1, 0], region_x, suv_max_pred, width, roi, output_label)
-    draw_one_bar(axs[1, 0], region_x + width, suv_max_full, width, roi, true_label)
-
-    draw_one_bar(axs[1, 1], region_x - width, suv_mean_input, width, roi, input_label)
-    draw_one_bar(axs[1, 1], region_x, suv_mean_pred, width, roi, output_label)
-    draw_one_bar(axs[1, 1], region_x + width, suv_mean_full, width, roi, true_label)
-
-    set_ax([axs[1, 0], axs[1, 1]], ['$SUV_{max}$', '$SUV_{mean}$'], region_x, roi)
-    # violin draw
-    console.supplement(r'Draw the Violin', level=2)
-    violin_plot_roi(axs[1, 2], self.images_raw, self.seg, roi)
-    violin_plot_roi(axs[0, 3], self.labels_raw, self.seg, roi)
-    violin_plot_roi(axs[1, 3], self.pred, self.seg, roi)
-    set_ax([axs[1, 2], axs[0, 3], axs[1, 3]],
-           [input_label, true_label, output_label],
-           np.arange(1, len(roi) + 1), roi, legend=False)
-
-    violin_plot(axs[0, 4], [self.images_raw, self.pred, self.labels_raw], self.seg,
-                5, [input_label, output_label, true_label])
-    violin_plot(axs[1, 4], [self.images_raw, self.pred, self.labels_raw], self.seg,
-                51, [input_label, output_label, true_label])
-
-    fig.show()
-    fig.savefig(os.path.join(path, 'figures.svg'), dpi=600, format='svg')
+  # region: Properties and static methods
 
   @property
   def pid(self):
@@ -443,19 +360,19 @@ class RLDSet(DataSet):
 
   @property
   def images(self):
-    return self.mi_data.images[0]
+    return self.mi_data.images
 
   @property
-  def labels(self):
-    return self.mi_data.labels[0]
+  def raw_images(self):
+    return self.mi_data.raw_images
 
   @property
-  def images_raw(self):
-    return self.mi_data.images_raw[0]
+  def itk_imgs(self):
+    return self.mi_data.itk_imgs
 
   @property
-  def labels_raw(self):
-    return self.mi_data.labels_raw[0]
+  def itk_raws(self):
+    return self.mi_data.itk_raws
 
   @staticmethod
   def load_nii(filepath):
@@ -466,3 +383,5 @@ class RLDSet(DataSet):
   def export_nii(data, filepath, **kwargs):
     from xomics.data_io.utils.raw_rw import wr_file
     return wr_file(data, filepath, **kwargs)
+
+  # endregion: Properties and static methods

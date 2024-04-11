@@ -39,7 +39,7 @@ class RLDAgent(DataAgent):
       img_path = path_array[:, i]
       img_dict[type_name] = {'path': img_path}
 
-    img_keys = [th.data_set[0], 'CT_seg']
+    img_keys = th.data_set # + ['CT_seg']
     if not th.noCT:
       img_keys += ['CT']
 
@@ -55,7 +55,7 @@ class RLDAgent(DataAgent):
     }
 
     mi = GeneralMI(img_dict, image_keys=img_keys, process_param=th.process_param,
-                   label_keys=[th.data_set[1]], pid=pid, img_type=img_type)
+                   pid=pid, img_type=img_type)
     total_data = len(mi)
     mi.rm_void_data()
     console.show_status(f'Loaded {len(mi)}/{total_data} data')
