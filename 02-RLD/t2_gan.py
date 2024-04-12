@@ -16,7 +16,7 @@ model_name = 'gan'
 id = 7
 def model():
   th = core.th
-  gan = m.get_container()
+  gan = m.get_gan_container()
 
   m.mu.UNet(3, arc_string=th.archi_string).add_to(gan.G)
 
@@ -43,9 +43,9 @@ def main(_):
   th.val_size = 4
   th.test_size = 5
 
-  th.window_size = 64
-  th.slice_size = 32
-  # th.eval_window_size = 128
+  th.windows_size = [64, 64, 64]
+  # th.eval_windows_size = [1, 128, 128]
+
   th.data_shape = [560, 440, 440]
   # th.input_shape = th.input_shape[1:]
 
@@ -72,7 +72,7 @@ def main(_):
   summ_name = model_name
   th.prefix = '{}_'.format(date_string())
   th.suffix = ''
-  th.suffix += f'_w{th.window_size}_s{th.slice_size}'
+  th.suffix += f'_win{tuple(th.windows_size)}'
 
 
   th.visible_gpu_id = 0

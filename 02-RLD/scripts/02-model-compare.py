@@ -7,9 +7,9 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 
 from roma import console
-from utils.statistics import add_title_row_col, regions, hist_joint
+from utils.statistics import add_title_row_col, hist_joint
 from xomics.data_io.utils.metrics_calc import get_metrics
-from xomics.objects.general_mi import GeneralMI
+from xomics.objects.jutils.general_mi import GeneralMI
 
 
 def get_save_dir(root_dir):

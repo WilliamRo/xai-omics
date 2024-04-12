@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from utils.statistics import regions, load_suv_stat, \
   load_metric_stat, draw_one_bar, set_ax
-from xomics.objects.general_mi import GeneralMI
+from xomics.objects.jutils.general_mi import GeneralMI
 
 
 

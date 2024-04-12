@@ -1,26 +1,18 @@
-from collections import OrderedDict
-
-import numpy as np
-
 from rld.loss.custom_loss import nrmse
-from roma import console
 from tframe.core import TensorSlot, with_graph
 from tframe.core.quantity import Quantity
-from tframe.layers.common import Input
 from tframe import DataSet, pedia, tf, context, hub
-from tframe.models import GAN, Feedforward
-from tframe import hub as th
-from tframe.utils import misc, checker
-from tframe.utils.display.progress_bar import ProgressBar
+from tframe.models import GAN
+from tframe.utils import checker
 
 
 
 class PETGAN(GAN):
 
-  def __init__(self, mark, G_input_shape, D_input_shape):
+  def __init__(self, mark, G_input_shape, D_input_shape, learning_rate=0.0001):
     super().__init__(mark, G_input_shape, D_input_shape)
 
-    #
+    self.lr = learning_rate
     self._targets = TensorSlot(self, 'targets')
 
   @with_graph
@@ -85,9 +77,9 @@ class PETGAN(GAN):
 
     # Define train steps
     if G_optimizer is None:
-      G_optimizer = tf.train.AdamOptimizer(th.learning_rate)
+      G_optimizer = tf.train.AdamOptimizer(self.lr)
     if D_optimizer is None:
-      D_optimizer = tf.train.AdamOptimizer(th.learning_rate)
+      D_optimizer = tf.train.AdamOptimizer(self.lr)
 
     with tf.name_scope('Train_Steps'):
       with tf.name_scope('G_train_step'):

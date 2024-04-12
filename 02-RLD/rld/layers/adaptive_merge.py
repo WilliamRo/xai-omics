@@ -1,10 +1,8 @@
 from tframe import tf
 from tframe import hub as th
 
-from tframe.layers.common import Input
 from tframe.layers.layer import Layer, single_input
 from tframe.layers.merge import Merge
-from tframe.operators.neurons import NeuroBase
 
 
 

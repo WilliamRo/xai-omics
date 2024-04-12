@@ -24,7 +24,7 @@ for _ in range(DIR_DEPTH):
 from tframe import console
 from tframe import Predictor
 from rld.rld_config import RLDConfig as Hub
-from tframe.models import GAN
+from tframe.models import GAN, GaussianDiffusion
 import rld_du as du
 import rld_tu as tu
 
@@ -69,11 +69,14 @@ def activate():
   assert callable(th.model)
   model = th.model()
   predictor = Predictor
-  if th.gan: predictor = GAN
+  if th.gan:
+    predictor = GAN
+  if th.ddpm:
+    predictor = GaussianDiffusion
   assert isinstance(model, predictor)
 
   # Load data
-  train_set, val_set, test_set = du.load_data()
+  train_set, val_set, test_set = du.load_data(model)
 
   # Rehearse if required
   if th.rehearse:
@@ -91,8 +94,10 @@ def activate():
     #               test_set=test_set, trainer_hub=th, probe=tu.probe)
     # else:
     model.train(training_set=train_set, validation_set=val_set,
-                test_set=test_set, trainer_hub=th, probe=tu.save_img)
+                test_set=test_set, trainer_hub=th, probe=th.probe_func)
   else:
+    if th.ddpm:
+      test_set.generate_demo(model, sample_num=1)
     test_set.evaluate_model(model)
 
   # End
