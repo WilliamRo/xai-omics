@@ -25,7 +25,6 @@ class BCPAgent(DataAgent):
 
     '''
     from bcp_core import th
-    th.ratio_of_dataset = '6:1:3'
 
     bcp_set = cls.load_as_tframe_data(th.data_dir)
     mi_list = bcp_set.data_dict['mi_list'].tolist()

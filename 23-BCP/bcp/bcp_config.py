@@ -24,6 +24,7 @@ class BCPConfig(SmartTrainerHub):
     width = Flag.integer(2, 'width of Unet', is_key=None)
     activation = Flag.string('relu', 'activation of Unet', is_key=None)
 
+
     @property
     def link_indices(self):
         if self.link_indices_str in ('a', 'all', '-', ''):

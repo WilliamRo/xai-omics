@@ -124,6 +124,7 @@ class BCPSet(DataSet):
     print(f'{self.name}: {np.mean(dice_score_list)}\n')
 
 
+
 def dice_accuarcy(ground_truth, prediction):
   assert ground_truth.shape == prediction.shape
   smooth = 1.0
