@@ -16,9 +16,6 @@ class BCPConfig(SmartTrainerHub):
     random_noise = Flag.boolean(
         False, 'whether to add noise to image', is_key=None)
 
-    slice_num = Flag.integer(3, '', is_key=None)
-    xy_size = Flag.integer(192, '', is_key=None)
-
     link_indices_str = Flag.string('a', 'U-Net link indices', is_key=None)
 
     filter = Flag.integer(8, 'filter size of Unet', is_key=None)

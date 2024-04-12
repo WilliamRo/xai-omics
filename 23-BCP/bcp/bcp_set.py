@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import os
+import SimpleITK as sitk
 
 from tframe import DataSet, Predictor
 from roma import console
@@ -24,6 +25,7 @@ class BCPSet(DataSet):
     '''
     from bcp_core import th
     round_len = self.get_round_length(batch_size, training=is_training)
+    mi_list = self.data_dict['mi_list'].tolist()
 
     if is_training:
       for i in range(round_len):
@@ -31,8 +33,8 @@ class BCPSet(DataSet):
         for j in range(batch_size):
           num = random.randint(0, self.size - 1)
 
-          feature = np.squeeze(self.features[num])
-          target = np.squeeze(self.targets[num])
+          feature = np.squeeze(mi_list[num].images['mr'])
+          target = np.squeeze(mi_list[num].labels['caudate'])
 
           # Data Augmentation
           if th.random_flip:
@@ -67,8 +69,8 @@ class BCPSet(DataSet):
       for num in number_list:
         features, targets = [], []
         for i in num:
-          features.append(np.squeeze(self.features[i]))
-          targets.append(np.squeeze(self.targets[i]))
+          features.append(np.squeeze(mi_list[i].images['mr']))
+          targets.append(np.squeeze(mi_list[i].labels['caudate']))
 
         features = np.expand_dims(features, axis=-1)
         targets = np.expand_dims(targets, axis=-1)
@@ -80,94 +82,46 @@ class BCPSet(DataSet):
     if is_training: self._clear_dynamic_round_len()
 
 
-  def visualize_self(self, example_num):
-    pass
-
-
-  def visulization(self, mi_list):
-    pass
-
-
   def _check_data(self):
     pass
 
 
   def test_model(self, model):
-    from bcp_core import th
-    mi_dir = os.path.join(
-      os.path.dirname(os.path.dirname(th.data_dir)),
-      'data/05-Brain-MR/mi/NFBS')
-    save_dir = os.path.join(
-      os.path.dirname(os.path.dirname(th.data_dir)),
-      'data/05-Brain-MR/result/NFBS/mi')
-    file_name = os.listdir(mi_dir)
-    file_name = [f for f in file_name if '.mi' in f]
-
-    mi_list = []
-    for f in tqdm(file_name, desc='Loading MI files'):
-      mi = MedicalImage.load(os.path.join(mi_dir, f))
-      mi.normalization(['mr'], 'min_max')
-      mi.images['mr'] = mi.images['mr'] * 2 - 1
-
-      mi.crop([mi.shape[0], th.xy_size, th.xy_size], False, [])
-
-      image = mi.images['mr']
-      label = mi.labels['label-0']
-
-      # TODO
-      indices = np.where(label == 1)[0]
-      image = image[np.min(indices): np.max(indices) + 1]
-      label = label[np.min(indices): np.max(indices) + 1]
-      # TODO
-
-      feature = [image[i:i + th.slice_num, :, :]
-                 for i in range(image.shape[0] - th.slice_num + 1)]
-      target = [label[i:i + th.slice_num, :, :]
-                for i in range(label.shape[0] - th.slice_num + 1)]
-
-      feature = np.expand_dims(feature, axis=-1)
-      target = np.expand_dims(target, axis=-1)
-
-      eval_set = BCPSet(features=feature, targets=target, name='EvalSet')
-
-      assert isinstance(model, Predictor)
-      prediction = model.predict(eval_set, 16)
-
-      prediction = np.squeeze(prediction)
+    save_dir = r'E:\xai-omics\data\05-Brain-MR\yaojie_prediction'
+    mi_list = self.data_dict['mi_list'].tolist()
+    features, targets = [], []
+    crop_infos = []
+    pids = []
+    for mi in mi_list:
+      features.append(np.squeeze(mi.images['mr']))
+      targets.append(np.squeeze(mi.labels['caudate']))
+      crop_infos.append(mi._pocket['crop_info'])
+      pids.append(mi.key)
 
 
-      slice_num = prediction.shape[1]
-      result_z_shape = prediction.shape[0] + slice_num - 1
-      result_xy_shape = prediction.shape[-1]
-      result = np.zeros([result_z_shape, result_xy_shape, result_xy_shape])
-      add_count = np.zeros(result_z_shape)
+    features = np.expand_dims(features, axis=-1)
+    targets = np.expand_dims(targets, axis=-1)
+    name = 'batch_eval'
+    eval_set = DataSet(features=features, targets=targets, name=name)
 
-      for i, p in enumerate(prediction):
-        result[i: i + slice_num] = result[i: i + slice_num] + p
-        add_count[i: i + slice_num] = add_count[i: i + slice_num] + 1
+    assert isinstance(model, Predictor)
+    prediction = model.predict(eval_set, 16)
+    prediction = np.squeeze(prediction)
 
-      for i, a in enumerate(add_count):
-        result[i] = result[i] / a
+    dice_score_list = []
+    for pred, pid, crop_info, t in zip(prediction, pids, crop_infos, targets):
+      dice_score = dice_accuarcy(pred, np.squeeze(t))
+      dice_score_list.append(dice_score)
+      print(f'{pid} : {dice_score}')
+      save_path = os.path.join(save_dir, pid + '_pred.nii.gz')
+      bottom, top = crop_info[0], crop_info[1]
+      top = [256 - t for t in top]
+      pred = np.pad(pred, ((bottom[0], top[0]), (bottom[1], top[1]), (bottom[2], top[2])))
 
-      result[result >= 0.5] = 1
-      result[result < 0.5] = 0
+      pred_image = sitk.GetImageFromArray(pred)
+      sitk.WriteImage(pred_image, save_path)
 
-      pred = np.zeros_like(mi.images['mr'])
-      pred[np.min(indices): np.max(indices) + 1] = result
-
-      mi.labels['pred'] = pred
-      acc = dice_accuarcy(mi.labels["label-0"], mi.labels["pred"])
-      pid = mi.key
-      mi.key = mi.key + f' --- Acc: {round(acc, 2)}'
-      print(mi.key)
-      mi.save(os.path.join(save_dir, pid))
-
-      mi_list.append(mi)
-
-    dg = DrGordon(mi_list)
-    dg.slice_view.set('vmax', auto_refresh=False)
-    dg.slice_view.set('vmin', auto_refresh=False)
-    dg.show()
+    print(f'{self.name}: {np.mean(dice_score_list)}\n')
 
 
 def dice_accuarcy(ground_truth, prediction):
