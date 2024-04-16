@@ -23,11 +23,11 @@ def main(_):
   console.start('{} on Brain Analysis'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = 1
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.ratio_of_dataset = '7:2:1'
+  th.ratio_of_dataset = '6:1:3'
   th.random_flip = 0
   th.random_rotation = 0
   th.random_noise = 1

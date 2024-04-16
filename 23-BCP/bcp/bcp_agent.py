@@ -2,6 +2,7 @@ import copy
 import random
 import os
 import numpy as np
+import SimpleITK as sitk
 
 from bcp.bcp_set import BCPSet
 from collections import OrderedDict
@@ -24,7 +25,6 @@ class BCPAgent(DataAgent):
 
     '''
     from bcp_core import th
-    th.ratio_of_dataset = '6:1:1'
 
     bcp_set = cls.load_as_tframe_data(th.data_dir)
     mi_list = bcp_set.data_dict['mi_list'].tolist()
@@ -35,15 +35,15 @@ class BCPAgent(DataAgent):
       mi.normalization(['mr'], 'min_max')
       mi.images['mr'] = mi.images['mr'] * 2 - 1
 
-      mi.crop([mi.shape[0], th.xy_size, th.xy_size], False, [])
+      bottom, top = mi.crop([64, 64, 64], False, ['caudate'])
+      mi.put_into_pocket('crop_info', [bottom, top])
 
     if len(bcp_set) == 1:
       # If there is only 1 example, we make training set, validation set
       # and testing set the same.
       datasets = bcp_set, bcp_set, bcp_set
     else:
-      ratio = th.ratio_of_dataset.split(':')
-      ratio = [int(a) for a in ratio]
+      ratio = [int(a) for a in th.ratio_of_dataset.split(':')]
       part = ratio_to_realnum(ratio, len(mi_list))
 
       train_list = mi_list[:part[0]]
@@ -52,34 +52,9 @@ class BCPAgent(DataAgent):
 
       ds_list = [train_list, val_list, test_list]
       ds_name = ['TrainSet', 'ValidSet', 'TestSet']
-      # datasets = [
-      #   BCPSet(data_dict={'mi_list': np.array(dl, dtype=object)}, name=dn)
-      #   for dl, dn in zip(ds_list, ds_name)]
-      datasets = []
-      for dl, dn in zip(ds_list, ds_name):
-        features, targets = [], []
-        for mi in dl:
-          image = mi.images['mr']
-          label = mi.labels['label-0']
-
-          # TODO
-          indices = np.where(label == 1)[0]
-          image = image[np.min(indices): np.max(indices) + 1]
-          label = label[np.min(indices): np.max(indices) + 1]
-          # TODO
-
-          feature = [image[i:i + th.slice_num, :, :]
-                     for i in range(image.shape[0] - th.slice_num + 1)]
-          target = [label[i:i + th.slice_num, :, :]
-                    for i in range(label.shape[0] - th.slice_num + 1)]
-
-          features.append(np.squeeze(feature))
-          targets.append(np.squeeze(target))
-
-        features = np.expand_dims(np.concatenate(features, axis=0), axis=-1)
-        targets = np.expand_dims(np.concatenate(targets, axis=0), axis=-1)
-
-        datasets.append(BCPSet(features=features, targets=targets, name=dn))
+      datasets = [
+        BCPSet(data_dict={'mi_list': np.array(dl, dtype=object)}, name=dn)
+        for dl, dn in zip(ds_list, ds_name)]
 
     return datasets
 
@@ -118,15 +93,29 @@ class BCPAgent(DataAgent):
     print(data_dir)
     image_dict = OrderedDict()
 
-    mi_dir = os.path.join(
+    brain_dir = os.path.join(
       os.path.dirname(os.path.dirname(data_dir)),
-      'data/05-Brain-MR/mi/NFBS')
-    mi_dir = os.path.abspath(mi_dir)
+      'data/05-Brain-MR/yaojie_mr_brain')
+    pids = os.listdir(brain_dir)
+    mi_list = []
+    for p in tqdm(pids, desc='Loading data'):
+      mr_path = os.path.join(brain_dir, p, 'fastsurfer_mr.nii')
+      mask_path = os.path.join(brain_dir, p, f'hand-{p.split("-")[-1]}-caudate.nii')
 
-    filenames = [f for f in os.listdir(mi_dir) if '.mi' in f]
+      mr_image = sitk.ReadImage(mr_path)
+      mask_image = sitk.ReadImage(mask_path)
 
-    mi_list = [MedicalImage.load(os.path.join(mi_dir, file))
-               for file in tqdm(filenames, desc='Reading mi files')]
+      mr_array = sitk.GetArrayFromImage(mr_image)
+      mask_array = sitk.GetArrayFromImage(mask_image)
+
+      assert mr_array.shape == mask_array.shape
+
+      mi = MedicalImage(
+        images={'mr': mr_array}, labels={'caudate': mask_array}, key=p)
+
+      mi.put_into_pocket(mi.Keys.SPACING, mr_image.GetSpacing(), local=True)
+      mi.put_into_pocket(mi.Keys.DIRECTION, mr_image.GetDirection(), local=True)
+      mi_list.append(mi)
 
     image_dict['mi_list'] = np.array(mi_list, dtype=object)
 

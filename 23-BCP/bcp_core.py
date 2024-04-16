@@ -46,9 +46,8 @@ th.gpu_memory_fraction = 0.8
 # -----------------------------------------------------------------------------
 # Data configuration
 # -----------------------------------------------------------------------------
-th.slice_num = 8
-th.xy_size = 192
-th.input_shape = [th.slice_num, th.xy_size, th.xy_size, 1]
+th.input_shape = [64, 64, 64, 1]
+
 # -----------------------------------------------------------------------------
 # Set common trainer configs
 # -----------------------------------------------------------------------------
@@ -119,7 +118,10 @@ def activate():
   else:
     from bcp.bcp_set import BCPSet
     assert isinstance(test_set, BCPSet)
+    train_set.test_model(model)
+    val_set.test_model(model)
     test_set.test_model(model)
+
 
   # End
   model.shutdown()
