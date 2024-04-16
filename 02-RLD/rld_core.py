@@ -41,7 +41,7 @@ th.data_dir = os.path.join(ROOT, 'data')
 # Device configuration
 # -----------------------------------------------------------------------------
 th.allow_growth = True
-th.gpu_memory_fraction = 0.7
+th.gpu_memory_fraction = 0.9
 
 # -----------------------------------------------------------------------------
 # Data configuration

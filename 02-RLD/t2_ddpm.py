@@ -79,11 +79,11 @@ def main(_):
   # 2. model setup
   # ---------------------------------------------------------------------------
   th.model = model
-  th.archi_string = '32-3-3-2-lrelu'
+  th.archi_string = '64-3-3-2-lrelu'
 
   th.ddpm = True
-  th.time_step = 100
-  th.time_dim = 128
+  th.time_step = 1000
+  th.time_dim = 512
 
   th.use_sigmoid = False
   th.clip_off = False

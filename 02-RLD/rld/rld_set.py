@@ -6,7 +6,7 @@ from tframe import console, pedia
 from tframe import DataSet
 from tframe import Predictor
 from xomics import MedicalImage
-from xomics.objects.jutils.general_mi import GeneralMI
+from xomics.objects.jutils.objects import GeneralMI
 
 
 class RLDSet(DataSet):

@@ -20,8 +20,8 @@ def load_data(model):
       ds.fetch_data(ds)
       console.supplement(f'{ds.name}: {ds.features.shape}', level=2)
     else:
-      if th.train and not th.rehearse:
-        ds.mi_data.pre_load(48)
+      # if th.train and not th.rehearse:
+      #   ds.mi_data.pre_load(48)
       console.supplement(f'{ds.name}: {len(ds)}', level=2)
 
   if th.gan:

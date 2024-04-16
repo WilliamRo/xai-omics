@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.ndimage import gaussian_filter
 
 from tframe import hub as th, DataSet
 from tframe.models import GaussianDiffusion
@@ -33,18 +34,17 @@ class DDPM(GaussianDiffusion):
       mean = (beta_t / (1. - bar_alpha_t)) * x_0_pred
       std = 0.
 
-    return mean + std * z
+    x_tn = mean + std * z
+    # x_tn = gaussian_filter(x_tn, 1) - gaussian_filter(x_T, 1) - x_tn
+    return x_tn
+
 
   def generate(self, sample_num=1, x_T=None, return_all_images=False,
                clip=True, delta_t=0):
     """See DDPM paper -> Algorithm 2
     Ref: https://github.com/bot66/MNISTDiffusion/blob/main/train_mnist.py
     """
-    if x_T is None:
-      x_t = np.random.randn(sample_num, *(th.data_shape[1:]+[1]))
-    else:
-      x_t = self.add_noise(x_T, self.time_steps-1)
-
+    x_t = np.random.randn(sample_num, *(th.data_shape[1:]+[1]))
 
     images = [x_t]
     for t in reversed(range(self.time_steps-delta_t)):
@@ -52,6 +52,8 @@ class DDPM(GaussianDiffusion):
       time_emb = self.time_table[[t] * sample_num]
       pred_noise = self.predict(DataSet(data_dict={
         'features': x_t, 'time_emb': time_emb}))
+
+      # low = self.add_noise(x_T, t)
 
       if clip:
         x_t = self._sample_with_clip(x_t, t, pred_noise)
@@ -61,7 +63,7 @@ class DDPM(GaussianDiffusion):
       images.append(x_t)
 
     # TODO: ...? be very careful
-    images = [(x + 1.) / 2. for x in images]
+    # images = [(x + 1.) / 2. for x in images]
 
     if return_all_images: return images
     return x_t

@@ -40,8 +40,8 @@ def main(_):
   th.visible_gpu_id = 1
   th.data_config = fr'alpha dataset=02-RLD'
 
-  th.val_size = 4
-  th.test_size = 5
+  th.val_size = 5
+  th.test_size = 10
 
   th.windows_size = [64, 64, 64]
   # th.eval_windows_size = [1, 128, 128]

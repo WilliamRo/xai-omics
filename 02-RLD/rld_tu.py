@@ -105,9 +105,11 @@ def ddpm_probe(trainer: Trainer):
   model: mu.GaussianDiffusion = trainer.model
   samples = model.generate(sample_num=SAMPLE_NUM, x_T=x_T)
 
+  pics_path = os.path.join(model.agent.ckpt_dir, 'pics')
+  if not os.path.exists(pics_path): os.mkdir(pics_path)
   # Save snapshot
   file_path = os.path.join(
-    model.agent.ckpt_dir, f'round-{trainer.total_rounds:.1f}.png')
+    pics_path, f'round-{trainer.total_rounds:.1f}.png')
   fig = imtool.gan_grid_plot(samples)
   imtool.save_plt(fig, file_path)
 

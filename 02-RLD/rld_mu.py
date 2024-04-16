@@ -1,6 +1,6 @@
-from rld.models.models import *
+from rld.models import *
 from tframe import mu, pedia
-from rld.layers.layers import *
+from rld.layers import *
 from rld.loss.custom_loss import *
 
 custom_loss = {
