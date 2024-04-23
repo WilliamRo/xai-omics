@@ -10,8 +10,9 @@ import os
 
 
 
-input_dir = r'../../../data/02-PET-CT-Y1/mi/'
-mi_file = os.listdir(input_dir)[:2]
+input_dir = r'D:\XAI Dropbox\William Ro\02-William@ZJU\05-Collaborations\03-PET\2023-09-27\病灶分割\食管癌-mi\mi/'
+input_dir = r'P:\xai-omics\data\04-Brain-CT-PET\mi'
+mi_file = os.listdir(input_dir)[:10]
 
 mi_list = []
 for file in mi_file:
