@@ -93,8 +93,8 @@ def activate():
     model.train(training_set=train_set, validation_set=val_set,
                 trainer_hub=th)
   else:
-    train_set.evaluate_model(model)
-    # val_set.evaluate_model(model)
+    # train_set.evaluate_model(model)
+    val_set.evaluate_model(model)
 
   # End
   model.shutdown()

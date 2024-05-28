@@ -54,7 +54,7 @@ def main(_):
 
   th.val_size = 1
   th.test_size = 1
-  th.data_shape = [1, 644, 256, 256, 1]
+  th.data_shape = [1, 600, 256, 256, 1]
   # th.data_shape = [1, 400, 400, 400, 1]
 
   th.norm_by_feature = True
@@ -62,10 +62,10 @@ def main(_):
   # th.sub_indices = [0]
   # th.slice_range = [160, 190]
 
-  # th.sub_indices = [0, 1]
-  th.sub_indices = [1]
+  th.sub_indices = [0, 1]
+  # th.sub_indices = [1]
   # th.slice_range = [60, 100]
-  th.slice_range = [40, 120]
+  # th.slice_range = [40, 120]
   # th.suffix = f'_{len(th.sub_indices)}sub'
   # ---------------------------------------------------------------------------
   # 1. folder/file names and device

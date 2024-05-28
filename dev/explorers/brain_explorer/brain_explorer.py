@@ -50,8 +50,10 @@ class BrainViewer(SliceView):
 
 if __name__ == '__main__':
   data_dir = r'../../../data/05-Brain-MR/mi/neurocon/'
+  data_dir = r'D:\data\PET-brain\500-freesurfer\mi'
 
   subjects = ['sub-control032014', 'sub-control032015']
+  subjects = ['002lqw', '004dcd']
 
   mi_list = []
   for file in [os.path.join(data_dir, f'{s}.mi') for s in subjects]:
