@@ -9,14 +9,20 @@ import os
 # -----------------------------------------------------------------------------
 # Settings
 # -----------------------------------------------------------------------------
-data_dir = r'D:\data\BAMIA\CT'
-feature_dir = os.path.join(data_dir, 'rad_features_pool')
+data_dir = r'D:/data/BAMIA/'
+rad_fn = 'BAMIA-All-851.omix'
+path_fn = 'patho_0526_fcn(1)_2_Sc_177.omix'
 
 # -----------------------------------------------------------------------------
 # Read all omix and merge
 # -----------------------------------------------------------------------------
-omix_file_paths = finder.walk(feature_dir, pattern='*.omix')
-omix_list = [Omix.load(omix_file_path) for omix_file_path in omix_file_paths]
+rad_omix = Omix.load(os.path.join(data_dir, rad_fn))
+path_omix = Omix.load(os.path.join(data_dir, path_fn))
+path_omix = path_omix.duplicate(target_labels=['BA', 'MIA'],
+                                data_name='BAMIA-Patho')
 
-omix = Omix.sum(omix_list, data_name='BAMIA-Rad')
-omix.show_in_explorer()
+# print(path_omix.sample_labels)
+
+omix = rad_omix.intersect_merge(path_omix)
+# omix.show_in_explorer()
+
