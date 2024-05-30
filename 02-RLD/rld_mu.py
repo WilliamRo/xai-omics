@@ -62,7 +62,7 @@ def finalize(model):
   if th.use_sigmoid:
     model.add(mu.Activation('sigmoid'))
   elif th.clip_off:
-    model.add(Clip(0, 1.2))
+    model.add(Clip(0, 1.0))
 
   if th.internal_loss:
     context.customized_loss_f_net = get_total_loss
@@ -82,7 +82,10 @@ def gan_finalize(gan):
   from rld_core import th
 
   gan.G.add(get_conv(th.dimension)(filters=1, kernel_size=1))
-  gan.D.add(mu.HyperDense(1, activation='lrelu'))
+  if th.clip_off:
+    gan.G.add(Clip(0, 1.0))
+  gan.D.add(get_conv(th.dimension)(filters=1, kernel_size=1,
+                                   activation='lrelu'))
   gan.D.add(mu.Activation('sigmoid', set_logits=True))
 
   gan.build(loss=pedia.cross_entropy,

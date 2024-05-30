@@ -23,7 +23,7 @@ def main(_):
   console.start('{} on PET/CT reconstruct task'.format(model_name.upper()))
 
   th = core.th
-  th.rehearse = 0
+  th.rehearse = 1
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
@@ -33,7 +33,7 @@ def main(_):
   th.val_size = 5
   th.test_size = 10
 
-  th.windows_size = [64, 64, 64]
+  th.windows_size = [16, 128, 128]
   # th.eval_windows_size = [1, 128, 128]
 
   th.data_shape = [560, 440, 440]
@@ -41,7 +41,7 @@ def main(_):
 
   th.gan = False
 
-  th.data_set = ['30G', '240G']
+  th.data_set = ['120G', '240G']
   th.process_param = {
     'ct_window': None,
     'norm': 'PET',  # only min-max,
@@ -65,14 +65,13 @@ def main(_):
   th.suffix += f'_win{tuple(th.windows_size)}'
 
 
-  th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------
   # 2. model setup
   # ---------------------------------------------------------------------------
   th.model = model
   th.archi_string = '4-3-3-2-lrelu'
 
-  th.use_sigmoid = False
+  th.use_sigmoid = False 
   th.clip_off = False
   th.output_conv = True
   # th.use_res = True

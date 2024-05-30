@@ -169,33 +169,74 @@ class RLDSet(DataSet):
     dirpath = os.path.join(th.job_dir, 'checkpoints/', th.mark, 'saves/')
     pred = []
     if not update_saves and os.path.exists(dirpath):
-      for path in os.listdir(dirpath):
+      for path in sorted(os.listdir(dirpath)):
         if path.endswith(r".nii.gz"):
           pred.append(RLDSet.load_nii(os.path.join(dirpath, path)))
     else:
       os.makedirs(dirpath, exist_ok=True)
       pred = []
-      pred_raw = model.predict(self, batch_size=1)[:, ..., -1]
+      pred_raw = []
+      for i in range(len(self)):
+        datadict = {
+          'features': self.features[i:i+1],
+          'targets': self.targets[i:i+1]
+        }
+        if th.gan:
+          datadict[pedia.G_input] = datadict.get('targets')
+        data = DataSet(data_dict=datadict)
+        pred_raw.append(model.predict(data, batch_size=1)[:, ..., -1])
+      pred_raw = np.concatenate(pred_raw, axis=0)
       if th.dimension == 2:
         pred_raw = np.reshape(pred_raw, [-1]+th.data_shape)
-      # pred_raw = np.zeros((5, 263, 440, 440, 1))
+      # pred_raw = np.zeros((5, 263, 440, 440))
       print(pred_raw.shape)
       # Remove negative values
       pred_raw[pred_raw < 0] = 0
       for num, sub, pred_i in zip(range(len(self)), self.pid, pred_raw):
         pred_path = os.path.join(dirpath, f'{num}-{sub}-pred.nii.gz')
         index = self.mi_data.index(sub)
+        print(np.max(pred_i), np.min(pred_i))
         pred_i = self.mi_data.reverse_norm_suv(pred_i, index)
         GeneralMI.write_img(pred_i, pred_path, self.itk_imgs[th.data_set[0]][index])
         pred.append(pred_i)
 
-    self.pred = pred
-    pred = np.stack(pred, axis=0)
-    pred = np.expand_dims(pred, axis=-1)
+    # self.pred = pred
+    # pred = np.stack(pred, axis=0)
+    # pred = np.expand_dims(pred, axis=-1)
+
+    if th.gen_gaussian != 0:
+      data_path = os.path.join(dirpath, 'gaussian/')
+      if not os.path.exists(data_path):
+        os.makedirs(data_path)
+      for i in range(len(self)):
+        index = self.mi_data.index(self.pid[i])
+        raw = self.features[i, ..., 0]
+        img = self.gen_gaussian(raw, th.gen_gaussian)
+        img = self.mi_data.reverse_norm_suv(img, i)
+        GeneralMI.write_img(img, os.path.join(data_path,
+                                              f'{i}-{self.pid[i]}-pred.nii.gz'),
+                            self.itk_imgs[th.data_set[0]][index])
 
     if th.gen_test_nii:
-      test_keys = self.mi_data.image_keys
+      # test_keys = th.data_set[:1]
+      test_keys = ['CT']
       self.gen_test_data(dirpath, test_keys)
+
+    if th.gen_mask:
+      self.gen_mask(dirpath)
+
+    if th.gen_dcm:
+      dcm_data = pred[:, ..., 0]
+      dcm_path = os.path.join(dirpath, 'dcm/')
+      if not os.path.exists(dcm_path):
+        os.makedirs(dcm_path)
+      for i in range(len(self)):
+        index = self.mi_data.index(self.pid[i])
+        tags = self.mi_data.get_tags(i)
+        dcm = self.mi_data.suv_reverse(dcm_data[i], tags)
+        GeneralMI.write_img_dcm(dcm, os.path.join(dcm_path, f'{i}-{self.pid[i]}.dcm'),
+                                tags, self.itk_imgs[th.data_set[0]][index])
+      pass
 
     # Compare results using DrGordon
     medical_images = [
@@ -262,19 +303,47 @@ class RLDSet(DataSet):
     re.sv.set('vmax', 5.0)
     re.show()
 
+  def gen_mask(self, dirpath):
+    from rld_core import th
+    data_path = os.path.join(dirpath, 'mask/')
+    if not os.path.exists(data_path):
+      os.makedirs(data_path)
+    for i in range(len(self)):
+      pid = self.pid[i]
+      img_path = os.path.join(data_path, f'{i}-{pid}-mask.nii.gz')
+      if os.path.exists(img_path): continue
+      index = self.mi_data.index(pid)
+      seg = self.seg[i]
+      if pid == 'YHP00012417':
+        seg = seg[::-1]
+      GeneralMI.write_img(seg, img_path,
+                          self.itk_imgs[th.data_set[0]][index])
+
   def gen_test_data(self, dirpath, keys):
     from rld_core import th
     self.mi_data.image_keys = keys
-    for pid in self.pid:
-      data_path = os.path.join(dirpath, 'raw_data/')
-      if not os.path.exists(data_path):
-        os.makedirs(data_path)
+    data_path = os.path.join(dirpath, 'raw_data/')
+    if not os.path.exists(data_path):
+      os.makedirs(data_path)
+    for i in range(len(self)):
+      pid = self.pid[i]
       for name in self.mi_data.image_keys:
-        img_path = os.path.join(data_path, f'{pid}-{name}.nii.gz')
+        img_path = os.path.join(data_path, f'{i}-{pid}-{name}.nii.gz')
         if os.path.exists(img_path): continue
         index = self.mi_data.index(pid)
-        GeneralMI.write_img(self.raw_images[name][index],
-                            img_path, self.itk_imgs[th.data_set[0]][index])
+        if name != 'CT':
+          GeneralMI.write_img(self.raw_images[name][index][0],
+                              img_path, self.itk_imgs[th.data_set[0]][index])
+        else:
+          ct_img = self.raw_images[name][index][0]
+          if pid == 'YHP00012417':
+            ct_img = ct_img[::-1]
+          GeneralMI.write_img(ct_img, img_path,
+                              self.itk_imgs[th.data_set[0]][index])
+
+  def gen_gaussian(self, img, sigma):
+    from scipy.ndimage import gaussian_filter
+    return gaussian_filter(img, sigma)
 
   # endregion: Evaluation methods
 
