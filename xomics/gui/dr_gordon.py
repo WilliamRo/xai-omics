@@ -50,7 +50,7 @@ class DrGordon(Pictor):
 
   @objects.setter
   def objects(self, value):
-    raise AssertionError('Can not set objects in this way')
+    raise AssertionError('Can not set 01-objects in this way')
 
   # endregion: Properties
 
