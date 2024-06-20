@@ -20,11 +20,13 @@ def model():
 
   m.mu.UNet(3, arc_string=th.archi_string).add_to(gan.G)
 
-  H, N = 8, 4
-  for _ in range(N):
-    gan.D.add(m.mu.HyperConv3D(H, 3, use_batchnorm=True, activation='lrelu'))
-    H *= 2
-  gan.D.add(m.mu.Dense(H, activation='lrelu'))
+  # H, N = 8, 3
+  # for _ in range(N):
+  #   gan.D.add(m.mu.HyperConv3D(H, 3, use_batchnorm=True, activation='lrelu'))
+  #   H *= 2
+  # gan.D.add(m.mu.Dense(H, activation='lrelu'))
+  m.mu.UNet(3, arc_string=th.archi_string, use_batchnorm=True).add_to(gan.D)
+
 
   return m.gan_finalize(gan)
 
@@ -37,13 +39,13 @@ def main(_):
   # ---------------------------------------------------------------------------
   # 0. date set setup
   # ---------------------------------------------------------------------------
-  th.visible_gpu_id = 1
+  th.visible_gpu_id = 0
   th.data_config = fr'alpha dataset=02-RLD'
 
   th.val_size = 5
   th.test_size = 10
 
-  th.windows_size = [64, 64, 64]
+  th.windows_size = [16, 128, 128]
   # th.eval_windows_size = [1, 128, 128]
 
   th.data_shape = [560, 440, 440]
@@ -75,7 +77,6 @@ def main(_):
   th.suffix += f'_win{tuple(th.windows_size)}'
 
 
-  th.visible_gpu_id = 0
   # ---------------------------------------------------------------------------
   # 2. model setup
   # ---------------------------------------------------------------------------
@@ -83,7 +84,7 @@ def main(_):
   th.archi_string = '4-3-3-2-lrelu'
 
   th.use_sigmoid = False
-  th.clip_off = False
+  th.clip_off = True
   th.output_conv = False
   # th.use_res = True
   # ---------------------------------------------------------------------------

@@ -12,14 +12,29 @@ class RLDAgent(DataAgent):
 
   @classmethod
   def load(cls, data_dir, validate_size, test_size):
+    from rld_core import th
     ds: RLDSet = cls.load_as_tframe_data(data_dir)
-    test_pid = ['YHP00012417', 'YHP00010651', 'YHP00012231',
-                'YHP00012016', 'YHP00011840', 'YHP00011890',
-                'YHP00011239', 'YHP00011561', 'YHP00011818',
-                'YHP00011905']
+    with open(os.path.join(data_dir,
+                           th.data_kwargs['dataset'] ,'test_id'), 'r') as f:
+      test_pid = f.read().split('\n')
+      if test_pid[-1] == '':
+        test_pid = test_pid[:-1]
+    test_pid = [f'YHP000{pid}' for pid in test_pid]
     train, test = ds.subset(test_pid, 'Test-Set')
-    train, valid = train.split(-1, validate_size,
-                               names=['Train-Set', 'Val-Set'])
+    test.buffer_size = len(test)
+
+    if th.gan:
+      valid_pid = [
+        'YHP00012350', 'YHP00010521', 'YHP00011030', 'YHP00012439',
+        'YHP00012490'
+      ]
+      train, valid = train.subset(valid_pid, 'Val-Set')
+      train.name = 'Train-Set'
+    else:
+      train, valid = train.split(-1, validate_size,
+                                 names=['Train-Set', 'Val-Set'])
+
+    print("Validation Pids: ", valid.mi_data.pid)
     # train.mi_data.get_stat()
     # valid.mi_data.get_stat()
     # test.mi_data.get_stat()
@@ -35,6 +50,8 @@ class RLDAgent(DataAgent):
     img_keys = th.data_set # + ['CT_seg']
     if not th.noCT:
       img_keys += ['CT']
+    if th.gen_mask:
+      img_keys += ['CT_seg']
 
     img_keys += th.extra_data
 

@@ -34,6 +34,13 @@ def get_random_window(arr: np.ndarray, windows_size, true_rand=False):
 
   arr = arr != 0
   arr = arr[:, ..., 0]
+  pos = []
+
+  if true_rand:
+    for i, size in enumerate(arr.shape):
+      index = np.random.randint(size)
+      pos.append(windows_choose_simple(index, windows_size[i], size))
+    return pos
 
   dimension = len(arr.shape)
   sub_arr = []
@@ -44,7 +51,6 @@ def get_random_window(arr: np.ndarray, windows_size, true_rand=False):
   for s_arr in sub_arr:
     dist_list.append(normalize(s_arr.ravel()))
 
-  pos = []
   for i, dist in enumerate(dist_list):
     pos.append(windows_choose(dist, windows_size[i]))
 
@@ -84,12 +90,22 @@ def nonlocal_mean(image, h=10, patch_size=7, patch_dis=21):
   return de_img
 
 
+def windows_choose_simple(pos, windows_size, max_size):
+  result = pos - windows_size / 2
+
+  if result < 0: result = 0
+  if result > max_size - windows_size:
+    result = max_size - windows_size
+
+  return int(result)
+
+
 
 
 
 if __name__ == '__main__':
   from xomics import MedicalImage
-  from xomics.objects.jutils.general_mi import GeneralMI
+  from xomics.objects.jutils.objects import GeneralMI
   from dev.explorers.rld_explore.rld_explorer import RLDExplorer
   import datetime
 
@@ -100,14 +116,14 @@ if __name__ == '__main__':
   test.process_param['norm'] = 'PET'
 
   a = test.images['CT'][0]
-  b = test.labels['60G-3'][0]
+  b = test.images['30G'][1]
   if test_gen_win:
     a = np.expand_dims(a, axis=[-1, 0])
     b = np.expand_dims(b, axis=[-1, 0])
 
     num = 16
     time1 = datetime.datetime.now()
-    img_f, img_t = gen_windows(a, b, num, [1, 360, 360], true_rand=False)
+    img_f, img_t = gen_windows(a[0], b[0], num, [128, 128, 128], true_rand=True)
     time2 = datetime.datetime.now()
     print("time:", time2 - time1)
     di_f = {}

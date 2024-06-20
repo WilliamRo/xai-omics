@@ -44,6 +44,9 @@ class RLDConfig(SmartTrainerHub):
   time_dim = Flag.integer(128, 'time dimension for DDPM', is_key=None)
 
   dimension = Flag.integer(3, 'dimension of the data', is_key=None)
+  gen_gaussian = Flag.integer(0, 'gaussian sigma', is_key=None)
+  gen_dcm = Flag.boolean(False, 'generate dicom', is_key=None)
+  gen_mask = Flag.boolean(False, 'generate mask', is_key=None)
 
   @property
   def data_arg(self) -> Arguments:

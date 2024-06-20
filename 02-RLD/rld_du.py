@@ -15,8 +15,13 @@ def load_data(model):
       ds.batch_preprocessor = model.batch_preprocessor
     assert isinstance(ds, RLDSet)
 
-    if not th.rehearse and (ds.name != 'Train-Set' and th.train or ds.name == 'Test-Set'):
+    if not th.rehearse and ds.name == 'Val-Set' and th.train:
       ds.mi_data.pre_load(16)
+      ds.fetch_data(ds)
+      console.supplement(f'{ds.name}: {ds.features.shape}', level=2)
+    elif not th.rehearse and not th.train and ds.name == 'Test-Set':
+      ds.mi_data.pre_load(16)
+      ds.buffer_size = len(ds)
       ds.fetch_data(ds)
       console.supplement(f'{ds.name}: {ds.features.shape}', level=2)
     else:
