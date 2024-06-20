@@ -10,8 +10,8 @@ import os
 # -----------------------------------------------------------------------------
 data_dir = r'D:/data/BAMIA/'
 file_name = [
-  '20240528-All.omix',
-  '20240529-All-LM.omix',
+  'BAMIA-All-851.omix',
+  'BAMIA-Origin-107.omix',
 ][1]
 
 # -----------------------------------------------------------------------------
@@ -24,5 +24,12 @@ omix = Omix.load(os.path.join(data_dir, file_name))
 # -----------------------------------------------------------------------------
 pi = Pipeline(omix, ignore_warnings=1, save_models=0)
 
+M = 2
+k = 5
+pi.create_sub_space('pca', n_components=k, repeats=M, show_progress=1)
+# pi.create_sub_space('sig', n_components=k, repeats=M, show_progress=1)
+
+N = 3
+pi.fit_traverse_spaces('lr', repeats=N, show_progress=1)
+
 pi.report()
-pi.plot_matrix()

@@ -24,12 +24,12 @@ omix = Omix.load(os.path.join(data_dir, file_name))
 # -----------------------------------------------------------------------------
 pi = Pipeline(omix, ignore_warnings=1, save_models=0)
 
-pi.create_sub_space('lasso', repeats=5, show_progress=1)
-pi.create_sub_space('pca', n_components=5, repeats=1, show_progress=1)
-pi.create_sub_space('pca', n_components=10, repeats=1, show_progress=1)
-pi.create_sub_space('mrmr', k=5, repeats=1, show_progress=1)
-pi.create_sub_space('mrmr', k=10, repeats=1, show_progress=1)
-# pi.create_sub_space('indices', repeats=1, show_progress=1, indices='1-5')
+M = 10
+pi.create_sub_space('lasso', repeats=M, show_progress=1)
+pi.create_sub_space('pca', n_components=10, repeats=M, show_progress=1)
+pi.create_sub_space('pca', n_components=20, repeats=M, show_progress=1)
+pi.create_sub_space('mrmr', k=10, repeats=M, show_progress=1)
+pi.create_sub_space('mrmr', k=20, repeats=M, show_progress=1)
 
 N = 10
 pi.fit_traverse_spaces('lr', repeats=N, show_progress=1)
@@ -40,4 +40,4 @@ pi.fit_traverse_spaces('xgb', repeats=N, show_progress=1)
 
 pi.report()
 
-omix.save(os.path.join(data_dir, '20240528-All.omix'), verbose=True)
+omix.save(os.path.join(data_dir, '20240529-All.omix'), verbose=True)
