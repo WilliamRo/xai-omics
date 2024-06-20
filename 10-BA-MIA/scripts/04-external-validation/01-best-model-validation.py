@@ -38,4 +38,4 @@ best_pkg: FitPackage = ranking[0][2]
 ext_omix_reduced = best_dr.reduce_dimension(ext_omix)
 pkg = best_pkg.evaluate(ext_omix_reduced)
 
-pkg.report()
+pkg.report(show_signature=1, omix=ext_omix_reduced)
