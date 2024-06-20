@@ -9,20 +9,20 @@ import os
 # Configuration
 # -----------------------------------------------------------------------------
 data_dir = r'D:/data/BAMIA/'
-file_name = [
-  '20240528-All.omix',
-  '20240529-All-LM.omix',
-][0]
+package_path = '20240620-RP-LASSO-LR.omix'
+
+external_omix_path = 'BAMIA-radiopathomics-72x883.omix'
+# -----------------------------------------------------------------------------
+# Load omices
+# -----------------------------------------------------------------------------
+pkg_omix: Omix = Omix.load(os.path.join(data_dir, package_path))
+ext_omix: Omix = Omix.load(os.path.join(data_dir, external_omix_path))
 
 # -----------------------------------------------------------------------------
 # Load features and targets
 # -----------------------------------------------------------------------------
-omix = Omix.load(os.path.join(data_dir, file_name))
-
-# -----------------------------------------------------------------------------
-# Load features and targets
-# -----------------------------------------------------------------------------
-pi = Pipeline(omix, ignore_warnings=1, save_models=0)
+pi = Pipeline(pkg_omix, ignore_warnings=1, save_models=1)
 
 pi.report()
 pi.plot_matrix()
+

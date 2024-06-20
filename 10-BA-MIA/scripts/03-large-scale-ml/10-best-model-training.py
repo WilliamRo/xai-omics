@@ -10,8 +10,7 @@ import os
 # -----------------------------------------------------------------------------
 data_dir = r'D:/data/BAMIA/'
 file_name = [
-  '20240528-All.omix',
-  '20240529-All-LM.omix',
+  'BAMIA-radiopathomics-72x883.omix',
 ][0]
 
 # -----------------------------------------------------------------------------
@@ -22,7 +21,14 @@ omix = Omix.load(os.path.join(data_dir, file_name))
 # -----------------------------------------------------------------------------
 # Load features and targets
 # -----------------------------------------------------------------------------
-pi = Pipeline(omix, ignore_warnings=1, save_models=0)
+pi = Pipeline(omix, ignore_warnings=1, save_models=1)
+
+M = 10
+pi.create_sub_space('lasso', repeats=M, show_progress=1)
+
+N = 10
+pi.fit_traverse_spaces('lr', repeats=N, show_progress=1)
 
 pi.report()
-pi.plot_matrix()
+
+omix.save(os.path.join(data_dir, '20240620-RP-LASSO-LR.omix'), verbose=True)
