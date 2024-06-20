@@ -13,6 +13,8 @@ pool_dir = r'D:/data/BAMIA/CT/rad_features_pool'
 # -----------------------------------------------------------------------------
 omix_list = [Omix.load(fp) for fp in finder.walk(pool_dir, pattern='*.omix')]
 omix = Omix.sum(omix_list, data_name='BAMIA-Radomics-111x851')
-omix.show_in_explorer()
+# omix.show_in_explorer()
+
+omix.select_features('rfe', k=12, kernel='linear').show_in_explorer()
 
 # use `:save` command to save .omix file

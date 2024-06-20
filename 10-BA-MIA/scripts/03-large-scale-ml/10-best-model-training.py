@@ -23,10 +23,10 @@ omix = Omix.load(os.path.join(data_dir, file_name))
 # -----------------------------------------------------------------------------
 pi = Pipeline(omix, ignore_warnings=1, save_models=1)
 
-M = 10
+M = 1
 pi.create_sub_space('lasso', repeats=M, show_progress=1)
 
-N = 10
+N = 5
 pi.fit_traverse_spaces('lr', repeats=N, show_progress=1)
 
 pi.report()
