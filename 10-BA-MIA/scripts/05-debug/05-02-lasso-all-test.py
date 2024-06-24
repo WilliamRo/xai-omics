@@ -32,10 +32,10 @@ if 0: omix_1.show_in_explorer(), exit()
 console.section('Select features')
 omix_1.report(), print()
 
-use_global_lasso = 1
-sf_method = ['lasso', 'pval'][1]
+use_global_reducer = 0
+sf_method = ['lasso', 'pval'][0]
 kwargs = {'k': 30}
-if use_global_lasso:
+if use_global_reducer:
   omix_all_reduced = omix.select_features(
     sf_method, lasso_repeats=5, verbose=1, save_model=True, **kwargs)
   lasso: DREngine = omix_all_reduced.dimension_reducer

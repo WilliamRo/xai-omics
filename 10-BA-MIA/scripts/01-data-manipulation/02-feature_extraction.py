@@ -20,7 +20,7 @@ settings = {
 filters = ['LoG', 'Wavelet']
 
 data_dir = r'D:\data\BAMIA\CT'
-feature_dir = os.path.join(data_dir, 'rad_features_pool')
+feature_dir = os.path.join(data_dir, 'rad_features_pool_clip')
 target = 1
 data_dir = os.path.join(data_dir, ['BA', 'MIA'][target])
 
